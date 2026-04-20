@@ -1,5 +1,5 @@
 import {useEffect , useState} from "react";
-import {Link} from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 //in react a component is a function that return a piece of UI 
 function ManagerSidebar(){
@@ -31,15 +31,21 @@ function ManagerSidebar(){
 
         <ul className="nav flex-column mb-auto text-start list-unstyled">
             <li className="nav-item">
-                <Link to="/" className="nav-link text-white">Dashboard</Link>
+                <NavLink to="/" className={({ isActive }) =>
+    "nav-link text-white " + (isActive ? "active-link" : "")
+  }>Dashboard</NavLink>
             </li>
 
             <li className="nav-item">
-                <Link to="/kpi-management" className="nav-link text-white">KPI Management</Link>
+                <NavLink to="/kpi-management" className={({ isActive }) =>
+    "nav-link text-white " + (isActive ? "active-link" : "")
+  }>KPI Management</NavLink>
             </li>
 
             <li>
-                <Link to="/verify-kpi" className="nav-link text-white">Verify KPI</Link>
+                <NavLink to="/verify-kpi" className={({ isActive }) =>
+    "nav-link text-white " + (isActive ? "active-link" : "")
+  }>Verify KPI</NavLink>
             </li>
         </ul>
 
