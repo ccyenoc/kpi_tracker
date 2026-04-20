@@ -26,7 +26,7 @@ function ManagerDashboard(){
 
        <ExportBar />
 
-<div className="p-2"></div>
+<div className="p-1"></div>
        <RectangleGraphCard/>
 
 </div>

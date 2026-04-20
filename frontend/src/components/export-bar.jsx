@@ -15,7 +15,7 @@ function ExportBar(){
         justifyContent: "space-between", // 🔥 push apart
         alignItems: "center",
         width: "100%", // 🔥 full width
-        padding: "12px 20px",
+        padding: "12px 12px",
         backgroundColor: "#ffffff",
         borderRadius: "12px",
         boxShadow: "0 4px 6px rgba(0,0,0,0.05)"
