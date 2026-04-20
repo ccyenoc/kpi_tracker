@@ -1,6 +1,8 @@
 // since that we are using vite we dont need to import react anymore
 import ManagerSidebar from "../components/manager_sidebar.jsx";
 import DashboardCards from "../components/4x1_cards_layout";
+import ExportBar from "../components/export-bar";
+import RectangleGraphCard from "../components/rectangle_graph_card.jsx";
 
 function ManagerDashboard(){
    return (
@@ -21,6 +23,11 @@ function ManagerDashboard(){
 
       {/*top 4 cards*/}
        <DashboardCards />
+
+       <ExportBar />
+
+<div className="p-2"></div>
+       <RectangleGraphCard/>
 
 </div>
 

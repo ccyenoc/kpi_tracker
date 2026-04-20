@@ -6,7 +6,7 @@ function Card({ title, value, subtitle, color }) {
         flex: "0 0 250px",  
         border: `2px solid ${color}`,
         borderRadius: "12px",
-        borderLeft: `6px solid ${color}`,
+        borderLeft: `6px solid ${color}`, // this is where we make the border thicker on the left to make it prettier
         padding: "20px",
         backgroundColor: "#ffffff",
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
