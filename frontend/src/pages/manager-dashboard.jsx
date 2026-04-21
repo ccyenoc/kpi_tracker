@@ -3,6 +3,8 @@ import ManagerSidebar from "../components/manager_sidebar.jsx";
 import DashboardCards from "../components/4x1_cards_layout";
 import ExportBar from "../components/export-bar";
 import RectangleGraphCard from "../components/rectangle_graph_card.jsx";
+import StaffRankingCard from "../components/staff_ranking_card.jsx";
+import ManagerDashboardKpi from "../components/manager_dashboard_kpi.jsx";
 
 function ManagerDashboard(){
    return (
@@ -28,7 +30,17 @@ function ManagerDashboard(){
 
 <div className="p-1"></div>
        <RectangleGraphCard/>
-
+<div 
+className="p-2"
+style={{
+  display: "flex",
+  flexDirection: "row",
+  gap: "20px",
+}}>
+   <StaffRankingCard />
+   <ManagerDashboardKpi />
+</div>
+    
 </div>
 
     </div>
