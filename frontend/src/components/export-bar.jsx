@@ -10,7 +10,7 @@ function ExportBar(){
 
     return(
         <div 
-        className="m-3"
+        className="ms-3"
         style={{
           display: "flex",
           justifyContent: "space-between",
