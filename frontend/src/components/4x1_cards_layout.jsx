@@ -31,7 +31,12 @@ function Card({ title, value, subtitle, color }) {
 }
 
 // this is for the dashboard top cards layout (4 x 1)
-function DashboardCards() {
+function DashboardCards(
+  {title1 , value1, subtitle1,
+  title2 , value2, subtitle2,
+  title3 , value3, subtitle3,
+  title4 , value4, subtitle4,}
+) {
   return (
     <div
       style={{
@@ -41,33 +46,34 @@ function DashboardCards() {
       }}
     >
       <Card
-        title="Total KPIs"
-        value="4"
-        subtitle="All defined KPIs"
+        title={title1}
+        value={value1}
+        subtitle={subtitle1}
         color="#3b82f6"
       />
 
       <Card
-        title="Active KPIs"
-        value="3"
-        subtitle="Currently in progress"
+        title={title2}
+        value={value2}
+        subtitle={subtitle2}
         color="#22c55e"
       />
 
       <Card
-        title="Completed"
-        value="1"
-        subtitle="Finished KPIs"
+        title={title3}
+        value={value3}
+        subtitle={subtitle3}
         color="#facc15"
       />
 
       <Card
-        title="High Priority"
-        value="2"
-        subtitle="Requires attention"
+        title={title4}
+        value={value4}
+        subtitle={subtitle4}
         color="#ef4444"
       />
     </div>
   );
 }
 export default DashboardCards;
+     

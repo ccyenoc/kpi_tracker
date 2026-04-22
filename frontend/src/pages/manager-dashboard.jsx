@@ -20,11 +20,24 @@ function ManagerDashboard(){
       }}>
       {/* welcome message */}
         <div className="p-4">
-          <h2>Welcome back, Manager!</h2>
+          <h2>Welcome back, John!</h2>
         </div>
 
       {/*top 4 cards*/}
-       <DashboardCards />
+       <DashboardCards 
+         title1="Total KPIs"
+         value1="3"
+         subtitle1="All defined KPIs"
+         title2="Active KPIs"
+         value2="3"
+         subtitle2="Currently in progress"
+         title3="Completed"
+         value3="1"
+         subtitle3="Finished KPIs"
+         title4="High Priority"
+         value4="2"
+         subtitle4="Requires attention"
+       />
 
        <ExportBar />
 

@@ -1,4 +1,6 @@
-function KpiCard({ title }) {
+import KPIItem from "./kpi-item";
+
+function KpiCard({ title, subtitle, items = [] }) {
   return (
     <div
       style={{
@@ -12,21 +14,24 @@ function KpiCard({ title }) {
         flexDirection: "column",
       }}
     >
-      <h5
-       style={{
-        fontSize: "16px",
-        textAlign: "left",
-       }}>{title}</h5>
+      <h5 style={{ 
+        fontSize: "16px", 
+        textAlign: "left"
+         }}>{title} </h5>
 
-      <p style={{ 
-        fontSize: "13px", 
-        color: "#64748b" ,
-        textAlign: "left",
-        }}> KPIs that have potential to fail to be accomplished
-      </p>
+      <p 
+        style={{ 
+            fontSize: "13px", 
+            color: "#64748b",
+            textAlign: "left",
+            }}>{subtitle}</p>
 
-      {/* content goes here later */}
-      <div style={{ flex: 1 }} />
+      <div 
+        style={{ marginTop: "10px" }}>
+        {items.map((item, index) => (
+          <KPIItem key={index} {...item} />
+        ))}
+      </div>
     </div>
   );
 }
