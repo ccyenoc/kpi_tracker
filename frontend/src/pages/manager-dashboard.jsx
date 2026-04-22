@@ -40,15 +40,13 @@ function ManagerDashboard(){
        />
 
        <ExportBar />
-
-<div className="p-1"></div>
        <RectangleGraphCard/>
 <div 
 className="p-2"
 style={{
   display: "flex",
   flexDirection: "row",
-  gap: "20px",
+  gap:"20px",
 }}>
    <StaffRankingCard />
    <ManagerDashboardKpi />

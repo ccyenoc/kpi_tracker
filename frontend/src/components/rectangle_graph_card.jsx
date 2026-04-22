@@ -19,16 +19,18 @@ function RectangleGraphCard(){
 
 
     return(
-        <div 
+        <div className="ms-3"
         style={{
             display : "flex",
             flexDirection: "column",
             height: "380px",
+            width:"97%",
             padding: "20px",
             backgroundColor: "#ffffff",
             boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
             flex: "0 0 250px",  
             borderRadius : "15px",
+            fontSize: "16px",
         }}>
             
             {/*} 
@@ -59,9 +61,11 @@ function RectangleGraphCard(){
                 color: "#8a8a8a" ,
                 fontSize : "14px"}}>Track KPI performance trends over time </h5>
 
-                <div style={{ width: "100%", height: "300px" }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
+                <div style={{ 
+                  width: "100%", 
+                  height: "300px" }}>
+          <ResponsiveContainer width="100%" height="100%">
+           <LineChart data={data}>
             <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
 
             <XAxis dataKey="time" />

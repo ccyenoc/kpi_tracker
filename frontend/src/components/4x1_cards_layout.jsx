@@ -13,18 +13,23 @@ function Card({ title, value, subtitle, color }) {
       }}
     >
       {/* Top title */}
-      <div style={{ fontSize: "14px", color: "#374151" }}>
-        {title}
+      <div style={{ 
+        fontSize: "14px", 
+        color: "#374151" }}>{title}
       </div>
 
       {/* Big number */}
-      <div style={{ fontSize: "28px", fontWeight: "bold", marginTop: "10px" }}>
-        {value}
+      <div style={{ 
+        fontSize: "28px", 
+        fontWeight: "bold", 
+        marginTop: "10px" }}>{value}
       </div>
 
       {/* Subtitle */}
-      <div style={{ fontSize: "13px", color: "#6b7280", marginTop: "5px" }}>
-        {subtitle}
+      <div style={{ 
+        fontSize: "13px", 
+        color: "#6b7280", 
+        marginTop: "5px" }}>{subtitle}
       </div>
     </div>
   );

@@ -2,9 +2,9 @@ import TopStaffCard from "./top_staff_card";
 
 function StaffRankingCard() {
   return (
-    <div
+    <div className="ms-2"
       style={{
-        width: "500px",
+        width: "40%",
         backgroundColor: "#ffffff",
         padding: "20px",
         borderRadius: "15px",

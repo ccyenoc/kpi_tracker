@@ -5,7 +5,7 @@ function KpiCard({ title, subtitle, items = [] }) {
     <div
       style={{
         height: "100%",
-        width: "600px",
+        width: "165%",
         background: "#ffffff",
         borderRadius: "16px",
         padding: "16px",

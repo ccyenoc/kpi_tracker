@@ -31,7 +31,7 @@ function ManagerSidebar(){
 
         <ul 
           className="nav flex-column mb-auto text-start list-unstyled"
-          style = {{fontSize: "16px"}}>
+          style = {{fontSize: "15px"}}>
             <li className="nav-item">
                 <NavLink to="/" className={({ isActive }) =>
     "nav-link text-white " + (isActive ? "active-link" : "")

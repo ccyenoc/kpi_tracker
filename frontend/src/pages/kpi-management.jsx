@@ -2,8 +2,31 @@ import {user, useState} from "react";
 import ManagerSidebar from "../components/manager_sidebar";
 import DashboardCards from "../components/4x1_cards_layout";
 import PageTitle from "../components/page_title";
+import SearchFilterKPI from "../components/search_filter_kpi"
+import KPIAssignedListCard from "../components/kpi_assigned_list";
 
 function KPIManagement(){
+     const temp_data = [
+    {
+      title: "Q1 Sales Target",
+      desc: "Achieve quarterly sales revenue target",
+      target: "500000 USD",
+      team: "Sales Team",
+      category: "Revenue",
+      deadline: "3/31/2026",
+      status: "Completed",
+    },
+    {
+      title: "Customer Satisfaction Score",
+      desc: "Maintain high customer satisfaction ratings",
+      target: "90%",
+      team: "Customer Service",
+      category: "Quality",
+      deadline: "6/30/2026",
+      status: "In Progress",
+    },
+  ];
+
     return (
         <div 
           className="d-flex"
@@ -11,13 +34,38 @@ function KPIManagement(){
             marginLeft: "150px",
             display: "flex",
             flexDirection : "column",
+            
           }}>
         
         <ManagerSidebar />
 
+        <div 
+          className="d-flex"
+          style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+          }}>
+
         <PageTitle
           title="KPI Management"
           subtitle="Create, Update and Manage key performance indicators" />
+
+
+        <button className="justy-content-center"
+         style={{
+            width :"120px",
+            height: "40px",
+            fontSize:"14px",
+            color:"#ffffff",
+            backgroundColor:"#2b4cb3",
+            borderColor:"#2b4cb3",
+            borderRadius:"18px",
+            border: "none",     
+         }}>+ Create KPI
+        </button>
+
+        </div>
 
         {/*top 4 cards*/}
         <DashboardCards 
@@ -37,6 +85,10 @@ function KPIManagement(){
          value4="2"
          subtitle4="Requires attention"
        />
+
+       <SearchFilterKPI />
+
+       <KPIAssignedListCard data={temp_data}/>
        </div>
 
 

@@ -10,7 +10,9 @@ function ManagerDashboardKpi() {
         height: "100%",
       }}
     >
-      <div style={{ flex: 1 }}>
+      <div style={{ 
+        flex: 1 
+      }}>
         <KpiCard
           title="At Risk KPIs"
           subtitle="KPIs that are at risk of not being accomplished on time"
