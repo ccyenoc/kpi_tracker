@@ -77,8 +77,13 @@ boxShadow: `
   </div>
 
   {/* RIGHT SIDE */}
-  <div style={{ textAlign: "center" }}>
-    <p style={{ fontSize: "13px", color: "#666" }}>
+  <div style={{ 
+    textAlign: "center" 
+  }}>
+    <p style={{ 
+      fontSize: "13px", 
+      color: "#666" 
+    }}>
       Performance
     </p>
     <CircularProgress value={87} />
