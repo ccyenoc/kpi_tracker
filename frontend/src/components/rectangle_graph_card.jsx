@@ -19,7 +19,7 @@ function RectangleGraphCard(){
 
 
     return(
-        <div className="ms-3"
+        <div className="ms-3 mt-2"
         style={{
             display : "flex",
             flexDirection: "column",

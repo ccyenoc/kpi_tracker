@@ -46,7 +46,7 @@ className="p-2"
 style={{
   display: "flex",
   flexDirection: "row",
-  gap:"20px",
+  gap:"20px"
 }}>
    <StaffRankingCard />
    <ManagerDashboardKpi />
