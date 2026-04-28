@@ -29,6 +29,7 @@ const StaffKPIUpdate = () => {
   };
 
   return (
+    /* FIXED: Added align-items-stretch so the sidebar matches the height of the scrollable content */
     <div className="d-flex align-items-stretch min-vh-100 w-100" style={{ backgroundColor: '#F8FAFC' }}>
       <Sidebar activePage="kpi" />
       

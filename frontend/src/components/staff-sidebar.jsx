@@ -15,7 +15,7 @@ export default function Sidebar({ activePage }) {
       <ul className="nav nav-pills flex-column gap-2 mt-4">
         <li>
           <Link
-            to="/"
+            to="/pages/staff-dashboard"
             className={`nav-link text-white d-flex gap-2 align-items-center ${activePage === 'dashboard' ? 'active' : ''}`}
             style={activePage === 'dashboard' ? { backgroundColor: '#3B82F6' } : {}}
           >
@@ -25,7 +25,7 @@ export default function Sidebar({ activePage }) {
 
         <li>
           <Link
-            to="/kpi"
+            to="/pages/staff-kpi-progress-update"
             className={`nav-link text-white d-flex gap-2 align-items-center ${activePage === 'kpi' ? 'active' : ''}`}
             style={activePage === 'kpi' ? { backgroundColor: '#3B82F6' } : {}}
           >

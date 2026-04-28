@@ -27,6 +27,7 @@ const StaffDashboard = () => {
             <p className="text-muted">Here's an overview of your performance tracking dashboard</p>
           </div>
 
+          {/* FIXED: Removed m-0 and w-100 to allow Bootstrap's grid to scale naturally within the flex container */}
           <div className="row g-3 mb-4">
             <div className="col-xl-3 col-md-6">
               <div className="card h-100 border-0 border-start border-4 shadow-sm p-3" style={{ borderLeftColor: '#155DFC' }}>
