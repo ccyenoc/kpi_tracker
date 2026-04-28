@@ -36,7 +36,7 @@ function KPIManagement(){
           subtitle="Create, Update and Manage key performance indicators" />
 
 
-        <button className="justy-content-center text-white border-0"
+        <button className="justify-content-center text-white border-0"
          style={{
             width :"120px",
             height: "40px",

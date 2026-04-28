@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './ProfilePage.css';
+import PageTitle from '../components/page_title';
 
 const ProfilePage = () => {
     const [fullName, setFullName] = useState('John Manager');
@@ -17,38 +18,38 @@ const ProfilePage = () => {
         .toUpperCase();
 
     return (
-        <div 
-          className="d-flex flex-column"
-          style={{
-            marginLeft: "150px",
-          }}>
-          
-            <h2 className="profile-header">Profile Management</h2>
-            <p className="profile-subheader">Manage your account information and security settings</p>
+        <div className="d-flex flex-column">
 
-            <div className="tab-pill-navigation">
-                <button
-                    className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('profile')}
-                >
-                    Profile Information
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'security' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('security')}
-                >
-                    Security
-                </button>
+            <PageTitle
+                title="Profile Management"
+                subtitle="Manage your account information and security settings" />
+
+            <div className="mx-3 mb-3 tab-pill-navigation">
+                <div className={`button-slider ${activeTab === 'profile' ? 'profileActive' : activeTab === 'security' ? 'securityActive' : ''}`} />
+                <div className="row tab-pill-navigation-buttons">
+                    <button
+                        className={`col tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('profile')}
+                    >
+                        Profile Information
+                    </button>
+                    <button
+                        className={`col tab-btn ${activeTab === 'security' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('security')}
+                    >
+                        Security
+                    </button>
+                </div>
             </div>
 
             {activeTab === 'profile' && (
                 <div className="content-wrapper">
-                    <div className="profile-header">
-                        <h5 className="profile-title">Personal Information</h5>
-                        <p className="profile-subtitle">View and update your personal details</p>
+                    <div className="tab-header">
+                        <h5 className="tab-title">Personal Information</h5>
+                        <p className="tab-subtitle">View and update your personal details</p>
                     </div>
 
-                    <div className="content-wrapper">
+                    <div>
                         <div className="full-name">
                             <label className="full-name-label">Full Name</label>
                             <i className="bi bi-person me-2 text-muted"></i>
@@ -114,28 +115,32 @@ const ProfilePage = () => {
                 </div>
             )}
             {activeTab === 'security' && (
-                <div className="content-wrapper">
-                    <div className="security-views">
-                        <div className="first-card">
-                            <h5 className="change-pw">Change Password</h5>
-                            <p className="update-pw">Update your password to keep your account secure</p>
-
-                            <div className="first-input">
-                                <label className="current-pw">Current Password</label>
-                                <input type="password" underline className="input-underline" placeholder=".........." />
-                            </div>
-                            <div className="second-input">
-                                <label className="new-pw">New Password</label>
-                                <input type="password" underline className="input-underline" placeholder=".........." />
-                            </div>
-                            <button className="btn-update-pw">Update Password</button>
+                <div>
+                    <div className="content-wrapper">
+                        <div className="tab-header">
+                            <h5 className="tab-title">Change Password</h5>
+                            <p className="tab-subtitle">Update your password to keep your account secure</p>
                         </div>
-
-                        <div className="danger-zone-card">
-                            <h5 className="danger-zone">Danger Zone</h5>
-                            <p className="text-muted small">Permanently delete your account and all associated data</p>
-                            <button className="btn-danger"><i className="bi bi-trash me-2"></i>Delete Account</button>
+                        <div className="first-input">
+                            <label className="current-pw">Current Password</label>
+                            <input type="password" underline className="input-underline" placeholder=".........." />
                         </div>
+                        <div className="second-input">
+                            <label className="new-pw">New Password</label>
+                            <input type="password" underline className="input-underline" placeholder=".........." />
+                        </div>
+                        <div className="second-input">
+                            <label className="confirm-pw">Confirm Password</label>
+                            <input type="password" underline className="input-underline" placeholder=".........." />
+                        </div>
+                        <button className="btn-update-pw">Update Password</button>
+                    </div>
+                    <div className='content-wrapper danger-zone'>
+                        <div className="tab-header">
+                            <h5 className="tab-title text-danger">Danger Zone</h5>
+                            <p className="tab-subtitle">Permanently delete your account and all associated data</p>
+                        </div>
+                        <button className="btn-danger"><i className="bi bi-trash me-2"></i>Delete Account</button>
                     </div>
                 </div>
             )}

@@ -1,59 +1,11 @@
-.sidebar-layout {
-    display: flex;
-    min-height: 100vh;
-}
-
-.sidebar {
-    min-height: 100vh;
-    background: #2c3e9a;
-    background-color: #f8f9fa;
-    color: white;
-    padding: 30px;
-    display: flex;
-    flex-direction: column;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.sidebar > div:first-child {
-    width: 250px;
-    background-color: #2c3eaf;
-    color: white;
-    padding: 2rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar .mb-2 {
-    cursor: pointer;
-    padding: 10px;
-    border-radius: 5px;
-    transition: 0.2s;
-}
-
-.sidebar .mb-2:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.profile-pic {
-    width: 45px;
-    height: 45px;
-    background: #4e73df;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    margin-top: auto;
-}
-
-.full-name-bold { font-weight: 600; margin: 0; font-size: 0.9rem; }
-.role-small { font-size: 0.75rem; opacity: 0.7; margin: 0; }
-
 .content-wrapper {
     background: white;
     padding: 30px;
     border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+    margin-right: 1rem;
+    margin-left: 1rem;
+    margin-bottom: 1rem;
 }
 
 label {
@@ -62,20 +14,22 @@ label {
     color: #6c757d;
     display: block;
     margin-top: 15px;
+    text-align: left;
 }
 
 .input-full-name, .input-email, .form-select, .form-control {
-    border: none !important;
-    border-bottom: 1px solid #ddd !important;
-    border-radius: 0 !important;
-    padding: 8px 0 !important;
+    outline: none;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    border-radius: 0 ;
+    padding: 8px 0 ;
     width: 100%;
     background: transparent;
 }
 
-.input-full-name:focus, .form-select:focus {
+.input-full-name:focus, .form-select:focus, .input-email:focus, .form-control:focus {
     outline: none;
-    border-bottom: 1px solid #2c3e9a !important;
+    border-bottom: 2px solid #2c3e9a;
     box-shadow: none;
 }
 
@@ -97,6 +51,7 @@ label {
     border-radius: 6px;
     margin-top: 20px;
     font-weight: 600;
+    display: flex;
 }
 
 .header {
@@ -112,41 +67,61 @@ label {
 }
 
 .tab-pill-navigation {
-    display: inline-flex;
-    background: #e9ecef;
     padding: 5px;
-    border-radius: 10px;
     margin-bottom: 2rem;
+    position: relative;
+    border-radius: 16px;
+    background: #e9ecef;
+}
+
+.tab-pill-navigation-buttons {
+    display: inline-flex;
+    width: 100%;
 }
 
 .tab-btn {
     border: none;
     background: transparent;
     padding: 8px 25px;
-    border-radius: 8px;
     color: #495057;
+    translate: 0%;
     transition: 0.3s;
 }
 
-.tab-btn.active {
-    background: white;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    color: #000;
+.button-slider {
+    align-self: center;
+    border-radius: 14px;
+    position: absolute;
+    width: calc(50% - 5px);
+    height: calc(100% - 10px);
+    background: #ffffff;
+    transition: 0.3s;
+    z-index: 0;
 }
 
-.first-card, .danger-zone-card {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
+.profileActive {
+    translate: 0%;
+}
+
+.securityActive {
+    translate: 100%;
+}
+
+.tab-header {
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+input {
+    background: transparent;
+    color: black;
 }
 
 .input-underline {
     width: 100%;
     border: none;
     border-bottom: 1px solid #dee2e6;
-    padding: 8px 0;
+    padding: 8px;
     margin-bottom: 1.5rem;
     outline: none;
     display: block;
@@ -163,6 +138,7 @@ label {
     padding: 10px 20px;
     border-radius: 6px;
     font-weight: 500;
+    display: flex;
 }
 
 .btn-danger {
@@ -172,9 +148,11 @@ label {
     padding: 10px 20px;
     border-radius: 6px;
     font-weight: 500;
+    display: flex;
 }
 
 .danger-zone {
-    color: #dc3545;
-    font-weight: 700;
+    border-color: #ff3d51;
+    border-width: 1px;
+    border-style: solid;
 }

@@ -7,9 +7,9 @@ function ManagerSidebar(){
 
     useEffect(()=>{
         fetch("http://localhost:8000/api/user")
-        .then(res => res.json())
-        .then(data => setUser(data))
-        .catch(err => console.error(err))
+            .then(res => res.json())
+            .then(data => setUser(data))
+            .catch(err => console.error(err))
     }, []);
 
     return(
@@ -29,34 +29,34 @@ function ManagerSidebar(){
                 borderRight: "none",
             }}>
 
-        <ul 
-          className="nav flex-column mb-auto text-start list-unstyled"
-          style = {{fontSize: "15px"}}>
-            <li className="nav-item">
-                <NavLink to="/" className={({ isActive }) =>
-    "nav-link text-white " + (isActive ? "active-link" : "")
-  }>Dashboard</NavLink>
-            </li>
+            <ul
+                className="nav flex-column mb-auto text-start list-unstyled"
+                style={{ fontSize: "15px" }}>
+                <li className="nav-item">
+                    <NavLink to="/" className={({ isActive }) =>
+                        "nav-link text-white " + (isActive ? "active-link" : "")
+                    }>Dashboard</NavLink>
+                </li>
 
-            <li className="nav-item">
-                <NavLink to="/kpi-management" className={({ isActive }) =>
-    "nav-link text-white " + (isActive ? "active-link" : "")
-  }>KPI Management</NavLink>
-            </li>
+                <li className="nav-item">
+                    <NavLink to="/kpi-management" className={({ isActive }) =>
+                        "nav-link text-white " + (isActive ? "active-link" : "")
+                    }>KPI Management</NavLink>
+                </li>
 
-            <li>
-                <NavLink to="/verify-kpi" className={({ isActive }) =>
-    "nav-link text-white " + (isActive ? "active-link" : "")
-  }>Verify KPI</NavLink>
-            </li>
-        </ul>
+                <li>
+                    <NavLink to="/verify-kpi" className={({ isActive }) =>
+                        "nav-link text-white " + (isActive ? "active-link" : "")
+                    }>Verify KPI</NavLink>
+                </li>
+            </ul>
 
-        <div className="mt-auto d-flex align-items-center">
-            <div className="rounded-circle bg-primary d-flex justify-content-center align-items-center me-2"
-                style={{ width: "40px", height: "40px" }} >
-               {user ? user.name.charAt(0) : ""}
-             </div>
-        </div>
+            <a href="/profile" className="mt-auto d-flex align-items-center">
+                <div className="rounded-circle bg-primary d-flex justify-content-center align-items-center me-2"
+                    style={{ width: "40px", height: "40px" }} >
+                    {user ? user.name.charAt(0) : ""}
+                </div>
+            </a>
 
         </div>
     )
