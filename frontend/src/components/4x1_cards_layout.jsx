@@ -47,6 +47,7 @@ function DashboardCards(
     <div
       style={{
         display: "flex",
+        flexWrap: "wrap",
         gap: "20px",
         padding: "0 20px 20px",
       }}
