@@ -5,8 +5,6 @@ export default function Sidebar({ activePage }) {
   return (
     <div 
       className="d-flex flex-column flex-shrink-0 p-3 text-white"
-      /* min-vh-100 ensures it is at least screen height */
-      /* h-auto allows it to grow if the content is longer than the screen */
       style={{ 
         width: '256px', 
         minHeight: '100vh', 
@@ -14,8 +12,6 @@ export default function Sidebar({ activePage }) {
         backgroundColor: '#1E40AF' 
       }}
     >
-      {/* REMOVED: PERFORM text div was here */}
-
       <ul className="nav nav-pills flex-column gap-2 mt-4">
         <li>
           <Link
@@ -38,7 +34,6 @@ export default function Sidebar({ activePage }) {
         </li>
       </ul>
 
-      {/* Profile Section - to keep the sidebar looking full even with items at the bottom */}
       <div className="mt-auto pt-4 border-top border-primary-subtle border-opacity-25">
         <div className="d-flex align-items-center gap-2 px-2 py-2 rounded">
           <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style={{ width: 32, height: 32, backgroundColor: '#155DFC', fontSize: '12px' }}>
