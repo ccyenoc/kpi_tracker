@@ -28,37 +28,26 @@ function KPIManagement(){
 
     return (
         <div 
-          className="d-flex"
+          className="d-flex flex-column"
           style={{
             marginLeft: "150px",
-            display: "flex",
-            flexDirection : "column",
-            
           }}>
 
-        <div 
-          className="d-flex"
-          style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-          }}>
+        <div className="d-flex flex-row justify-content-between align-items-center">
 
         <PageTitle
           title="KPI Management"
           subtitle="Create, Update and Manage key performance indicators" />
 
 
-        <button className="justy-content-center"
+        <button className="justy-content-center text-white border-0"
          style={{
             width :"120px",
             height: "40px",
             fontSize:"14px",
-            color:"#ffffff",
             backgroundColor:"#2b4cb3",
             borderColor:"#2b4cb3",
             borderRadius:"18px",
-            border: "none",     
          }}>+ Create KPI
         </button>
 
