@@ -1,0 +1,121 @@
+.sidebar {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.sidebar > div:first-child {
+    width: 250px;
+    background-color: #2c3eaf;
+    color: white;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar .mb-2 {
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 5px;
+    transition: 0.2s;
+}
+
+.sidebar .mb-2:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.profile-pic {
+    width: 40px;
+    height: 40px;
+    background: #4c6ef5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 12px;
+}
+
+.full-name-bold { font-weight: 600; margin: 0; font-size: 0.9rem; }
+.role-small { font-size: 0.75rem; opacity: 0.7; margin: 0; }
+
+.header {
+    flex-grow: 1;
+    padding: 2rem 3rem;
+}
+
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    color: #6c757d;
+}
+
+.tab-pill-navigation {
+    display: inline-flex;
+    background: #e9ecef;
+    padding: 5px;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.tab-btn {
+    border: none;
+    background: transparent;
+    padding: 8px 25px;
+    border-radius: 8px;
+    color: #495057;
+    transition: 0.3s;
+}
+
+.tab-btn.active {
+    background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    color: #000;
+}
+
+.first-card, .danger-zone-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.input-underline {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #dee2e6;
+    padding: 8px 0;
+    margin-bottom: 1.5rem;
+    outline: none;
+    display: block;
+}
+
+.input-underline:focus {
+    border-bottom: 2px solid #2c3eaf;
+}
+
+.btn-update-pw {
+    background: #2c3eaf;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.danger-zone {
+    color: #dc3545;
+    font-weight: 700;
+}

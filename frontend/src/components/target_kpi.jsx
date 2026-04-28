@@ -1,0 +1,57 @@
+function TargetKPISelection(){
+
+    return(
+        <div
+         className="d-flex"
+         style={{
+            flexDirection:"column"
+         }}>
+
+             <h3 style={{ 
+        fontSize:"16px",
+        fontWeight: "bold",
+        textAlign:"start" }}>Target KPI</h3>
+
+            {/*kpi and unit*/}
+            <div
+              className="d-flex"
+              style={{
+                flexDirection:"row",
+                fontSize:"14px",
+                gap:"30px",
+              }}>
+                <input
+                 type="text"
+                 placeholder="Enter KPI"
+                 style={{
+                   width: "100%",
+                   padding: "10px",
+                   borderRadius: "8px",
+                   border: "1px solid #ccc"
+                }}
+                />
+
+                <select
+                 style={{
+                  padding: "10px",
+                  borderRadius: "8px",
+                  border: "1px solid #ccc",
+                  background: "#fff",
+                  cursor: "pointer",
+                  fontSize:"14px",
+                 }}>
+
+                   <option value="">Select Unit</option>
+                   <option value="RM">RM</option>
+                   <option value="%">%</option>
+                   <option value="units">units</option>
+                   <option value="days">days</option>
+                   <option value="months">months</option>
+            
+                </select>
+            </div>
+         </div>
+    )
+}
+
+export default TargetKPISelection

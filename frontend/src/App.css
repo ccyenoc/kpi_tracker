@@ -1,0 +1,73 @@
+/* 1. Remove the global Vite/React "Box" constraint */
+#root {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  overflow-x: hidden;
+}
+
+/* 2. Fix the #center container that was forcing everything to the middle */
+#center {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex-grow: 1;
+  /* Removed place-content: center and place-items: center */
+}
+
+/* 3. Ensure Bootstrap rows can actually stretch to the edge */
+.row {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+  width: 100%;
+}
+
+/* 4. Keep your existing button and transition styles below */
+.counter {
+  font-size: 16px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  transition: border-color 0.3s;
+  margin-bottom: 24px;
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.hero {
+  position: relative;
+  width: 100%;
+}
+
+#next-steps {
+  display: flex;
+  border-top: 1px solid var(--border);
+  text-align: left;
+  width: 100%;
+
+  & > div {
+    flex: 1 1 0;
+    padding: 32px;
+  }
+}
+
+.ticks {
+  position: relative;
+  width: 100%;
+}

@@ -1,0 +1,27 @@
+function InputKPITitle() {
+  return (
+    <div
+      style={{
+        textAlign: "start"
+      }}
+    >
+      <h3 style={{ 
+        fontSize:"16px",
+        fontWeight: "bold" }}>KPI Title</h3>
+
+      <input
+        type="text"
+        placeholder="Enter KPI title"
+        style={{
+          width: "100%",
+          fontSize:"14px",
+          padding: "10px",
+          borderRadius: "8px",
+          border: "1px solid #ccc"
+        }}
+      />
+    </div>
+  )
+}
+
+export default InputKPITitle
