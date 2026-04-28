@@ -1,7 +1,16 @@
-.sidebar {
+.sidebar-layout {
     display: flex;
     min-height: 100vh;
+}
+
+.sidebar {
+    min-height: 100vh;
+    background: #2c3e9a;
     background-color: #f8f9fa;
+    color: white;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -26,19 +35,69 @@
 }
 
 .profile-pic {
-    width: 40px;
-    height: 40px;
-    background: #4c6ef5;
+    width: 45px;
+    height: 45px;
+    background: #4e73df;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    margin-right: 12px;
+    margin-top: auto;
 }
 
 .full-name-bold { font-weight: 600; margin: 0; font-size: 0.9rem; }
 .role-small { font-size: 0.75rem; opacity: 0.7; margin: 0; }
+
+.content-wrapper {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6c757d;
+    display: block;
+    margin-top: 15px;
+}
+
+.input-full-name, .input-email, .form-select, .form-control {
+    border: none !important;
+    border-bottom: 1px solid #ddd !important;
+    border-radius: 0 !important;
+    padding: 8px 0 !important;
+    width: 100%;
+    background: transparent;
+}
+
+.input-full-name:focus, .form-select:focus {
+    outline: none;
+    border-bottom: 1px solid #2c3e9a !important;
+    box-shadow: none;
+}
+
+.toggle-buttons {
+    background: #eee;
+    padding: 4px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.toggle-profile { background: #2c3e9a; color: white; border: none; padding: 5px 15px; border-radius: 6px; }
+.toggle-security { background: transparent; border: none; padding: 5px 15px; color: #666; }
+
+.btn-update-profile {
+    background: #2c3e9a;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 6px;
+    margin-top: 20px;
+    font-weight: 600;
+}
 
 .header {
     flex-grow: 1;

@@ -7,48 +7,43 @@ import ManagerDashboardKpi from "../components/manager_dashboard_kpi.jsx";
 
 function ManagerDashboard() {
   return (
-    <div className="d-flex">
+    <div className="d-flex flex-column w-100"
+      style={{
+        marginLeft: "150px",
+      }}>
+      {/* welcome message */}
+      <div className="p-4">
+        <h2>Welcome back, John!</h2>
+      </div>
 
-      <div className="d-flex flex-column w-100"
+      {/*top 4 cards*/}
+      <DashboardCards
+        title1="Total KPIs"
+        value1="3"
+        subtitle1="All defined KPIs"
+        title2="Active KPIs"
+        value2="3"
+        subtitle2="Currently in progress"
+        title3="Completed"
+        value3="1"
+        subtitle3="Finished KPIs"
+        title4="High Priority"
+        value4="2"
+        subtitle4="Requires attention"
+      />
+
+      <ExportBar />
+      <RectangleGraphCard />
+      <div
+        className="p-2 d-flex flex-row"
         style={{
-          marginLeft: "150px",
+          gap: "20px"
         }}>
-        {/* welcome message */}
-        <div className="p-4">
-          <h2>Welcome back, John!</h2>
-        </div>
-
-        {/*top 4 cards*/}
-        <DashboardCards
-          title1="Total KPIs"
-          value1="3"
-          subtitle1="All defined KPIs"
-          title2="Active KPIs"
-          value2="3"
-          subtitle2="Currently in progress"
-          title3="Completed"
-          value3="1"
-          subtitle3="Finished KPIs"
-          title4="High Priority"
-          value4="2"
-          subtitle4="Requires attention"
-        />
-
-        <ExportBar />
-        <RectangleGraphCard />
-        <div
-          className="p-2 d-flex flex-row"
-          style={{
-            gap: "20px"
-          }}>
-          <StaffRankingCard />
-          <ManagerDashboardKpi />
-        </div>
-
+        <StaffRankingCard />
+        <ManagerDashboardKpi />
       </div>
 
     </div>
-
   );
 }
 
