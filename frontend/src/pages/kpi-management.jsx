@@ -41,6 +41,7 @@ function KPIManagement(){
             width :"120px",
             height: "40px",
             fontSize:"14px",
+            margin:"0 20px 0 20px",
             backgroundColor:"#2b4cb3",
             borderColor:"#2b4cb3",
             borderRadius:"18px",

@@ -11,10 +11,9 @@ function ExportBar(){
 
     return(
         <div 
-        className="mx-3 mb-2"
+        className="mx-3 mb-2 flex-grow-1"
         style={{
           display: "flex",
-          flexGrow: 1,
           justifyContent: "space-between",
           alignItems: "center",
           padding: "10px 12px",

@@ -4,13 +4,12 @@ function KPIAssignedListCard({data}){
 
     return(
         <div 
-          className="d-flex m-3"
+          className="d-flex mx-3 mb-2 flex-grow-1"
           style={{
             borderRadius:"15px",
             flexDirection:"column",
             padding:"20px",
             boxShadow:"0 4px 6px rgba(0, 0, 0, 0.1)",
-            width: "109%",
           }}>
 
           <div 

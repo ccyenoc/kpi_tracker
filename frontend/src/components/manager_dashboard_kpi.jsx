@@ -2,13 +2,12 @@ import KpiCard from "./kpi_card";
 
 function ManagerDashboardKpi() {
   return (
-    <div className="me-2"
+    <div className="me-2 flex-grow-1"
       style={{
         display: "flex",
         flexDirection: "column",
         gap: "16px",
         height: "100%",
-        flexGrow: 1,
       }}
     >
       <div style={{ flex: 1, display: "flex" }}>
