@@ -16,14 +16,10 @@ function KPIProgressPage(){
 
     return(
       <div
-        className="d-flex"
+        className="d-flex flex-column"
         style={{
-            flexDirection:"column",
-            marginLeft:"150px",
             marginBottom:"20px",
         }}>
-
-            <ManagerSidebar />
 
             {/*title*/}
              <PageTitle

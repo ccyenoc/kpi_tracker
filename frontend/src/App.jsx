@@ -23,10 +23,9 @@ function App() {
         <Route path="/kpi-management" element={<SidebarLayout><KpiManagement /></SidebarLayout>} />
         <Route path="/verify-kpi" element={<SidebarLayout><VerifyKPI /></SidebarLayout>} />
         <Route path="/profile" element={<SidebarLayout><ProfilePage /></SidebarLayout>} />
-        <Route path="/verify-kpi-dashboard" element={<VerifyKPIDashboard />} />
-        <Route path="/create-kpi" element={<CreateKPI />} />
-        <Route path="/kpi-progress" element={<KPIProgressPage />} />
-        <Route path="/kpi-progress" element={<KPIProgressPage />} />
+        <Route path="/verify-kpi-dashboard" element={<SidebarLayout><VerifyKPIDashboard /></SidebarLayout>} />
+        <Route path="/create-kpi" element={ <SidebarLayout><CreateKPI /></SidebarLayout>} />
+        <Route path="/kpi-progress" element={<SidebarLayout><KPIProgressPage /></SidebarLayout>} />
       </Routes>
     </BrowserRouter>
   );
