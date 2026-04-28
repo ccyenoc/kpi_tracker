@@ -3,28 +3,31 @@ import DashboardCards from "../components/4x1_cards_layout";
 import PageTitle from "../components/page_title";
 import SearchFilterKPI from "../components/search_filter_kpi"
 import KPIAssignedListCard from "../components/kpi_assigned_list";
+import { NavLink } from "react-router-dom";
 
 function KPIManagement(){
-     const temp_data = [
-    {
-      title: "Q1 Sales Target",
-      desc: "Achieve quarterly sales revenue target",
-      target: "500000 USD",
-      team: "Sales Team",
-      category: "Revenue",
-      deadline: "3/31/2026",
-      status: "Completed",
-    },
-    {
-      title: "Customer Satisfaction Score",
-      desc: "Maintain high customer satisfaction ratings",
-      target: "90%",
-      team: "Customer Service",
-      category: "Quality",
-      deadline: "6/30/2026",
-      status: "In Progress",
-    },
-  ];
+    const temp_data = [
+  {
+    title: "Q1 Sales Target",
+    desc: "Achieve quarterly sales revenue target",
+    target: 500000,
+    unit: "USD",
+    team: "Sales Team",
+    category: "Revenue",
+    deadline: "2026-03-31", 
+    status: "Completed",
+  },
+  {
+    title: "Customer Satisfaction Score",
+    desc: "Maintain high customer satisfaction ratings",
+    target: 90,
+    unit: "%",
+    team: "Customer Service",
+    category: "Quality",
+    deadline: "2026-06-30",
+    status: "In Progress",
+  },
+];
 
     return (
         <div className="d-flex flex-column">
@@ -36,6 +39,7 @@ function KPIManagement(){
           subtitle="Create, Update and Manage key performance indicators" />
 
 
+        <NavLink to="/create-kpi" style={{ textDecoration: "none" }}>
         <button className="justify-content-center text-white border-0"
          style={{
             width :"120px",
@@ -47,6 +51,7 @@ function KPIManagement(){
             borderRadius:"18px",
          }}>+ Create KPI
         </button>
+        </NavLink>
 
         </div>
 

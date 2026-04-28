@@ -8,6 +8,9 @@ import VerifyKPI from "./pages/verify-kpi";
 import Login from "./pages/Login";
 import RegisterAcc from "./pages/RegisterAcc";
 import ProfilePage from "./pages/ProfilePage";
+import VerifyKPIDashboard from "./pages/verify-kpi-dashboard";
+import CreateKPI from "./pages/create-kpi"
+import KPIProgressPage from "./pages/kpi-progress";
 
 function App() {
   return (
@@ -20,6 +23,10 @@ function App() {
         <Route path="/kpi-management" element={<SidebarLayout><KpiManagement /></SidebarLayout>} />
         <Route path="/verify-kpi" element={<SidebarLayout><VerifyKPI /></SidebarLayout>} />
         <Route path="/profile" element={<SidebarLayout><ProfilePage /></SidebarLayout>} />
+        <Route path="/verify-kpi-dashboard" element={<VerifyKPIDashboard />} />
+        <Route path="/create-kpi" element={<CreateKPI />} />
+        <Route path="/kpi-progress" element={<KPIProgressPage />} />
+        <Route path="/kpi-progress" element={<KPIProgressPage />} />
       </Routes>
     </BrowserRouter>
   );
