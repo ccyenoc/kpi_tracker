@@ -45,9 +45,9 @@ function ManagerSidebar(){
             </li>
 
             <li>
-                <NavLink to="/verify-kpi" className={({ isActive }) =>
+                <NavLink to="/verify-kpi-dashboard" className={({ isActive }) =>
     "nav-link text-white " + (isActive ? "active-link" : "")
-  }>Verify KPI</NavLink>
+  }>Verify KPI Dashboard</NavLink>
             </li>
         </ul>
 

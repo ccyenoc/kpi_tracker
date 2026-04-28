@@ -1,4 +1,8 @@
+import {useNavigate} from "react-router-dom"
+import KPIProgressPage from "../pages/kpi-progress";
+
 function KPIAssignedListTable({data}) {
+  const navigate = useNavigate();
 
   const headerStyle = {
     display: "flex",
@@ -57,28 +61,56 @@ function KPIAssignedListTable({data}) {
 
       {/* Rows */}
       {data.map((item, index) => (
-        <div key={index} style={rowStyle}>
+        <div 
+        key={index} 
+        style={{
+    ...rowStyle,
+    cursor: "pointer"
+  }}
+        onClick={() => navigate("/kpi-progress", { state: item })}>
           
           {/* Title */}
-          <div style={{ flex: 3 }}>
-            <div style={{ fontWeight: "500" }}>{item.title}</div>
-            <div style={{ fontSize: "13px", color: "#6b7280" }}>
+          <div style={{ 
+            flex: 3 
+            }}>
+            <div 
+            style={{ 
+              fontWeight: "500" 
+              }}>{item.title}</div>
+            <div 
+            style={{ 
+              fontSize: "13px", 
+              color: "#6b7280" }}>
               {item.desc}
             </div>
           </div>
 
-          <div style={{ flex: 1 }}>{item.target}</div>
-          <div style={{ flex: 2 }}>{item.team}</div>
+          <div 
+          style={{ 
+            flex: 1 
+            }}>{item.target}</div>
+          <div 
+          style={{ 
+            flex: 2 
+            }}>{item.team}</div>
 
           {/* Category */}
-          <div style={{ flex: 1 }}>
-            <span style={badgeStyle}>{item.category}</span>
+          <div 
+          style={{
+             flex: 1 }}>
+            <span 
+            style={badgeStyle}>{item.category}</span>
           </div>
 
-          <div style={{ flex: 1 }}>{item.deadline}</div>
+          <div 
+          style={{ 
+            flex: 1
+           }}>{item.deadline}</div>
 
           {/* Status */}
-          <div style={{ flex: 1 }}>
+          <div 
+          style={{ 
+            flex: 1 }}>
             <span style={statusStyle(item.status)}>
               {item.status}
             </span>
