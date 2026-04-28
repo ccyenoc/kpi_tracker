@@ -5,17 +5,18 @@ function ExportBar(){
   border: "1px solid #e5e7eb",
   backgroundColor: "#f9fafb",
   cursor: "pointer",
-  fontSize: "14px"
+  fontSize: "14px",
+  color: "#1E293B",
 };
 
     return(
         <div 
-        className="ms-3"
+        className="mx-3 mb-2"
         style={{
           display: "flex",
+          flexGrow: 1,
           justifyContent: "space-between",
           alignItems: "center",
-          width: "97%",
           padding: "10px 12px",
           backgroundColor: "#ffffff",
           borderRadius: "12px",

@@ -2,17 +2,16 @@ import KpiCard from "./kpi_card";
 
 function ManagerDashboardKpi() {
   return (
-    <div
+    <div className="me-2"
       style={{
         display: "flex",
         flexDirection: "column",
         gap: "16px",
         height: "100%",
+        flexGrow: 1,
       }}
     >
-      <div style={{ 
-        flex: 1 
-      }}>
+      <div style={{ flex: 1, display: "flex" }}>
         <KpiCard
           title="At Risk KPIs"
           subtitle="KPIs that are at risk of not being accomplished on time"
@@ -27,7 +26,7 @@ function ManagerDashboardKpi() {
         />
       </div>
 
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, display: "flex" }}>
         <KpiCard
           title="Underperform"
           subtitle="KPIs that are off track to meet their targets"

@@ -4,7 +4,7 @@ function SidebarLayout({ children }) {
     return (
         <div className="d-flex">
             <ManagerSidebar />
-            <main>
+            <main className="w-100 p-4">
                 {children}
             </main>
         </div>

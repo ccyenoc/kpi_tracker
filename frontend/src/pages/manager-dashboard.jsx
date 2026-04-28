@@ -30,10 +30,12 @@ function ManagerDashboard() {
 
       <ExportBar />
       <RectangleGraphCard />
+
       <div
         className="p-2 d-flex flex-row"
         style={{
-          gap: "20px"
+          gap: "20px",
+          width: "100%",
         }}>
         <StaffRankingCard />
         <ManagerDashboardKpi />

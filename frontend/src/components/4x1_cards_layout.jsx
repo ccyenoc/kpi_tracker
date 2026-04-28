@@ -4,6 +4,7 @@ function Card({ title, value, subtitle, color }) {
     <div
       style={{
         flex: "0 0 250px",  
+        flexGrow: 1,
         border: `2px solid ${color}`,
         borderRadius: "12px",
         borderLeft: `6px solid ${color}`, // this is where we make the border thicker on the left to make it prettier
