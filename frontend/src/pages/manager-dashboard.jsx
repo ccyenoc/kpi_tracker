@@ -6,11 +6,7 @@ import StaffRankingCard from "../components/staff_ranking_card.jsx";
 import ManagerDashboardKpi from "../components/manager_dashboard_kpi.jsx";
 
 function ManagerDashboard() {
-  return (
-    <div className="d-flex flex-column w-100"
-      style={{
-        marginLeft: "150px",
-      }}>
+  return (<div className="d-flex flex-column w-100">
       {/* welcome message */}
       <div className="p-4">
         <h2>Welcome back, John!</h2>

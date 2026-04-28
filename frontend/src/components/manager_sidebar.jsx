@@ -18,12 +18,12 @@ function ManagerSidebar(){
         // 2. flex-column : stack items vertically
         // 3. p-3 : padding of 3 units
         // 4. text-white : white color
-        <div className="d-flex flex-column p-3 text-white text-start"
+        <div className="d-flex flex-column p-3 text-white text-start flex-shrink-0"
             style={{
                 width :"250px",
                 height: "100vh",
                 background : "linear-gradient(180deg, #2b4cb3,#134a8a)",
-                position:"fixed",
+                position:"sticky",
                 left : 0 ,
                 top : 0,
                 borderRight: "none",

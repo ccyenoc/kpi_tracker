@@ -2,7 +2,7 @@ import ManagerSidebar from "./manager_sidebar";
 
 function SidebarLayout({ children }) {
     return (
-        <div>
+        <div className="d-flex">
             <ManagerSidebar />
             <main>
                 {children}
