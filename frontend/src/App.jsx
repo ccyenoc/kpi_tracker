@@ -16,7 +16,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        // CAN SET TO SPECIFIC PAGES ACCORDINGLY
+        {/* CAN SET TO SPECIFIC PAGES ACCORDINGLY */}
         <Route path="/" element={<StaffDashboard />} />
         
         {/* Staff Routes */}
