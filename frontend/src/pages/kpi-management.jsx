@@ -1,5 +1,4 @@
 import {user, useState} from "react";
-import ManagerSidebar from "../components/manager_sidebar";
 import DashboardCards from "../components/4x1_cards_layout";
 import PageTitle from "../components/page_title";
 import SearchFilterKPI from "../components/search_filter_kpi"
@@ -36,8 +35,6 @@ function KPIManagement(){
             flexDirection : "column",
             
           }}>
-        
-        <ManagerSidebar />
 
         <div 
           className="d-flex"

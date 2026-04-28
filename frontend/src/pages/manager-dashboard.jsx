@@ -1,5 +1,4 @@
 // since that we are using vite we dont need to import react anymore
-import ManagerSidebar from "../components/manager_sidebar.jsx";
 import DashboardCards from "../components/4x1_cards_layout";
 import ExportBar from "../components/export-bar";
 import RectangleGraphCard from "../components/rectangle_graph_card.jsx";
@@ -9,9 +8,6 @@ import ManagerDashboardKpi from "../components/manager_dashboard_kpi.jsx";
 function ManagerDashboard(){
    return (
     <div className="d-flex">
-      
-      {/* Sidebar */}
-      <ManagerSidebar />
 
       <div className="d-flex flex-column" 
         style={{

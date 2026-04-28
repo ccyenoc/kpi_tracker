@@ -3,7 +3,9 @@ import ManagerSidebar from"../components/manager_sidebar";
 
 function VerifyKPI(){
     return (
-        <ManagerSidebar />
+        <div>
+            
+        </div>
     )
 }
 
