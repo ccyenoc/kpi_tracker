@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Link } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../RegisterAcc.css';
+import logo from "../assets/achievepro.png";
 
 const RegisterAcc = () => {
     const [formData, setFormData] = useState({
@@ -19,11 +21,34 @@ const RegisterAcc = () => {
         });
     };
 
+    const handleSubmit = (e) => {
+  e.preventDefault(); // stop page reload
+
+  console.log("Form Data:", formData);
+
+  //check if both pasword entered the same
+  if (formData.password !== formData.confirmPassword) {
+    alert("Passwords do not match!");
+    return;
+  }
+
+  // need to change to backend 
+  alert("Account created!");
+};
+
     return (
         <div className="auth-wrapper">
             <div className="auth-card">
                 <div className="text-center mb-4">
-                        <span className="auth-header">KPI Management</span>
+                     <div style={{ 
+                        textAlign: "center", }}>
+                                         <img 
+                                            src={logo} 
+                                            alt="Achieve Logo" 
+                                            style={{ width: "120px", height: "auto" }}
+                                        />
+                                        </div>
+                        <span className="auth-header">AchievePro</span>
                     <h3 className="auth-title">Create an account</h3>
                     <p className="auth-subtitle">Enter your information to get started</p>
                 </div>
@@ -85,7 +110,7 @@ const RegisterAcc = () => {
                 className="form-control"
                 name="confirmPassword"
                 placeholder="Confirm password"
-                value={form.confirmPassword}
+                value={formData.confirmPassword}
                 onChange={handleChange}
               />
               </div>
@@ -97,7 +122,7 @@ const RegisterAcc = () => {
                 </form>
 
                 <footer className="text-center">
-                Already have an account? <Link to="/signin">Sign in</Link>
+                Already have an account? <Link to="/">Sign in</Link>
                  </footer>
             </div>
         </div>

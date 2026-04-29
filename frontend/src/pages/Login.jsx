@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../Login.css';
+import logo from "../assets/achievepro.png";
 
 const Login = () => {
     const [credentials, setCredentials] = useState({
@@ -22,6 +23,13 @@ const Login = () => {
     return (
         <div className="login-wrapper">
                 <div className="welcome-back">
+                    <div style={{ textAlign: "center", marginBottom: "20px" }}>
+                     <img 
+                        src={logo} 
+                        alt="Achieve Logo" 
+                        style={{ width: "120px", height: "auto" }}
+                    />
+                    </div>
                     <h2 className="big-title">Welcome back</h2>
                     <p className="subtitle">Enter your credentials to access your account</p>
 
@@ -54,9 +62,16 @@ const Login = () => {
                             />
                     </div>
 
-                    <button type="submit" className="btn btn-primary w-100 py-2 fw-bold mb-3">
-                        Sign in
+                   <button 
+                    type="submit" 
+                    className="btn btn-primary w-100 py-2 fw-bold mb-3"
+                    style={{
+                     display: "flex",
+                     justifyContent: "center",
+                     alignItems: "center"
+                    }}>Sign In
                     </button>
+                    
                 </form>
 
                     <footer className="small text-muted">
