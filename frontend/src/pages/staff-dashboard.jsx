@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import Sidebar from '../components/staff-sidebar';
-import Header from '../components/staff-header';
+import Header from '../components/Header';
 import { 
   AlertTriangle, 
   Clock, 
@@ -16,10 +15,8 @@ const StaffDashboard = () => {
 
   return (
     <div className="d-flex align-items-stretch min-vh-100 w-100" style={{ backgroundColor: '#F8FAFC' }}>
-      <Sidebar activePage="dashboard" />
       
       <div className="d-flex flex-column flex-grow-1 w-100 overflow-hidden">
-        <Header title="Dashboard" />
         
         <main className="p-4 flex-grow-1 w-100 overflow-x-hidden" style={{ maxWidth: '100%' }}>
           <div className="mb-4">

@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useState } from "react"
-import ManagerSidebar from "../components/manager_sidebar";
+import ManagerSidebar from "../components/Sidebar";
 import PageTitle from "../components/page_title";
 import TopBreadcrumb from "../components/top_breadcrumb";
 

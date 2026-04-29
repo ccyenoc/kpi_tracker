@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import Sidebar from '../components/staff-sidebar';
-import Header from '../components/staff-header';
+import Header from '../components/Header';
 import { 
   Target, 
   CheckCircle, 
@@ -30,10 +29,8 @@ const StaffKPIUpdate = () => {
 
   return (
     <div className="d-flex align-items-stretch min-vh-100 w-100" style={{ backgroundColor: '#F8FAFC' }}>
-      <Sidebar activePage="kpi" />
       
       <div className="d-flex flex-column flex-grow-1">
-        <Header title="My KPIs" />
         
         <main className="p-4 flex-grow-1">
           <div className="mb-4">
