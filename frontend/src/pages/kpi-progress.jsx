@@ -8,6 +8,7 @@ import ProgressTargetKPISelection from "../components/progress_target_kpi";
 import ProgressDeadline from "../components/progress_deadline";
 import ProgressKPIAssignStaff from "../components/progress_kpi_assign_staff";
 import ProgressKPIGraph from "../components/progress_kpi_graph";
+import TopBreadcrumb from "../components/top_breadcrumb";
 
 function KPIProgressPage(){
      {/*access data about the current page*/}
@@ -24,6 +25,13 @@ function KPIProgressPage(){
         }}>
 
             <ManagerSidebar />
+             <TopBreadcrumb
+                 items={[
+                     { label: "KPI Management", 
+                        path: "/kpi-management" },
+                     { label: "KPI Progress" }
+                     ]}
+            />
 
             {/*title*/}
              <PageTitle
