@@ -22,6 +22,6 @@ export const categories = [
    {
     id: "cat_5",
     name: "Customer Experience",
-    color: "#a800f0"
+    color: "#ff67e386"
   }
 ];

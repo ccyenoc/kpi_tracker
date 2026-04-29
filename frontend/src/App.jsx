@@ -19,11 +19,11 @@ function App() {
         {/* CAN SET TO SPECIFIC PAGES ACCORDINGLY */}
         <Route path="/" element={<StaffDashboard />} />
         
-        {/* Staff Routes */}
+        {/* staff Routes */}
         <Route path="/pages/staff-dashboard" element={<StaffDashboard />} />
-        <Route path="/pages/staff-kpi-progress-update" element={<StaffKPIUpdate />} />
+        <Route path="/staff-kpi-progress-update" element={<StaffKPIUpdate />} />
 
-        {/* Manager Routes */}
+        {/* manager Routes */}
         <Route path="/manager/dashboard" element={<ManagerDashboard />} />
         <Route path="/kpi-management" element={<KpiManagement />} />
         <Route path="/verify-kpi" element={<VerifyKPI />} />

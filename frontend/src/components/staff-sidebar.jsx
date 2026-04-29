@@ -1,50 +1,44 @@
-import { LayoutDashboard, Target } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 
-export default function Sidebar({ activePage }) {
-  return (
-    <div 
-      className="d-flex flex-column flex-shrink-0 p-3 text-white"
-      style={{ 
-        width: '256px', 
-        minHeight: '100vh', 
-        height: 'auto', 
-        backgroundColor: '#1E40AF' 
-      }}
-    >
-      <ul className="nav nav-pills flex-column gap-2 mt-4">
-        <li>
-          <Link
-            to="/pages/staff-dashboard"
-            className={`nav-link text-white d-flex gap-2 align-items-center ${activePage === 'dashboard' ? 'active' : ''}`}
-            style={activePage === 'dashboard' ? { backgroundColor: '#3B82F6' } : {}}
-          >
-            <LayoutDashboard size={20} /> Dashboard
-          </Link>
-        </li>
-
-        <li>
-          <Link
-            to="/pages/staff-kpi-progress-update"
-            className={`nav-link text-white d-flex gap-2 align-items-center ${activePage === 'kpi' ? 'active' : ''}`}
-            style={activePage === 'kpi' ? { backgroundColor: '#3B82F6' } : {}}
-          >
-            <Target size={20} /> My KPIs
-          </Link>
-        </li>
-      </ul>
-
-      <div className="mt-auto pt-4 border-top border-primary-subtle border-opacity-25">
-        <div className="d-flex align-items-center gap-2 px-2 py-2 rounded">
-          <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style={{ width: 32, height: 32, backgroundColor: '#155DFC', fontSize: '12px' }}>
-            JS
-          </div>
-          <div>
-            <div className="small fw-medium">Jane Staff</div>
-            <div className="text-white-50" style={{ fontSize: '10px' }}>Staff</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function Sidebar() {
+ 
+     return(
+         // bootstap classes : 
+         // 1. d-flex : use flexbox layout
+         // 2. flex-column : stack items vertically
+         // 3. p-3 : padding of 3 units
+         // 4. text-white : white color
+         <div className="d-flex flex-column p-3 text-white text-start"
+             style={{
+                 width :"250px",
+                 height: "100vh",
+                 background : "linear-gradient(180deg, #2b4cb3,#134a8a)",
+                 position:"fixed",
+                 left : 0 ,
+                 top : 0,
+                 borderRight: "none",
+             }}>
+ 
+         <ul 
+           className="nav flex-column mb-auto text-start list-unstyled"
+           style = {{fontSize: "15px"}}>
+             <li className="nav-item">
+                 <NavLink to="/" className={({ isActive }) =>
+     "nav-link text-white " + (isActive ? "active-link" : "")
+   }>Dashboard</NavLink>
+             </li>
+ 
+             <li className="nav-item">
+                 <NavLink to="/staff-kpi-progress-update" className={({ isActive }) =>
+     "nav-link text-white " + (isActive ? "active-link" : "")
+   }>My KPIs</NavLink>
+             </li>
+            </ul>
+ 
+          
+ 
+         </div>
+     )
 }
+
+export default Sidebar

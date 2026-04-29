@@ -10,7 +10,7 @@ export const kpis = [
 
     categoryId: "cat_1",
     deadline: "2026-06-30",
-    status: "in_progress",
+    status: "completed",
 
     assignedUserIds: ["user_101", "user_102"],
 
