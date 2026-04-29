@@ -24,7 +24,7 @@ function StaffSearchFilterKPI(){
             flexDirection:"column",
             boxShadow:"0 4px 6px rgba(0, 0, 0, 0.1)",
             borderRadius:"15px",
-            width:"1120px",
+             width:"99%",
             padding:"20px",
           }}>
             <h2
