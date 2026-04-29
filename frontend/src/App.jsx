@@ -21,8 +21,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* CAN SET TO SPECIFIC PAGES ACCORDINGLY */}
+        {/*common user route*/}
         <Route path="/" element={<Login />} />
+        <Route path="/signup" element={<RegisterAcc />} />
         
         {/* staff Routes */}
         <Route path="/pages/staff-dashboard" element={<StaffDashboard />} />
