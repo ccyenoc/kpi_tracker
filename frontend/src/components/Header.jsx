@@ -2,12 +2,13 @@ import { Search, Bell } from "lucide-react";
 import TopBreadcrumb from "./top_breadcrumb";
 import { useLocation } from "react-router-dom";
 import { routes } from "../Routes";
+import { useAuth } from "../Auth.jsx";
 
 export default function Header() {
   const location = useLocation();
-  const role = "Manager";
+  const { user } = useAuth();
 
-  const routeList = routes(role);
+  const routeList = routes(user?.role);
 
   const routeMap = Object.fromEntries(
     routeList.map((r) => [r.path, r])

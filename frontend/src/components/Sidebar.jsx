@@ -2,17 +2,19 @@ import {useEffect , useState} from "react";
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, Target, SquareCheckBig, TrendingUp } from 'lucide-react';
 import { pathway } from "../Pathway";
+import { useAuth } from "../Auth.jsx";
 
 //in react a component is a function that return a piece of UI 
 function ManagerSidebar(){
-    const [user, setUser] = useState({name: "John Staff", role: "Manager"});
+    // const [user, setUser] = useState(null);
+    const { user } = useAuth();
 
-    useEffect(()=>{
-        fetch("http://localhost:8000/api/user")
-            .then(res => res.json())
-            .then(data => setUser(data))
-            .catch(err => console.error(err))
-    }, []);
+    // useEffect(()=>{
+    //     fetch("http://localhost:8000/api/user")
+    //         .then(res => res.json())
+    //         .then(data => setUser(data))
+    //         .catch(err => console.error(err))
+    // }, []);
 
     return(
         // bootstap classes : 
