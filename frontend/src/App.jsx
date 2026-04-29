@@ -1,9 +1,14 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+import Layout from "./components/Layout";
+
 // --- MANAGER IMPORTS ---
 import ManagerDashboard from "./pages/manager-dashboard"; 
 import KpiManagement from "./pages/kpi-management";
 import VerifyKPI from "./pages/verify-kpi";
+import Login from "./pages/Login";
+import RegisterAcc from "./pages/RegisterAcc";
+import ProfilePage from "./pages/ProfilePage";
 import VerifyKPIDashboard from "./pages/verify-kpi-dashboard";
 import CreateKPI from "./pages/create-kpi";
 import KPIProgressPage from "./pages/kpi-progress";
@@ -16,20 +21,23 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* CAN SET TO SPECIFIC PAGES ACCORDINGLY */}
-        <Route path="/" element={<StaffDashboard />} />
+        <Route path="/signin" element={<Login />} />
+        <Route path="/signup" element={<RegisterAcc />} />
         
-        {/* Staff Routes */}
-        <Route path="/pages/staff-dashboard" element={<StaffDashboard />} />
-        <Route path="/pages/staff-kpi-progress-update" element={<StaffKPIUpdate />} />
+        <Route path="/" element={<StaffDashboard />} />
+        <Route path="/" element={<Layout><ManagerDashboard /></Layout>} />
+        
+        <Route path="/staff-dashboard" element={<Layout><StaffDashboard /></Layout>} />
+        <Route path="/staff-kpi" element={<Layout><StaffKPIUpdate /></Layout>} />
 
-        {/* Manager Routes */}
-        <Route path="/manager/dashboard" element={<ManagerDashboard />} />
-        <Route path="/kpi-management" element={<KpiManagement />} />
-        <Route path="/verify-kpi" element={<VerifyKPI />} />
-        <Route path="/verify-kpi-dashboard" element={<VerifyKPIDashboard />} />
-        <Route path="/create-kpi" element={<CreateKPI />} />
-        <Route path="/kpi-progress" element={<KPIProgressPage />} />
+        <Route path="/manager/dashboard" element={<Layout><ManagerDashboard /></Layout>} />
+        <Route path="/kpi-management" element={<Layout><KpiManagement /></Layout>} />
+        <Route path="/verify-kpi" element={<Layout><VerifyKPI /></Layout>} />
+        <Route path="/verify-kpi-dashboard" element={<Layout><VerifyKPIDashboard /></Layout>} />
+        <Route path="/create-kpi" element={ <Layout><CreateKPI /></Layout>} />
+        <Route path="/kpi-progress" element={<Layout><KPIProgressPage /></Layout>} />
+        
+        <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
       </Routes>
     </BrowserRouter>
   );

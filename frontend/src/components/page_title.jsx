@@ -13,7 +13,7 @@ function PageTitle({ title, subtitle }) {
 
       <h3
         style={{
-          fontSize: "13px",
+          fontSize: "16px",
           color: "#64748b",
         }}
       >

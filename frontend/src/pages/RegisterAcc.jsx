@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import { Link } from 'react-router-dom';
 import './RegisterAcc.css';
 
 const RegisterAcc = () => {
@@ -17,6 +17,11 @@ const RegisterAcc = () => {
             ...formData,
             [e.target.id]: e.target.value
         });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        console.log('Registering with:', formData);
     };
 
     return (
@@ -77,19 +82,19 @@ const RegisterAcc = () => {
                     </div>
 
                     <div className="mb-3">
-            <label className="auth-label">Confirm Password</label>
-            <div className="auth-input-group">
-              <i className="bi bi-lock input-icon"></i>
-              <input
-                type="password"
-                className="form-control"
-                name="confirmPassword"
-                placeholder="Confirm password"
-                value={form.confirmPassword}
-                onChange={handleChange}
-              />
-              </div>
-              </div>
+                        <label className="auth-label">Confirm Password</label>
+                        <div className="auth-input-group">
+                            <i className="bi bi-lock input-icon"></i>
+                            <input
+                                type="password"
+                                className="form-control"
+                                id="confirmPassword"
+                                placeholder="Confirm password"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                            />
+                        </div>
+                    </div>
 
                     <button type="submit" className="btn-create-acc">
                         Create Account
