@@ -20,6 +20,7 @@ const RegisterAcc = () => {
             [e.target.id]: e.target.value
         });
     };
+    
 
     const handleSubmit = (e) => {
   e.preventDefault(); // stop page reload
@@ -57,32 +58,52 @@ const RegisterAcc = () => {
                     <div className="mb-3">
                         <label className="auth-label">Full Name</label>
                         <input 
-                            type="text" id="fullName" className="form-control" 
+                            type="text" id="fullName" className="form-control-custom"
                             placeholder="John Doe" required 
                             onChange={handleChange} 
-                        />
+                             style={{
+                                fontSize:"16px",
+                                paddingLeft:"20px",
+                            }} />
                     </div>
 
                     <div className="mb-3">
                         <label className="auth-label">Email</label>
                         <input 
-                            type="email" id="email" className="form-control" 
+                            type="email" id="email" className="form-control-custom"
                             placeholder="name@company.com" required 
                             onChange={handleChange}
-                        />
+                            style={{
+                                fontSize:"16px",
+                                paddingLeft:"20px",
+                            }} />
                     </div>
 
                     <div className="mb-3">
                             <label className="auth-label">Role</label>
-                            <select id="role" className="form-select" required onChange={handleChange}>
+                            <select 
+                            id="role" 
+                            className="form-control-custom" 
+                            required onChange={handleChange}
+                            style={{
+                                fontSize:"16px",
+                                paddingLeft:"20px",
+                            }}>
                                 <option value="">Select Role</option>
                                 <option value="manager">Manager</option>
                                 <option value="employee">Employee</option>
                             </select>
 
-                        <div className="col-6 mb-3">
+                        <div className="mb-3">
                             <label className="auth-label">Department</label>
-                            <select id="department" className="form-select" required onChange={handleChange}>
+                            <select 
+                            id="department" 
+                            className="form-control-custom" 
+                            required onChange={handleChange}
+                            style={{
+                                fontSize:"16px",
+                                paddingLeft:"20px",
+                            }}>
                                 <option value="">Choose Department</option>
                                 <option value="hr">HR</option>
                                 <option value="it">IT</option>
@@ -94,25 +115,35 @@ const RegisterAcc = () => {
 
                     <div className="mb-3">
                         <label className="auth-label">Password</label>
+                        <div 
+            className="auth-input-group">
+                        <i className="bi bi-lock input-icon"></i>
                         <input
-                            type="password" id="password" className="form-control" 
+                            type="password" id="password" className="form-control-custom"
                             placeholder="Min. 6 characters" required 
                             onChange={handleChange}
-                        />
+                             style={{
+                                fontSize:"16px",
+                            }} />
+                    </div>
                     </div>
 
                     <div className="mb-3">
             <label className="auth-label">Confirm Password</label>
-            <div className="auth-input-group">
+            <div 
+            className="auth-input-group">
               <i className="bi bi-lock input-icon"></i>
               <input
                 type="password"
-                className="form-control"
+                id="confirmPassword"
+                className="form-control-custom"
                 name="confirmPassword"
                 placeholder="Confirm password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-              />
+                 style={{
+                     fontSize:"16px",
+                }} />
               </div>
               </div>
 
