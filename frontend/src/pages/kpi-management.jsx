@@ -4,6 +4,7 @@ import PageTitle from "../components/page_title";
 import SearchFilterKPI from "../components/search_filter_kpi"
 import KPIAssignedListCard from "../components/kpi_assigned_list";
 import { NavLink } from "react-router-dom";
+import { pathway } from "./Pathway";
 
 function KPIManagement(){
     const temp_data = [
@@ -39,7 +40,7 @@ function KPIManagement(){
           subtitle="Create, Update and Manage key performance indicators" />
 
 
-        <NavLink to="/create-kpi" style={{ textDecoration: "none" }}>
+        <NavLink to={pathway.CreateKPI} style={{ textDecoration: "none" }}>
         <button className="justify-content-center text-white border-0"
          style={{
             width :"120px",

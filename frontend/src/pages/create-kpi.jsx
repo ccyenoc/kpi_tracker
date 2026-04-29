@@ -6,7 +6,6 @@ import { useState } from "react";
 import TargetKPISelection from "../components/target_kpi"
 import Deadline from "../components/deadline"
 import KPIAssignStaff from "../components/kpi_assign_staff"
-import TopBreadcrumb from "../components/top_breadcrumb";
 
 function CreateKPI() {
   {/*mock data*/ }
@@ -30,28 +29,20 @@ function CreateKPI() {
 
   return (
     <div>
-      <TopBreadcrumb
-        items={[
-          { label: "KPI Management", path: "/kpi-management" },
-          { label: "Create KPI" }
-        ]}
-      />
       <div className="d-flex flex-column justify-content-center">
 
         <PageTitle title="Create KPI" subtitle="Create a key performance indicator and assign to a staff" />
 
         <div
-          className="d-flex justify-content-center"
+          className="mx-3 mb-4 d-flex justify-content-center"
           style={{
-            width: "109%",
             flexDirection: "column",
             justifyContent: "space-between",
             alignItems: "start",
             borderRadius: "12px",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
-            padding: "20px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+            padding: "24px",
             gap: "20px"
-            ,
           }}>
 
 
