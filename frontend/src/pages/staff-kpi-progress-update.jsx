@@ -94,16 +94,18 @@ const StaffKPIUpdate = () => {
     }}>
 
       {/*content*/}
-      {/*4 dashboard cards*/}
-        <DashboardCards stats={stats} />
 
       <div
         style={{
            marginLeft:"20px",
            gap:"20px",
+           marginBottom:"20px",
         }}>
         <StaffOverallProgress kpis={userKpis} />
       </div>
+
+      {/*4 dashboard cards*/}
+        <DashboardCards stats={stats} />
       
       
       <StaffSearchFilterKPI />

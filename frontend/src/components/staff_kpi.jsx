@@ -23,7 +23,7 @@ const StaffKPI = ({ kpi, onUpdate }) => {
       style={{
         background: "#fff",
         borderRadius: "16px",
-        padding: "16px",
+        padding: "20px",
         boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
         display: "flex",
         flexDirection: "column",
@@ -83,14 +83,15 @@ const StaffKPI = ({ kpi, onUpdate }) => {
           style={{
             height: "8px",
             background: "#e5e7eb",
-            borderRadius: "10px",
+            borderRadius: "50px",
           }}
         >
           <div
             style={{
               width: `${percentage}%`,
               background: "#2563eb",
-              height: "100%"
+              height: "100%",
+              borderRadius: "50px",
             }}
           />
         </div>

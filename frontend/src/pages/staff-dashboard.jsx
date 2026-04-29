@@ -5,6 +5,8 @@ import StaffMonthlyPerformanceGraph from '../components/staff_monthly_performanc
 import StaffKPIAssignedCard from "../components/staff_kpi_assigned_card";
 import { activityLogs, getTimeAgo } from "../data/activityLog";
 import StaffRecentActivity from '../components/staff_recent_activity';
+{/*import mock data*/}
+import { submissions } from "../data/submissionData";
 
 const StaffDashboard = () => {
 
@@ -37,6 +39,80 @@ const StaffDashboard = () => {
       title: activity.meta.kpiTitle 
     };
   });
+
+  const [selectedMonth, setSelectedMonth] = useState(
+  new Date().toLocaleString("default", { month: "short" })
+);
+
+  const getWeeksInMonth = (month) => {
+  const year = new Date().getFullYear();
+  const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+
+  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  const totalWeeks = Math.ceil(lastDay / 7);
+
+  return Array.from({ length: totalWeeks }, (_, i) => `Week ${i + 1}`);
+};
+
+  const submissionMap = Object.fromEntries(
+  submissions.map(s => [s.kpiId, s])
+);
+
+  const getWeekOfMonth = (date) => {
+  const day = date.getDate();
+  return Math.ceil(day / 7);
+};
+
+const weeklyMap = {};
+
+userKpis.forEach(kpi => {
+  const submission = submissionMap[kpi.id];
+  if (!submission) return;
+
+  const date = new Date(submission.submittedAt);
+  const month = date.toLocaleString("default", { month: "short" });
+  const week = getWeekOfMonth(date);
+
+  const key = `${month}-W${week}`;
+
+  if (!weeklyMap[key]) {
+    weeklyMap[key] = {
+      name: kpi.title,
+      month,
+      time: `Week ${week}`,
+      kpi: 0,
+      progress: 0,
+      prediction: 0
+    };
+  }
+
+  weeklyMap[key].kpi += kpi.target;
+  weeklyMap[key].progress += kpi.current;
+  weeklyMap[key].prediction += kpi.current + 5;
+});
+
+let graphData;
+
+if (selectedMonth === "All") {
+  graphData = Object.values(weeklyMap);
+} else {
+  const weeks = getWeeksInMonth(selectedMonth);
+
+  graphData = weeks.map((weekLabel, index) => {
+    const weekNumber = index + 1;
+    const key = `${selectedMonth}-W${weekNumber}`;
+    const matched = weeklyMap[key];
+
+    return matched || {
+      name: "",
+      month: selectedMonth,
+      time: weekLabel,
+      kpi: 0,
+      progress: 0,
+      prediction: 0
+    };
+  });
+}
 
   {/*DASHBOARD DATA*/}
   const total = kpis.length;
@@ -115,7 +191,11 @@ const StaffDashboard = () => {
           flexDirection:"row",
           gap:"20px",
         }}>
-      <StaffMonthlyPerformanceGraph />
+      <StaffMonthlyPerformanceGraph 
+       graphData={graphData}
+       selectedMonth={selectedMonth}
+       setSelectedMonth={setSelectedMonth}
+      />
       <StaffKPIAssignedCard kpis={userKpis} />
       </div>
 

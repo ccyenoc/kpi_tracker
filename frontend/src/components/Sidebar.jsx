@@ -5,7 +5,7 @@ import { pathway } from "../Pathway";
 import { useAuth } from "../Auth.jsx";
 
 //in react a component is a function that return a piece of UI 
-function ManagerSidebar(){
+function Sidebar(){
     // const [user, setUser] = useState(null);
     const { user } = useAuth();
 
@@ -40,34 +40,96 @@ function ManagerSidebar(){
                 {user?.role === "manager"&& (
                     <>
                         <li className="nav-item">
-                            <NavLink to={pathway.ManagerDashboard} className={({ isActive }) =>
-                                "nav-link text-white gap-2 d-flex w-full" + (isActive ? "active-link" : "")
-                            }><LayoutDashboard size={20} />Dashboard</NavLink>
+                            <NavLink to={pathway.ManagerDashboard} 
+                            style={({ isActive }) =>
+    isActive
+      ? {
+          background: "linear-gradient(135deg, #3b82f6, #60a5fa)",
+          color: "white",
+          borderRadius: "12px",
+          fontWeight: 500,
+          boxShadow: "0 4px 10px rgba(0,0,0,0.15)"
+        }
+      : {
+          color: "white"
+        }
+  }
+  className="d-flex align-items-center gap-2 px-3 py-2 text-decoration-none"
+
+                            ><LayoutDashboard size={20} />Dashboard</NavLink>
                         </li>
                         <li className="nav-item">
-                            <NavLink to={pathway.KpiManagement} className={({ isActive }) =>
-                                "nav-link text-white gap-2 d-flex w-full" + (isActive ? "active-link" : "")
-                            }><Target size={20} />KPI Management</NavLink>
+                            <NavLink to={pathway.KpiManagement} style={({ isActive }) =>
+    isActive
+      ? {
+          background: "linear-gradient(135deg, #3b82f6, #60a5fa)",
+          color: "white",
+          borderRadius: "12px",
+          fontWeight: 500,
+          boxShadow: "0 4px 10px rgba(0,0,0,0.15)"
+        }
+      : {
+          color: "white"
+        }
+  }
+  className="d-flex align-items-center gap-2 px-3 py-2 text-decoration-none"
+><Target size={20} />KPI Management</NavLink>
                         </li>
 
                         <li>
-                            <NavLink to={pathway.VerifyKPIDashboard} className={({ isActive }) =>
-                                "nav-link text-white gap-2 d-flex w-full" + (isActive ? "active-link" : "")
-                            }><SquareCheckBig size={20} />Verify KPI</NavLink>
+                            <NavLink to={pathway.VerifyKPIDashboard} style={({ isActive }) =>
+    isActive
+      ? {
+          background: "linear-gradient(135deg, #3b82f6, #60a5fa)",
+          color: "white",
+          borderRadius: "12px",
+          fontWeight: 500,
+          boxShadow: "0 4px 10px rgba(0,0,0,0.15)"
+        }
+      : {
+          color: "white"
+        }
+  }
+  className="d-flex align-items-center gap-2 px-3 py-2 text-decoration-none"
+><SquareCheckBig size={20} />Verify KPI</NavLink>
                         </li>    
                     </>   
                 )}
                 {user?.role === "staff" && (
                     <>
                         <li className="nav-item">
-                            <NavLink to={pathway.StaffDashboard} className={({ isActive }) =>
-                                "nav-link text-white gap-2 d-flex w-full" + (isActive ? "active-link" : "")
-                            }><LayoutDashboard size={20} />Dashboard</NavLink>
+                            <NavLink to={pathway.StaffDashboard} style={({ isActive }) =>
+    isActive
+      ? {
+          background: "linear-gradient(135deg, #3b82f6, #60a5fa)",
+          color: "white",
+          borderRadius: "12px",
+          fontWeight: 500,
+          boxShadow: "0 4px 10px rgba(0,0,0,0.15)"
+        }
+      : {
+          color: "white"
+        }
+  }
+  className="d-flex align-items-center gap-2 px-3 py-2 text-decoration-none"
+><LayoutDashboard size={20} />Dashboard</NavLink>
                         </li>
                         <li className="nav-item">
-                            <NavLink to={pathway.StaffKPIUpdate} className={({ isActive }) =>
-                                "nav-link text-white gap-2 d-flex w-full" + (isActive ? "active-link" : "")
-                            }><TrendingUp size={20} />My KPIs</NavLink>
+                            <NavLink to={pathway.StaffKPIUpdate} style={({ isActive }) =>
+    isActive
+      ? {
+          background: "linear-gradient(135deg, #3b82f6, #60a5fa)",
+          color: "white",
+          borderRadius: "12px",
+          fontWeight: 500,
+          boxShadow: "0 4px 10px rgba(0,0,0,0.15)"
+        }
+      : {
+          color: "white"
+        }
+  }
+  className="d-flex align-items-center gap-2 px-3 py-2 text-decoration-none"
+><TrendingUp size={20} />My KPIs</NavLink>
                         </li>
                     </>
                 )}
@@ -90,4 +152,4 @@ function ManagerSidebar(){
     )
 }
 
-export default ManagerSidebar;
+export default Sidebar;

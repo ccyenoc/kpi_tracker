@@ -26,7 +26,7 @@ return(
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
         padding:"20px",
         borderRadius:"20px",
-        width:"1060px",
+        width:"1120px",
     }}>
 
         {/*title and subtitle*/}
