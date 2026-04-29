@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import Sidebar from '../components/staff-sidebar';
-import Header from '../components/header';
 import { kpis } from "../data/kpiData";
 import DashboardCards from "../components/4x1_cards_layout";
 import StaffMonthlyPerformanceGraph from '../components/staff_monthly_performance_graph';

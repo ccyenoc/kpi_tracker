@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import Sidebar from '../components/staff-sidebar';
-import Header from '../components/header';
 import DashboardCards from "../components/4x1_cards_layout";
 import { Target, CheckCircle, TrendingUp, AlertCircle, Clock } from "lucide-react";
 import StaffOverallProgress from "../components/staff_overall_progress";
