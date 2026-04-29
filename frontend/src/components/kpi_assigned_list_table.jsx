@@ -1,5 +1,6 @@
 import {useNavigate} from "react-router-dom"
 import KPIProgressPage from "../pages/kpi-progress";
+import { pathway } from "../pages/Pathway";
 
 function KPIAssignedListTable({data}) {
   const navigate = useNavigate();
@@ -67,7 +68,7 @@ function KPIAssignedListTable({data}) {
     ...rowStyle,
     cursor: "pointer"
   }}
-        onClick={() => navigate("/kpi-progress", { state: item })}>
+        onClick={() => navigate(pathway.KPIProgressPage, { state: item })}>
           
           {/* Title */}
           <div style={{ 

@@ -1,6 +1,7 @@
 import {useEffect , useState} from "react";
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, Target, SquareCheckBig, TrendingUp } from 'lucide-react';
+import { pathway } from "../pages/Pathway";
 
 //in react a component is a function that return a piece of UI 
 function ManagerSidebar(){
@@ -37,18 +38,18 @@ function ManagerSidebar(){
                 {user.role === "Manager" && (
                     <>
                         <li className="nav-item">
-                            <NavLink to="/manager/dashboard" className={({ isActive }) =>
+                            <NavLink to={pathway.ManagerDashboard} className={({ isActive }) =>
                                 "nav-link text-white gap-2 d-flex w-full" + (isActive ? "active-link" : "")
                             }><LayoutDashboard size={20} />Dashboard</NavLink>
                         </li>
                         <li className="nav-item">
-                            <NavLink to="/kpi-management" className={({ isActive }) =>
+                            <NavLink to={pathway.KpiManagement} className={({ isActive }) =>
                                 "nav-link text-white gap-2 d-flex w-full" + (isActive ? "active-link" : "")
                             }><Target size={20} />KPI Management</NavLink>
                         </li>
 
                         <li>
-                            <NavLink to="/verify-kpi-dashboard" className={({ isActive }) =>
+                            <NavLink to={pathway.VerifyKPIDashboard} className={({ isActive }) =>
                                 "nav-link text-white gap-2 d-flex w-full" + (isActive ? "active-link" : "")
                             }><SquareCheckBig size={20} />Verify KPI</NavLink>
                         </li>    
@@ -57,12 +58,12 @@ function ManagerSidebar(){
                 {user.role === "Staff" && (
                     <>
                         <li className="nav-item">
-                            <NavLink to="/staff-dashboard" className={({ isActive }) =>
+                            <NavLink to={pathway.StaffDashboard} className={({ isActive }) =>
                                 "nav-link text-white gap-2 d-flex w-full" + (isActive ? "active-link" : "")
                             }><LayoutDashboard size={20} />Dashboard</NavLink>
                         </li>
                         <li className="nav-item">
-                            <NavLink to="/staff-kpi" className={({ isActive }) =>
+                            <NavLink to={pathway.StaffKPIUpdate} className={({ isActive }) =>
                                 "nav-link text-white gap-2 d-flex w-full" + (isActive ? "active-link" : "")
                             }><TrendingUp size={20} />My KPIs</NavLink>
                         </li>
@@ -71,7 +72,7 @@ function ManagerSidebar(){
                 
             </ul>
 
-            <a href="/profile" className="mt-auto pt-4 border-top text-decoration-none text-white">
+            <a href={pathway.ProfilePage} className="mt-auto pt-4 border-top text-decoration-none text-white">
                 <div className="d-flex align-items-center gap-2 px-2 py-2 rounded">
                 <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style={{ width: 32, height: 32, backgroundColor: '#155DFC', fontSize: '12px' }}>
                     {user ? user.name.charAt(0) : "JS"}

@@ -2,7 +2,6 @@ import { useLocation } from "react-router-dom";
 import { useState } from "react"
 import ManagerSidebar from "../components/Sidebar";
 import PageTitle from "../components/page_title";
-import TopBreadcrumb from "../components/top_breadcrumb";
 
 function VerifyKPI() {
   const location = useLocation();
@@ -10,9 +9,9 @@ function VerifyKPI() {
 
   const progressContainerStyle = {
     width: "100%",
-    maxWidth: "500px",
-    height: "10px",
-    backgroundColor: "#e5e7eb",
+    padding: "4px",
+    height: "20px",
+    backgroundColor: "#85aeff",
     borderRadius: "999px",
     overflow: "hidden",
   };
@@ -41,12 +40,13 @@ function VerifyKPI() {
     minHeight: "100px",
     lineHeight: "40px",
     height: "20px",
-    width: "900px",
+    width: "100%",
     padding: "0 12px",
     fontSize: "14px",
     borderRadius: "15px",
     border: "1px solid #ccc",
     boxSizing: "border-box",
+    backgroundColor: "white",
   };
 
   const buttonStyle = {
@@ -84,15 +84,12 @@ function VerifyKPI() {
     fontSize: "14px",
     border: "1px solid #ccc",
     textAlign: "start",
+    width: "100%",
+    height: "100%",
+    maxHeight: "50px",
   }
   return (
     <div>
-      <TopBreadcrumb
-        items={[
-          { label: "Verify KPI Dashboard", path: "/verify-kpi-dashboard" },
-          { label: "Verify KPI" }
-        ]}
-      />
       <div className="d-flex flex-column justify-content-center">
 
         <PageTitle
@@ -100,15 +97,14 @@ function VerifyKPI() {
           subtitle="Review and approve KPI completion eveidence" />
 
         <div
-          className="d-flex justify-content-center"
+          className="mx-3 mb-4 d-flex justify-content-center"
           style={{
-            width: "109%",
             flexDirection: "column",
-            justifyContent: "space-between",
             alignItems: "start",
-            padding: "20px",
-            gap: "20px"
-            ,
+            padding: "48px",
+            gap: "20px",
+            borderRadius: "12px",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
           }}>
 
 
@@ -117,24 +113,22 @@ function VerifyKPI() {
           <div
             className="d-flex"
             style={{
+              width: "100%",
               flexDirection: "column",
               textAlign: "start",
-              padding: "20px",
-              borderRadius: "12px",
               backgroundColor: "#ffffff",
-              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-
             }}>
 
 
             {/*title and category*/}
             <div
-              className="d-flex"
+              className="d-flex flex-grow-1"
               style={{
                 flexDirection: "row",
-                gap: "400px",
+                gap: "50px",
+                justifyContent: "space-between",
               }}>
-              <div>
+              <div className="flex-grow-1" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 <h3 style={{
                   ...h3TitleStyle,
                   marginTop: "0px",
@@ -142,7 +136,7 @@ function VerifyKPI() {
                 <h3 style={h3ContentStyle}>{state.title}</h3>
               </div>
 
-              <div>
+              <div className="flex-grow-1" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 <h3 style={{
                   ...h3TitleStyle,
                   marginTop: "0px",
@@ -160,10 +154,10 @@ function VerifyKPI() {
             <h3 style={h3TitleStyle}>Final Progress</h3>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div style={progressContainerStyle}>
-                <div style={progressBarStyle(state.progress)} />
+                <div style={progressBarStyle(Math.round((state.current / state.target_kpi) * 100))} />
               </div>
-              <span style={{ fontSize: "16px" }}>
-                {state.progress}%
+              <span className="d-flex flex-row" style={{ fontSize: "16px", width: "140px" }}>
+                {state.current} / {state.target_kpi} ({Math.round((state.current / state.target_kpi) * 100)}%)
               </span>
             </div>
 
@@ -175,13 +169,15 @@ function VerifyKPI() {
                 style={{
                   display: "flex",
                   alignItems: "center",
+                  flexGrow: 1,
+                  gap: "50px",
                   justifyContent: "space-between",
                   marginTop: "10px"
                 }}
               >
 
                 {/*file card*/}
-                <div style={fileCardStyle}>
+                <div className="w-100" style={fileCardStyle}>
                   <div style={{ display: "flex", gap: "10px" }}>
                     📄
                     <a
@@ -195,7 +191,7 @@ function VerifyKPI() {
                 </div>
 
                 {/*checkbox*/}
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div className="w-100" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <input
                     type="checkbox"
                     checked={file.approved}
@@ -218,26 +214,29 @@ function VerifyKPI() {
               className="d-flex"
               style={{
                 flexDirection: "row",
-                gap: "400px",
+                gap: "50px",
+                flexGrow: 1,
+                justifyContent: "space-between",
               }}>
-              <div>
+              <div className="w-100">
                 <h3 style={h3TitleStyle}>Submitted Date</h3>
                 <h3 style={h3ContentStyle}>{state.submitted_date}</h3>
               </div>
 
-              <div>
+              <div className="w-100">
                 <h3 style={h3TitleStyle}>Deadline</h3>
                 <h3 style={h3ContentStyle}>{state.deadline}</h3>
               </div>
             </div>
 
             {/*note*/}
-            <h3 style={h3TitleStyle}>Note</h3>
-            <textarea
-              type="text"
-              placeholder="Enter Note ... "
-              style={fieldStyle} />
-
+            <div className="mb-4">
+              <h3 style={h3TitleStyle}>Note</h3>
+              <textarea
+                type="text"
+                placeholder="Enter Note ... "
+                style={fieldStyle} />
+            </div>
 
             {/*buttons*/}
             <div

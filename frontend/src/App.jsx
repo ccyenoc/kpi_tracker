@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Layout from "./components/Layout";
+import { pathway } from "./pages/Pathway";
 
 // --- MANAGER IMPORTS ---
 import ManagerDashboard from "./pages/manager-dashboard"; 
@@ -21,23 +22,21 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/signin" element={<Login />} />
-        <Route path="/signup" element={<RegisterAcc />} />
+        <Route path={pathway.Login} element={<Login />} />
+        <Route path={pathway.RegisterAcc} element={<RegisterAcc />} />
         
-        <Route path="/" element={<StaffDashboard />} />
-        <Route path="/" element={<Layout><ManagerDashboard /></Layout>} />
+        <Route path={pathway.StaffDashboard} element={<StaffDashboard />} />
+        <Route path={pathway.ManagerDashboard} element={<Layout><ManagerDashboard /></Layout>} />
         
-        <Route path="/staff-dashboard" element={<Layout><StaffDashboard /></Layout>} />
-        <Route path="/staff-kpi" element={<Layout><StaffKPIUpdate /></Layout>} />
+        <Route path={pathway.StaffKPIUpdate} element={<Layout><StaffKPIUpdate /></Layout>} />
 
-        <Route path="/manager/dashboard" element={<Layout><ManagerDashboard /></Layout>} />
-        <Route path="/kpi-management" element={<Layout><KpiManagement /></Layout>} />
-        <Route path="/verify-kpi" element={<Layout><VerifyKPI /></Layout>} />
-        <Route path="/verify-kpi-dashboard" element={<Layout><VerifyKPIDashboard /></Layout>} />
-        <Route path="/create-kpi" element={ <Layout><CreateKPI /></Layout>} />
-        <Route path="/kpi-progress" element={<Layout><KPIProgressPage /></Layout>} />
+        <Route path={pathway.KpiManagement} element={<Layout><KpiManagement /></Layout>} />
+        <Route path={pathway.VerifyKPI} element={<Layout><VerifyKPI /></Layout>} />
+        <Route path={pathway.VerifyKPIDashboard} element={<Layout><VerifyKPIDashboard /></Layout>} />
+        <Route path={pathway.CreateKPI} element={ <Layout><CreateKPI /></Layout>} />
+        <Route path={pathway.KPIProgressPage} element={<Layout><KPIProgressPage /></Layout>} />
         
-        <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
+        <Route path={pathway.ProfilePage} element={<Layout><ProfilePage /></Layout>} />
       </Routes>
     </BrowserRouter>
   );
