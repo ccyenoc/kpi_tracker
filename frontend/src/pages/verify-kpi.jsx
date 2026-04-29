@@ -1,6 +1,5 @@
 import { useLocation } from "react-router-dom";
 import { useState } from "react"
-import ManagerSidebar from "../components/Sidebar";
 import PageTitle from "../components/page_title";
 
 function VerifyKPI() {

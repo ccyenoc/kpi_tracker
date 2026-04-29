@@ -1,10 +1,10 @@
-import {user, useState} from "react";
+import { useState} from "react";
 import DashboardCards from "../components/4x1_cards_layout";
 import PageTitle from "../components/page_title";
 import SearchFilterKPI from "../components/search_filter_kpi"
 import KPIAssignedListCard from "../components/kpi_assigned_list";
 import { NavLink } from "react-router-dom";
-import { pathway } from "./Pathway";
+import { pathway } from "../Pathway";
 
 function KPIManagement(){
     const temp_data = [

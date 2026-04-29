@@ -1,6 +1,6 @@
 import {useNavigate} from "react-router-dom"
 import KPIProgressPage from "../pages/kpi-progress";
-import { pathway } from "../pages/Pathway";
+import { pathway } from "../Pathway";
 
 function KPIAssignedListTable({data}) {
   const navigate = useNavigate();

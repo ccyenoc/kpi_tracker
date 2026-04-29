@@ -1,53 +1,52 @@
-import { Search, Bell } from 'lucide-react';
-import TopBreadcrumb from './top_breadcrumb';
+import { Search, Bell } from "lucide-react";
+import TopBreadcrumb from "./top_breadcrumb";
 import { useLocation } from "react-router-dom";
-import { pathway } from "../pages/Pathway";
+import { routes } from "../Routes";
+import { useAuth } from "../Auth.jsx";
 
 export default function Header() {
   const location = useLocation();
-  const previousPath = {
-    [pathway.CreateKPI]: pathway.KpiManagement,
-    [pathway.KPIProgressPage]: pathway.KpiManagement,
-    [pathway.VerifyKPI]: pathway.VerifyKPIDashboard,
-  };
-  const titleMap = {
-    [pathway.ManagerDashboard]: "Dashboard",
+  const { user } = useAuth();
 
-    [pathway.KpiManagement]: "KPI Management",
-    [pathway.CreateKPI]: "Create KPI",
-    [pathway.KPIProgressPage]: "KPI Progress",
+  const routeList = routes(user?.role);
 
-    [pathway.VerifyKPIDashboard]: "Verify KPI Dashboard",
-    [pathway.VerifyKPI]: "Verify KPI",
+  const routeMap = Object.fromEntries(
+    routeList.map((r) => [r.path, r])
+  );
 
-    [pathway.StaffDashboard]: "Dashboard",
-    [pathway.StaffKPIUpdate]: "My KPIs",
+  let current = routeMap[location.pathname];
+  const breadcrumbs = [];
 
-    [pathway.ProfilePage]: "Profile",
-  };
-  const title = titleMap[location.pathname] || "Dashboard";
+  while (current) {
+    breadcrumbs.unshift({
+      label: current.breadcrumb,
+      path: current.path,
+    });
 
+    current = current.parent
+      ? routeMap[current.parent]
+      : null;
+  }
 
   return (
-    <header className="d-flex justify-content-between align-items-center px-4 border-bottom bg-white z-3 position-sticky top-0"
-      style={{ height: '64px' }}>
-
-      {title !== "Dashboard" && (
-        <TopBreadcrumb
-          items={[
-            { label: titleMap[previousPath[location.pathname]] || "Dashboard", path: previousPath[location.pathname] || pathway.ManagerDashboard },
-            { label: title }
-          ]}
-        />
-      ) || (
-        <h5 className="m-0">{title}</h5>
+    <header className="d-flex justify-content-between align-items-center px-4 border-bottom bg-white position-sticky top-0"
+      style={{ height: "64px" }}
+    >
+      {breadcrumbs.length > 1 ? (
+        <TopBreadcrumb items={breadcrumbs} />
+      ) : (
+        <h5 className="m-0">
+          {breadcrumbs[0]?.label || "Dashboard"}
+        </h5>
       )}
 
       <div className="d-flex align-items-center gap-3">
         <Search />
         <Bell />
-        <div className="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center"
-          style={{ width: 40, height: 40 }}>
+        <div
+          className="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center"
+          style={{ width: 40, height: 40 }}
+        >
           JS
         </div>
       </div>

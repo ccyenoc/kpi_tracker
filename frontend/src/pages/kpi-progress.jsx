@@ -1,5 +1,4 @@
 import PageTitle from "../components/page_title"
-import ManagerSidebar from "../components/Sidebar"
 import { useLocation } from "react-router-dom";
 import ProgressInputKPITitle from "../components/progress_input_KPI_title";
 import ProgressCategorySelection from "../components/progress_category_selection";
