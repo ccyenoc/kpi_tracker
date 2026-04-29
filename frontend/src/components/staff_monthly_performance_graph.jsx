@@ -6,7 +6,7 @@ import {
   Tooltip,
   CartesianGrid,
   Legend,
-  ResponsiveContainer   // ✅ THIS LINE IS MISSING
+  ResponsiveContainer
 } from "recharts";
 import {useState} from "react";
 
@@ -31,12 +31,17 @@ const StaffMonthlyPerformanceGraph = ({ graphData, selectedMonth, setSelectedMon
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "320px",       
-        width: "50%",
+        height: "100%",       
+        width: "100%",
         padding: "16px",      
         backgroundColor: "#ffffff",
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
         borderRadius: "15px",
+        boxSizing: "border-box",
+        flex: 1,
+        overflow: "hidden",
+        position: "relative",
+        zIndex: 1
       }}
     >
 
@@ -100,11 +105,13 @@ const StaffMonthlyPerformanceGraph = ({ graphData, selectedMonth, setSelectedMon
       {/* Chart */}
       <div style={{ 
         width: "100%", 
-        height: "200px",
+        height: "100%",
+        flex: 1,
+        minHeight: "250px",
         fontSize: "16px",
         textAlign:"start" }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={filteredData}>
+          <LineChart data={filteredData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
             <CartesianGrid stroke="#e5e7eb" strokeDasharray="2 2" />
 
             <XAxis dataKey="time" />

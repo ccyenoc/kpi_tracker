@@ -27,6 +27,7 @@ const StaffKPI = ({ kpi, onUpdate }) => {
         boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
         display: "flex",
         flexDirection: "column",
+        gap: "15px"
       }}
     >
       {/* HEADER */}
@@ -56,6 +57,7 @@ const StaffKPI = ({ kpi, onUpdate }) => {
         color: "#6b7280", 
         fontSize: "14px",
         textAlign:"start",
+        margin: 0
          }}>{kpi.description || "No description"}
       </h3>
 
@@ -69,12 +71,14 @@ const StaffKPI = ({ kpi, onUpdate }) => {
          <h3 
          style={{ 
             fontSize: "14px",
+            margin: 0
          }}>Progress</h3>
 
          <h3
            style={{
              fontSize: "14px",
-              fontWeight: "500" 
+              fontWeight: "500",
+              margin: 0
             }}>{kpi.progressText} </h3>
         </div>
 
@@ -84,6 +88,7 @@ const StaffKPI = ({ kpi, onUpdate }) => {
             height: "8px",
             background: "#e5e7eb",
             borderRadius: "50px",
+            marginTop: "8px"
           }}
         >
           <div
@@ -100,8 +105,8 @@ const StaffKPI = ({ kpi, onUpdate }) => {
 
       {/* INFO */}
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-        <div>📅 {kpi.deadlineText}</div>
-        <div>📄 {kpi.evidence || "0 files"}</div>
+        <div>📅 Deadline: {kpi.deadlineText}</div>
+        <div style={{ textAlign: "right" }}>📄 Evidence: {kpi.evidence || "0 files"}</div>
       </div>
 
       {/* FOOTER */}
@@ -126,7 +131,7 @@ const StaffKPI = ({ kpi, onUpdate }) => {
       <button
         onClick={onUpdate}
         style={{
-          marginTop: "10px",
+          marginTop: "auto",
           background: "#2563eb",
           color: "#fff",
           border: "none",

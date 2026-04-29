@@ -9,12 +9,14 @@ function StaffRecentActivity({userActivities}){
        className="d-flex"
        style={{
         marginTop:"20px",
-        maxWidth:"1070px",
+        width: "100%",
         padding:"20px",
         borderRadius:"12px",
         flexDirection:"column",
         backgroundColor: "#ffffff",
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+        boxSizing: "border-box",
+        alignItems: "stretch"
        }}>
 
         {/*title and subtitle*/}

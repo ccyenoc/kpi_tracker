@@ -27,18 +27,21 @@ return(
         padding:"20px",
         borderRadius:"20px",
         width:"100%",
+        background: "#fff"
     }}>
 
         {/*title and subtitle*/}
-        <div>
+        <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <h3
            style={{
             fontSize:"16px",
+            margin: 0
            }}>Overall Progress</h3>
           <h3
             style={{
             fontSize:"14px",
             color: "#6b7280", 
+            margin: "4px 0 0 0"
            }}>Your KPI Progress Breakdown</h3>
         </div>
 
@@ -68,7 +71,13 @@ return(
   })}
 </div>
 
-<div style={{ marginTop: "10px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+{/* Aligned Legend Section */}
+<div style={{ 
+    marginTop: "15px", 
+    display: "flex", 
+    justifyContent: "space-between", 
+    width: "100%" 
+}}>
  {Object.keys(counts).map((key) => {
     const percentage = total === 0
       ? 0
@@ -81,7 +90,7 @@ return(
           fontSize: "12px",
           display: "flex",
           alignItems: "center",
-          gap: "4px"
+          gap: "6px"
         }}
       >
         <div
@@ -92,7 +101,9 @@ return(
             borderRadius: "2px"
           }}
         />
-        {key.replace("_", " ")} ({counts[key]} • {percentage}%)
+        <span style={{ whiteSpace: "nowrap" }}>
+            {key.replace("_", " ")} ({counts[key]} • {percentage}%)
+        </span>
       </div>
     );
   })}

@@ -13,7 +13,7 @@ const StaffDashboard = () => {
   {/*DATA*/}
   {/*MOCK USER*/}
   const currentUserId = "user_101";
-   
+    
   const userKpis = kpis
   .filter(kpi => kpi.assignedUserIds.includes(currentUserId))
   .map(kpi => {
@@ -86,9 +86,13 @@ userKpis.forEach(kpi => {
     };
   }
 
-  weeklyMap[key].kpi += kpi.target;
-  weeklyMap[key].progress += kpi.current;
-  weeklyMap[key].prediction += kpi.current + 5;
+  const userData = kpi.kpiAssignments.find(u => u.userId === currentUserId);
+  const targetVal = userData?.target || 0;
+  const currentVal = userData?.current || 0;
+
+  weeklyMap[key].kpi += targetVal;
+  weeklyMap[key].progress += currentVal;
+  weeklyMap[key].prediction += currentVal + 5;
 });
 
 let graphData;
@@ -162,56 +166,72 @@ if (selectedMonth === "All") {
 ];
 
    return (
-    <div>
-    
-
-      <div className="d-flex" 
+    <div style={{ backgroundColor: "#f8fafc", minHeight: "100vh", width: "100%" }}>
+      <div 
         style={{
           width: "100%",
-          flexDirection:"column",
-            display: "flex",
-      }}>
-      {/* welcome message */}
-        <div>
-          <h2
-            style={{
-              padding:"20px",
-              marginTop:"0px",
-            }}>Welcome back, John!</h2>
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* welcome message */}
+        <div 
+          style={{ 
+            padding: "20px",
+            backgroundColor: "#f8fafc",
+            width: "100%",
+            boxSizing: "border-box",
+            borderBottom: "1px solid #e2e8f0"
+          }}
+        >
+          <h2 style={{ margin: 0 }}>Welcome back, John!</h2>
         </div>
 
-      {/*top 4 cards*/}
-       <DashboardCards stats={stats} />
+        {/*top 4 cards*/}
+        <div style={{ position: "relative" }}>
+          <DashboardCards stats={stats} />
+        </div>
 
-      {/*monthly performance graph + kpi assigned*/}
-      <div
-        className="d-flex"
-        style={{
-          marginLeft:"20px",
-          flexDirection:"row",
-          gap:"20px",
-        }}>
-      <StaffMonthlyPerformanceGraph 
-       graphData={graphData}
-       selectedMonth={selectedMonth}
-       setSelectedMonth={setSelectedMonth}
-      />
-      <StaffKPIAssignedCard kpis={userKpis} />
+        {/*monthly performance graph + kpi assigned*/}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            padding: "20px",
+            gap: "20px",
+            width: "100%",
+            boxSizing: "border-box",
+            position: "relative"
+          }}>
+          
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <StaffMonthlyPerformanceGraph 
+              graphData={graphData}
+              selectedMonth={selectedMonth}
+              setSelectedMonth={setSelectedMonth}
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <StaffKPIAssignedCard kpis={userKpis} />
+          </div>
+        </div>
+
+        {/*recent activity*/}
+       <div 
+         style={{
+          padding: "20px",
+          width: "100%",
+          boxSizing: "border-box",
+          marginBottom: "40px",
+          position: "relative"
+         }}>
+        <StaffRecentActivity userActivities={userActivities}/>
       </div>
 
-     <div 
-       style={{
-        marginLeft:"20px",
-        marginBottom:"40px",
-       }}>
-      <StaffRecentActivity userActivities={userActivities}/>
     </div>
-
-      
-</div>
-    
-</div>
-
+  </div>
 )};
 
 export default StaffDashboard;

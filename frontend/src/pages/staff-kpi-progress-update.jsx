@@ -91,24 +91,36 @@ const StaffKPIUpdate = () => {
     className="d-flex"
     style={{
       flexDirection:"column",
+      padding: "0 20px 20px 20px",
+      width: "100%"
     }}>
 
       {/*content*/}
 
       <div
         style={{
-           marginLeft:"20px",
-           gap:"20px",
+           width: "100%",
            marginBottom:"20px",
         }}>
         <StaffOverallProgress kpis={userKpis} />
       </div>
 
       {/*4 dashboard cards*/}
+      <div style={{ width: "100%" }}>
         <DashboardCards stats={stats} />
+      </div>
       
-      
-      <StaffSearchFilterKPI />
+      {/* Search and Filter section wrapper */}
+      <div style={{ 
+        width: "100%",
+        marginTop: "10px",
+        display: "flex",
+        justifyContent: "stretch"
+      }}>
+        <div style={{ flex: 1 }}>
+          <StaffSearchFilterKPI />
+        </div>
+      </div>
 
 
        <div
@@ -117,7 +129,7 @@ const StaffKPIUpdate = () => {
         gridTemplateColumns: "repeat(2, 1fr)",  
         gap: "16px",
         marginTop:"30px",
-        marginLeft:"20px",
+        width: "100%"
       }}
       >
      {userKpis.map((kpi) => (

@@ -1,156 +1,106 @@
-
-
 const StaffKPICard = ({ kpi }) => {
   const statusStyle = {
-    completed: { 
-        border: "#22c55e", 
-        bg: "#22c55e20" ,
-        icon : "✅"
-    },
-    in_progress: { 
-        border: "#3b82f6", 
-        bg: "#3b82f620" ,
-        icon : "⏳",
-    },
-    at_risk: { 
-        border: "#ffe600", 
-        bg: "#ffe6006a" ,
-        icon:"⚠️",
-    },
-     underperformed: { 
-        border: "#ff0000", 
-        bg: "#ff000044" ,
-        icon:"❌",
-    },
-    pending: { 
-        border: "#9900ff", 
-        bg: "#9900ff31" ,
-        icon:"🕒",
-    },
+    completed: { border: "#22c55e", bg: "#f0fdf4", icon: "✅" },
+    in_progress: { border: "#3b82f6", bg: "#eff6ff", icon: "⏳" },
+    at_risk: { border: "#facc15", bg: "#fefce8", icon: "⚠️" },
+    underperformed: { border: "#ef4444", bg: "#fef2f2", icon: "❌" },
+    pending: { border: "#a855f7", bg: "#faf5ff", icon: "🕒" },
   };
 
   const current = statusStyle[kpi.status] || statusStyle.in_progress;
 
-  const [currentVal, targetVal] = kpi.progressText
-  .split(" ")[0]        // "30 / 50"
-  .split("/")
-  .map(Number);
-
-const percentage = Math.round((currentVal / targetVal) * 100);
+  // Extract numbers 
+  const numbers = kpi.progressText.match(/\d+/g) || [0, 1];
+  const currentVal = parseInt(numbers[0]);
+  const targetVal = parseInt(numbers[1]);
+  const percentage = Math.min(Math.round((currentVal / targetVal) * 100), 100);
 
   return (
     <div
       style={{
         display: "flex",
         justifyContent: "space-between",
-        textAlign:"start",
-        padding: "16px",
+        alignItems: "center",
+        padding: "12px 20px",
         borderRadius: "16px",
-        border: `2px solid ${current.border}`,
+        border: `1px solid ${current.border}`,
         backgroundColor: current.bg,
-        width:"450px",
-        height:"90px",
+        width: "100%",
+        height: "100px",
+        boxSizing: "border-box",
+        marginBottom: "12px"
       }}
     >
-      {/* LEFT */}
-      <div 
-      style={{ 
-        display: "flex", 
-        gap: "12px", 
-        alignItems: "center" 
-        }}>
-        
-        {/* Icon */}
+      {/* LEFT SECTION */}
+      <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
         <div
           style={{
-            width: "40px",
-            height: "40px",
+            width: "44px",
+            height: "44px",
             borderRadius: "50%",
             backgroundColor: current.border,
             color: "white",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center"
+            justifyContent: "center",
+            fontSize: "20px"
           }}
         >
           {current.icon}
         </div>
 
-        {/* Text */}
-        <div>
-          <h3 
-          style={{ 
-            margin: 0,
-            fontSize:"14px", }}>{kpi.title}</h3>
-
-            <div 
-            className="d-flex"
-            style={{ 
-                width: "180px",
-                flexDirection:"row",
-                alignItems:"center" }}>
-
-            {/*progress bar*/}
-  <div
-    style={{
-      fontSize: "11px",
-      textAlign: "start",
-      color: "#374151"
-    }}
-  >
-    {percentage}%
-  </div>
-
-         <div
-    style={{
-      width: "100%",
-      height: "6px",            // 🔥 thinner bar
-      backgroundColor: "#e5e7eb",
-      borderRadius: "10px",
-      overflow: "hidden"
-    }}
-  >
-    {/* progress fill */}
-    <div
-      style={{
-        width: `${percentage}%`,
-        height: "100%",
-        backgroundColor: current.border,
-        borderRadius: "10px",
-        transition: "0.3s"
-      }}
-    />
-  </div>
-  </div>
-
-          <h3 
-          style={{
-             margin: 0, 
-             color: "#64748b",
-             fontSize:"12px", }}>
-            ⏱ {kpi.deadlineText}
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "600", color: "#1e293b" }}>
+            {kpi.title}
           </h3>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "12px", fontWeight: "bold", color: "#475569", minWidth: "35px" }}>
+              {percentage}%
+            </span>
+            <div style={{
+              width: "140px",
+              height: "8px",
+              backgroundColor: "#e2e8f0",
+              borderRadius: "10px",
+              overflow: "hidden"
+            }}>
+              <div style={{
+                width: `${percentage}%`,
+                height: "100%",
+                backgroundColor: current.border,
+                borderRadius: "10px",
+                transition: "width 0.5s ease-in-out"
+              }} />
+            </div>
+          </div>
+
+          <span style={{ fontSize: "12px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+            ⏱ {kpi.deadlineText}
+          </span>
         </div>
       </div>
 
       {/* RIGHT BADGE */}
       <div
-        className="d-flex"
         style={{
           backgroundColor: current.border,
           color: "white",
-          alignItems:"center",
-          textStart:"center",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           borderRadius: "20px",
-          fontSize: "12px",
-          height:"40%",
-          width:"90px",
+          fontSize: "11px",
+          fontWeight: "bold",
+          padding: "6px 16px",
+          minWidth: "100px",
+          textAlign: "center",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
         }}
       >
-        {kpi.status.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())}
+        {kpi.status.replace("_", " ").toUpperCase()}
       </div>
     </div>
-    
   );
 };
 
