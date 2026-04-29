@@ -1,11 +1,11 @@
 import {useEffect , useState} from "react";
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, Target, SquareCheckBig, TrendingUp } from 'lucide-react';
-import { pathway } from "../pages/Pathway";
+import { pathway } from "../Pathway";
 
 //in react a component is a function that return a piece of UI 
 function ManagerSidebar(){
-    const [user, setUser] = useState({name: "John Manager", role: "Manager"});
+    const [user, setUser] = useState({name: "John Staff", role: "Manager"});
 
     useEffect(()=>{
         fetch("http://localhost:8000/api/user")

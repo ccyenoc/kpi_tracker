@@ -1,4 +1,3 @@
-import ManagerSidebar from "../components/Sidebar"
 import PageTitle from "../components/page_title"
 import InputKPITitle from "../components/input_KPI_title"
 import CategorySelection from "../components/category_selection"
