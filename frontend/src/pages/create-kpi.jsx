@@ -27,7 +27,7 @@ function CreateKPI(){
          <ManagerSidebar/>
             <TopBreadcrumb
   items={[
-    { label: "KPI Management", path: "/kpi" },
+    { label: "KPI Management", path: "/kpi-management" },
     { label: "Create KPI" }
   ]}
 />

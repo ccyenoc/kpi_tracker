@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import './SecurityPage.css';
+import '../SecurityPage.css';
 
 const SecurityPage = () => {
     const [activeTab, setActiveTab] = useState('profile');

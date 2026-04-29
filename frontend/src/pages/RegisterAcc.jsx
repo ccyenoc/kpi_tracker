@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './RegisterAcc.css';
+import '../RegisterAcc.css';
 
 const RegisterAcc = () => {
     const [formData, setFormData] = useState({

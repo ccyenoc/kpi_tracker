@@ -32,7 +32,8 @@ const StaffMonthlyPerformanceGraph = () => {
       }}
     >
       {/* Header */}
-      <div style={{ marginBottom: "10px" }}>
+      <div 
+      style={{ marginBottom: "10px" }}>
         <h4 style={{ fontSize: "16px", marginBottom: "4px" }}>
           Monthly Performance
         </h4>

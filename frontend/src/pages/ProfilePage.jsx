@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import './ProfilePage.css';
+import '../ProfilePage.css';
 
 const ProfilePage = () => {
     const [fullName, setFullName] = useState('John Manager'); 

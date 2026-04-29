@@ -1,3 +1,5 @@
+import { Target, CheckCircle, TrendingUp, AlertTriangle } from "lucide-react";
+
 // this is the basic card layout
 function Card({ title, value, subtitle, color }) {
   return (

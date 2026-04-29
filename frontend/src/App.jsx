@@ -1,4 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+// --- USER IMPORTS ---
+import Login from "./pages/Login";
+import RegisterAcc from "./pages/RegisterAcc"
+import ProfilePage from "./pages/ProfilePage"
+import SecurityPage from "./pages/SecurityPage"
 
 // --- MANAGER IMPORTS ---
 import ManagerDashboard from "./pages/manager-dashboard"; 
@@ -17,7 +22,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* CAN SET TO SPECIFIC PAGES ACCORDINGLY */}
-        <Route path="/" element={<StaffDashboard />} />
+        <Route path="/" element={<Login />} />
         
         {/* staff Routes */}
         <Route path="/pages/staff-dashboard" element={<StaffDashboard />} />

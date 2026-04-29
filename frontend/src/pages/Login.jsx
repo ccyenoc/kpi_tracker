@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './Login.css';
+import '../Login.css';
 
 const Login = () => {
     const [credentials, setCredentials] = useState({
