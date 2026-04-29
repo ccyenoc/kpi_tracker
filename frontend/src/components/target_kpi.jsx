@@ -1,4 +1,4 @@
-function TargetKPISelection(){
+function TargetKPISelection({ unit, setUnit }){
 
     return(
         <div
@@ -32,7 +32,9 @@ function TargetKPISelection(){
                 />
 
                 <select
-                 style={{
+                  value={unit} // ✅ controlled
+                  onChange={(e) => setUnit(e.target.value)} // ✅ update parent
+                  style={{
                   padding: "10px",
                   borderRadius: "8px",
                   border: "1px solid #ccc",

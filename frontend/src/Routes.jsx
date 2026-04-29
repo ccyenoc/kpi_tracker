@@ -10,7 +10,7 @@ import StaffKPIUpdate from "./pages/staff-kpi-progress-update";
 
 export const routes = (role) => {
   switch (role) {
-    case "Manager":
+    case "manager":
       return [
         {
           path: "/manager/dashboard",
@@ -55,7 +55,7 @@ export const routes = (role) => {
         },
       ];
 
-    case "Staff":
+    case "staff":
       return [
         {
           path: "/staff/dashboard",

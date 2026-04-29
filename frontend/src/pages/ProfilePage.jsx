@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 import './ProfilePage.css';
 import PageTitle from '../components/page_title';
 
@@ -30,29 +32,32 @@ const ProfilePage = () => {
                     <button
                         className={`col tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
                         onClick={() => setActiveTab('profile')}
+                        style={{ fontSize:"16px"}}
                     >
                         Profile Information
                     </button>
+
                     <button
                         className={`col tab-btn ${activeTab === 'security' ? 'active' : ''}`}
+                         style={{ fontSize:"16px"}}
                         onClick={() => setActiveTab('security')}
                     >
                         Security
                     </button>
                 </div>
+
             </div>
 
             {activeTab === 'profile' && (
                 <div className="content-wrapper">
                     <div className="tab-header">
-                        <h5 className="tab-title">Personal Information</h5>
-                        <p className="tab-subtitle">View and update your personal details</p>
+                        <h5 className="tab-title"  style={{ fontSize:"16px"}}>Personal Information</h5>
+                        <p className="tab-subtitle"  style={{ fontSize:"14px"}}>View and update your personal details</p>
                     </div>
 
                     <div>
                         <div className="full-name">
-                            <label className="full-name-label">Full Name</label>
-                            <i className="bi bi-person me-2 text-muted"></i>
+                            <label className="full-name-label"  style={{ fontSize:"16px"}}>Full Name</label>
                             <input
                                 type="text"
                                 className="input-full-name"
@@ -62,8 +67,7 @@ const ProfilePage = () => {
                         </div>
 
                         <div className="email">
-                            <label className="email-label">Email</label>
-                            <i className="bi bi-envelope me-2 text-muted"></i>
+                            <label className="email-label"  style={{ fontSize:"16px"}}>Email</label>
                             <input
                                 type="email"
                                 className="input-email"
@@ -74,11 +78,11 @@ const ProfilePage = () => {
 
                         <div className="role">
                             <label className="role-label">Role</label>
-                            <i className="bi bi-briefcase me-2 text-muted"></i>
                             <select
                                 className="form-select border-0 bg-transparent shadow-none"
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
+                                 style={{ fontSize:"16px"}}
                             >
                                 <option value="Manager">Manager</option>
                                 <option value="Staff">Staff</option>
@@ -86,12 +90,12 @@ const ProfilePage = () => {
                         </div>
 
                         <div className="department">
-                            <label className="department-label">Department</label>
-                            <i className="bi bi-building me-2 text-muted"></i>
+                            <label className="department-label"  style={{ fontSize:"16px"}}>Department</label>
                             <select
                                 className="form-select border-0 bg-transparent shadow-none"
                                 value={department}
                                 onChange={(e) => setDepartment(e.target.value)}
+                                 style={{ fontSize:"16px"}}
                             >
                                 <option value="HR">HR</option>
                                 <option value="IT">IT</option>
@@ -101,13 +105,13 @@ const ProfilePage = () => {
                         </div>
 
                         <div className="phone">
-                            <label className="phone-label">Phone</label>
-                            <i className="bi bi-telephone me-2 text-muted"></i>
+                            <label className="phone-label"  style={{ fontSize:"16px"}}>Phone</label>
                             <input
                                 type="tel"
                                 className="form-control border-0 bg-transparent shadow-none"
                                 value={phone}
-                                onChange={(e) => setPhone(e.target.value)} />
+                                onChange={(e) => setPhone(e.target.value)}
+                                 style={{ fontSize:"16px"}} />
                         </div>
 
                         <button className="btn-update-profile" type="button">Update Profile</button>
@@ -118,29 +122,29 @@ const ProfilePage = () => {
                 <div>
                     <div className="content-wrapper">
                         <div className="tab-header">
-                            <h5 className="tab-title">Change Password</h5>
-                            <p className="tab-subtitle">Update your password to keep your account secure</p>
+                            <h5 className="tab-title"  style={{ fontSize:"16px"}}>Change Password</h5>
+                            <p className="tab-subtitle"  style={{ fontSize:"16px"}}>Update your password to keep your account secure</p>
                         </div>
                         <div className="first-input">
-                            <label className="current-pw">Current Password</label>
+                            <label className="current-pw"  style={{ fontSize:"16px"}}>Current Password</label>
                             <input type="password" underline className="input-underline" placeholder=".........." />
                         </div>
                         <div className="second-input">
-                            <label className="new-pw">New Password</label>
+                            <label className="new-pw"  style={{ fontSize:"16px"}}>New Password</label>
                             <input type="password" underline className="input-underline" placeholder=".........." />
                         </div>
                         <div className="second-input">
-                            <label className="confirm-pw">Confirm Password</label>
+                            <label className="confirm-pw"  style={{ fontSize:"16px"}}>Confirm Password</label>
                             <input type="password" underline className="input-underline" placeholder=".........." />
                         </div>
-                        <button className="btn-update-pw">Update Password</button>
+                        <button className="btn-update-pw"  style={{ fontSize:"16px"}}>Update Password</button>
                     </div>
                     <div className='content-wrapper danger-zone'>
                         <div className="tab-header">
-                            <h5 className="tab-title text-danger">Danger Zone</h5>
-                            <p className="tab-subtitle">Permanently delete your account and all associated data</p>
+                            <h5 className="tab-title text-danger"  style={{ fontSize:"16px"}}>Danger Zone</h5>
+                            <p className="tab-subtitle"  style={{ fontSize:"16px"}}>Permanently delete your account and all associated data</p>
                         </div>
-                        <button className="btn-danger"><i className="bi bi-trash me-2"></i>Delete Account</button>
+                        <button className="btn-danger"  style={{ fontSize:"16px"}}>Delete Account</button>
                     </div>
                 </div>
             )}

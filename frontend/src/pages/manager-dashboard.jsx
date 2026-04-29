@@ -5,29 +5,58 @@ import ExportBar from "../components/export-bar";
 import RectangleGraphCard from "../components/rectangle_graph_card.jsx";
 import StaffRankingCard from "../components/staff_ranking_card.jsx";
 import ManagerDashboardKpi from "../components/manager_dashboard_kpi.jsx";
+import Sidebar from "../components/Sidebar.jsx";
+{/*mock data import*/}
+import { kpis } from "../data/kpiData";
 
-function ManagerDashboard() {
-  return (<div className="d-flex flex-column w-100">
+function ManagerDashboard(){
+
+  {/*DATA*/}
+  {/*DASHBOARD DATA*/}
+  const stats = [
+  {
+    title: "Total KPIs",
+    value: kpis.length,
+    subtitle: "All defined KPIs",
+    color: "#3b82f6"
+  },
+  {
+    title: "Active KPIs",
+    value: kpis.filter(k => k.status === "in_progress").length,
+    subtitle: "Currently in progress",
+    color: "#22c55e"
+  },
+  {
+    title: "Completed",
+    value: kpis.filter(k => k.status === "completed").length,
+    subtitle: "Finished KPIs",
+    color: "#facc15"
+  },
+  {
+    title: "High Priority",
+    value: kpis.filter(k => k.priority === "high").length || 0,
+    subtitle: "Requires attention",
+    color: "#ef4444"
+  }
+];
+
+   return (
+    <div className="d-flex">
+      
+      {/* Sidebar */}
+
+
+      <div className="d-flex flex-column" 
+        style={{
+          width: "100%",
+      }}>
       {/* welcome message */}
       <PageTitle
           title={`Welcome back, John!`}
           subtitle="Here's an overview of your performance tracking dashboard" />
 
       {/*top 4 cards*/}
-      <DashboardCards
-        title1="Total KPIs"
-        value1="3"
-        subtitle1="All defined KPIs"
-        title2="Active KPIs"
-        value2="3"
-        subtitle2="Currently in progress"
-        title3="Completed"
-        value3="1"
-        subtitle3="Finished KPIs"
-        title4="High Priority"
-        value4="2"
-        subtitle4="Requires attention"
-      />
+       <DashboardCards stats={stats} />
 
       <ExportBar />
       <RectangleGraphCard />
@@ -43,6 +72,7 @@ function ManagerDashboard() {
         <ManagerDashboardKpi />
       </div>
 
+    </div>
     </div>
   );
 }

@@ -5,18 +5,13 @@ import { useState } from "react";
 import TargetKPISelection from "../components/target_kpi"
 import Deadline from "../components/deadline"
 import KPIAssignStaff from "../components/kpi_assign_staff"
+import TopBreadcrumb from "../components/top_breadcrumb";
+import { users } from "../data/userData";
 
-function CreateKPI() {
-  {/*mock data*/ }
-  const staffList = [
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john.smith@company.com"
-    }
-  ];
-  const [category, setCategory] = useState("")
-  const [title, setTitle] = useState("")
+function CreateKPI(){
+    const [category, setCategory] = useState("")
+    const [title, setTitle] = useState("")
+    const [unit, setUnit] = useState("");
 
   const KPI_TEMPLATES = {
     sales: ["Monthly Sales Revenue", "Closed Deals", "Conversion Rate"],
@@ -26,11 +21,17 @@ function CreateKPI() {
     customer: ["CSAT", "NPS", "Response Time"]
   }
 
-  return (
-    <div>
-      <div className="d-flex flex-column justify-content-center">
-
-        <PageTitle title="Create KPI" subtitle="Create a key performance indicator and assign to a staff" />
+    return(
+      <div>
+          
+        <div 
+          className="d-flex justify-content-center"
+          style={{
+            display: "flex",
+            flexDirection : "column",
+          }}>
+        
+            <PageTitle title="Create KPI" subtitle="Create a key performance indicator and assign to a staff"/>
 
         <div
           className="mx-3 mb-4 d-flex justify-content-center"
@@ -67,33 +68,32 @@ function CreateKPI() {
               gap: "260px",
             }}>
 
-            <TargetKPISelection />
-            <Deadline />
-          </div>
-          <KPIAssignStaff staffList={staffList} />
+                <TargetKPISelection unit={unit} setUnit={setUnit} />
+                <Deadline />
+            </div>   
+            <KPIAssignStaff staffList={users} unit={unit} />
 
-          <div
-            className="d-flex"
-            style={{
-              marginTop: "20px",
-              display: "flex",
-              justifyContent: "center", // ✅ horizontal center
-              alignItems: "center",     // ✅ vertical center
-              gap: "50px"
-            }}>
-            <button
-              style={{
-                width: "200px",
-                backgroundColor: "#2b4cb3",
-                color: "#fff",
-                padding: "10px 20px",
-                border: "none",
-                borderRadius: "10px",
-                fontSize: "14px",
-                cursor: "pointer"
-              }}>
-              Confirm</button>
-          </div>
+            <div
+                className="d-flex"
+                style={{
+                  marginTop: "20px",
+                  display: "flex",
+                  justifyContent: "center", // ✅ horizontal center
+                  alignItems: "center",     // ✅ vertical center
+                 gap: "50px",
+                }}>
+                <button
+                 style={{
+                   width:"200px",      
+                   backgroundColor: "#2b4cb3",
+                   color: "#fff",
+                   padding: "10px 20px",
+                   border: "none",
+                   borderRadius: "10px",
+                   fontSize: "14px",
+                   cursor: "pointer"}}>
+                  Confirm</button>
+              </div>
 
 
         </div>

@@ -1,191 +1,217 @@
 import React, { useState } from 'react';
-import Header from '../components/Header';
-import { 
-  AlertTriangle, 
-  Clock, 
-  Info, 
-  Search, 
-  CheckCircle, 
-  ChevronDown 
-} from 'lucide-react';
+import { kpis } from "../data/kpiData";
+import DashboardCards from "../components/4x1_cards_layout";
+import StaffMonthlyPerformanceGraph from '../components/staff_monthly_performance_graph';
+import StaffKPIAssignedCard from "../components/staff_kpi_assigned_card";
+import { activityLogs, getTimeAgo } from "../data/activityLog";
+import StaffRecentActivity from '../components/staff_recent_activity';
+{/*import mock data*/}
+import { submissions } from "../data/submissionData";
 
 const StaffDashboard = () => {
-  const [performanceFilter, setPerformanceFilter] = useState('overall');
-  const [kpiStatus, setKpiStatus] = useState('All');
+
+  {/*DATA*/}
+  {/*MOCK USER*/}
+  const currentUserId = "user_101";
+   
+  const userKpis = kpis
+  .filter(kpi => kpi.assignedUserIds.includes(currentUserId))
+  .map(kpi => {
+    const userData = kpi.kpiAssignments.find(
+      u => u.userId === currentUserId
+    );
+
+    return {
+      ...kpi,
+      progressText: `${userData?.current || 0} / ${userData?.target || 0} ${kpi.unit}`,
+      deadlineText: `${Math.ceil(
+        (new Date(kpi.deadline) - new Date()) / (1000 * 60 * 60 * 24)
+      )} days left`
+    };
+  });
+
+  const userActivities = activityLogs
+  .filter(activity => activity.userId === currentUserId)
+  .map(activity => {
+
+    return {
+      ...activity,
+      title: activity.meta.kpiTitle 
+    };
+  });
+
+  const [selectedMonth, setSelectedMonth] = useState(
+  new Date().toLocaleString("default", { month: "short" })
+);
+
+  const getWeeksInMonth = (month) => {
+  const year = new Date().getFullYear();
+  const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+
+  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  const totalWeeks = Math.ceil(lastDay / 7);
+
+  return Array.from({ length: totalWeeks }, (_, i) => `Week ${i + 1}`);
+};
+
+  const submissionMap = Object.fromEntries(
+  submissions.map(s => [s.kpiId, s])
+);
+
+  const getWeekOfMonth = (date) => {
+  const day = date.getDate();
+  return Math.ceil(day / 7);
+};
+
+const weeklyMap = {};
+
+userKpis.forEach(kpi => {
+  const submission = submissionMap[kpi.id];
+  if (!submission) return;
+
+  const date = new Date(submission.submittedAt);
+  const month = date.toLocaleString("default", { month: "short" });
+  const week = getWeekOfMonth(date);
+
+  const key = `${month}-W${week}`;
+
+  if (!weeklyMap[key]) {
+    weeklyMap[key] = {
+      name: kpi.title,
+      month,
+      time: `Week ${week}`,
+      kpi: 0,
+      progress: 0,
+      prediction: 0
+    };
+  }
+
+  weeklyMap[key].kpi += kpi.target;
+  weeklyMap[key].progress += kpi.current;
+  weeklyMap[key].prediction += kpi.current + 5;
+});
+
+let graphData;
+
+if (selectedMonth === "All") {
+  graphData = Object.values(weeklyMap);
+} else {
+  const weeks = getWeeksInMonth(selectedMonth);
+
+  graphData = weeks.map((weekLabel, index) => {
+    const weekNumber = index + 1;
+    const key = `${selectedMonth}-W${weekNumber}`;
+    const matched = weeklyMap[key];
+
+    return matched || {
+      name: "",
+      month: selectedMonth,
+      time: weekLabel,
+      kpi: 0,
+      progress: 0,
+      prediction: 0
+    };
+  });
+}
+
+  {/*DASHBOARD DATA*/}
+  const total = kpis.length;
+  const completed = kpis.filter(k => k.status === "completed").length;
+  const completionRate = total === 0
+  ? 0
+  : Math.round((completed / total) * 100);
+
+  const today = new Date();
+
+  const upcoming = kpis.filter(k => {
+  const deadline = new Date(k.deadline);
+  const diffDays = (deadline - today) / (1000 * 60 * 60 * 24);
 
   return (
-    <div className="d-flex align-items-stretch min-vh-100 w-100" style={{ backgroundColor: '#F8FAFC' }}>
-      
-      <div className="d-flex flex-column flex-grow-1 w-100 overflow-hidden">
-        
-        <main className="p-4 flex-grow-1 w-100 overflow-x-hidden" style={{ maxWidth: '100%' }}>
-          <div className="mb-4">
-            <h2 className="fw-bold text-dark mb-1">Welcome back, Jane !</h2>
-            <p className="text-muted">Here's an overview of your performance tracking dashboard</p>
-          </div>
-
-          <div className="row g-3 mb-4">
-            <div className="col-xl-3 col-md-6">
-              <div className="card h-100 border-0 border-start border-4 shadow-sm p-3" style={{ borderLeftColor: '#155DFC' }}>
-                <div className="d-flex justify-content-between align-items-start">
-                  <h6 className="text-muted small fw-bold">Total KPIs</h6>
-                  <Info size={16} className="text-primary" />
-                </div>
-                <div className="d-flex align-items-center gap-2 mb-2">
-                  <h2 className="fw-bold m-0">15</h2>
-                  <span className="badge bg-light text-muted border">+1</span>
-                </div>
-                <div className="p-2 rounded d-flex align-items-center gap-2" style={{ backgroundColor: '#FAF5FF', border: '1px solid #E9D4FF' }}>
-                   <div className="text-white rounded-circle p-1 d-flex" style={{ backgroundColor: '#AD46FF' }}>
-                     <Clock size={10} />
-                   </div>
-                   <div style={{ fontSize: '10px' }}>
-                     <div className="fw-bold text-dark">Customer Satisfaction KPI</div>
-                     <div className="text-muted">31 days left</div>
-                   </div>
-                   <span className="badge ms-auto py-1 px-2" style={{ backgroundColor: '#E1F0FF', color: '#1447E6', fontSize: '9px' }}>New</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-xl-3 col-md-6">
-              <div className="card h-100 border-0 border-start border-4 shadow-sm p-3" style={{ borderLeftColor: '#00A63E' }}>
-                <h6 className="text-muted small fw-bold">Completion Rate</h6>
-                <h2 className="fw-bold mb-1">67%</h2>
-                <p className="small text-muted mb-2">8 of 12 completed</p>
-                <div className="progress" style={{ height: '6px' }}>
-                  <div className="progress-bar" style={{ width: '67%', backgroundColor: '#2563EB' }}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-xl-3 col-md-6">
-              <div className="card h-100 border-0 border-start border-4 shadow-sm p-3" style={{ borderLeftColor: '#F59E0B' }}>
-                <h6 className="text-muted small fw-bold">At Risk</h6>
-                <h2 className="fw-bold mb-1">20%</h2>
-                <p className="small text-muted mb-2">4 tasks are at risk !</p>
-                <div className="progress" style={{ height: '6px' }}>
-                  <div className="progress-bar" style={{ width: '20%', backgroundColor: '#2563EB' }}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-xl-3 col-md-6">
-              <div className="card h-100 border-0 border-start border-4 shadow-sm p-3" style={{ borderLeftColor: '#F54900' }}>
-                <h6 className="text-muted small fw-bold">Underperform</h6>
-                <h2 className="fw-bold mb-1">0%</h2>
-                <p className="small text-muted mb-2">No unfulfilled KPI</p>
-                <div className="progress" style={{ height: '6px' }}>
-                  <div className="progress-bar" style={{ width: '0%', backgroundColor: '#2563EB' }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="row g-4">
-            <div className="col-lg-7">
-              <div className="card border-0 shadow-sm p-4 h-100">
-                <div className="d-flex justify-content-between align-items-start mb-4">
-                  <div>
-                    <h6 className="fw-bold m-0">Monthly Performance</h6>
-                    <p className="small text-muted">KPI completion vs target over time</p>
-                  </div>
-                  <select 
-                    className="form-select form-select-sm w-auto border-secondary-subtle"
-                    value={performanceFilter}
-                    onChange={(e) => setPerformanceFilter(e.target.value)}
-                  >
-                    <option value="overall">Overall Performance</option>
-                    <option value="search">Search specific KPI...</option>
-                  </select>
-                </div>
-                
-                <div className="d-flex flex-column justify-content-center align-items-center flex-grow-1" style={{ minHeight: '300px' }}>
-                   {performanceFilter === 'search' ? (
-                     <div className="w-75">
-                        <div className="input-group input-group-sm mb-3">
-                          <span className="input-group-text bg-white border-end-0"><Search size={14}/></span>
-                          <input type="text" className="form-control border-start-0" placeholder="Type KPI task name..." />
-                        </div>
-                     </div>
-                   ) : (
-                     <p className="text-muted small">Chart rendering for: Total KPI completion over time</p>
-                   )}
-                </div>
-
-                <div className="d-flex justify-content-center gap-4 mt-3 small fw-medium">
-                  <span style={{ color: '#2563EB' }}>▬ Progress</span>
-                  <span style={{ color: '#EAB308' }}>▬ Target</span>
-                  <span style={{ color: '#8B5CF6' }}>▬ Predicted</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-lg-5">
-              <div className="card border-0 shadow-sm p-4 h-100">
-                <div className="d-flex justify-content-between align-items-start mb-3">
-                  <div>
-                    <h6 className="fw-bold m-0">KPI Assigned</h6>
-                    <p className="small text-muted">KPIs Assigned are shown below</p>
-                  </div>
-                  <select 
-                    className="form-select form-select-sm w-auto border-secondary-subtle"
-                    value={kpiStatus}
-                    onChange={(e) => setKpiStatus(e.target.value)}
-                  >
-                    <option value="All">All</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Pending">Pending Verification</option>
-                    <option value="Verified">Verified</option>
-                    <option value="At Risk">At Risk</option>
-                    <option value="Underperform">Underperform</option>
-                  </select>
-                </div>
-
-                <div className="d-flex flex-column gap-2">
-                  {[
-                    { title: "Property Sales Target", detail: "2 / 20 units sold", date: "1 day left" },
-                    { title: "Lead Conversion Rate", detail: "15 / 20 deals closed (75%)", date: "4 days left" },
-                    { title: "New Property Listings", detail: "1 / 10 units (1%)", date: "7 days left" }
-                  ].map((kpi, index) => (
-                    <div key={index} className="p-3 rounded border border-warning-subtle" style={{ backgroundColor: '#FFFBEB' }}>
-                      <div className="d-flex justify-content-between mb-1">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="bg-warning rounded-circle p-1 d-flex"><AlertTriangle size={12} className="text-white"/></div>
-                          <span className="fw-bold small">{kpi.title}</span>
-                        </div>
-                        <span className="badge py-1 px-2" style={{ backgroundColor: '#F59E0B', fontSize: '9px' }}>At Risk</span>
-                      </div>
-                      <p className="text-muted mb-1" style={{ fontSize: '11px' }}>{kpi.detail}</p>
-                      <div className="text-muted d-flex align-items-center gap-1" style={{ fontSize: '10px' }}>
-                        <Clock size={10} /> {kpi.date}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <h6 className="fw-bold mb-1">Recent Activity</h6>
-            <p className="small text-muted mb-3">Latest Update</p>
-            <div className="card border-0 shadow-sm p-4 mb-4">
-              <div className="p-3 rounded border-0 d-flex align-items-center gap-3" style={{ backgroundColor: '#F0FDF4' }}>
-                <div className="bg-success text-white rounded-circle p-2 d-flex"><CheckCircle size={18}/></div>
-                <div>
-                  <div className="fw-bold small">Verified KPI - Property Viewing Appointments</div>
-                  <div className="text-muted small">Scheduled Viewings - 15/15 completed (100%)</div>
-                  <div className="text-muted mt-1" style={{ fontSize: '10px' }}><Clock size={10} className="me-1" /> 1 days ago</div>
-                </div>
-                <span className="badge bg-success ms-auto py-1 px-3">Verified</span>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
+    k.status !== "completed" &&
+    diffDays >= 0 &&
+    diffDays <= 7
   );
-};
+});
+
+  const stats = [
+  {
+    title: "Total KPIs",
+    value: kpis.length,
+    subtitle: "All defined KPIs",
+    color: "#3b82f6"
+  },
+  {
+    title: "Completion Rate",
+    value: `${completionRate}%`,
+    subtitle: `${completed} of ${total} completed`,
+    color: "#22c55e"
+  },
+  {
+    title: "Upcoming Deadlines",
+    value: upcoming.length,
+    subtitle: "Due in next 7 days",
+    color: "#facc15"
+  },
+  {
+    title: "High Priority",
+    value: kpis.filter(k => k.priority === "high").length || 0,
+    subtitle: "Requires attention",
+    color: "#ef4444"
+  }
+];
+
+   return (
+    <div>
+    
+
+      <div className="d-flex" 
+        style={{
+          width: "100%",
+          flexDirection:"column",
+            display: "flex",
+      }}>
+      {/* welcome message */}
+        <div>
+          <h2
+            style={{
+              padding:"20px",
+              marginTop:"0px",
+            }}>Welcome back, John!</h2>
+        </div>
+
+      {/*top 4 cards*/}
+       <DashboardCards stats={stats} />
+
+      {/*monthly performance graph + kpi assigned*/}
+      <div
+        className="d-flex"
+        style={{
+          marginLeft:"20px",
+          flexDirection:"row",
+          gap:"20px",
+        }}>
+      <StaffMonthlyPerformanceGraph 
+       graphData={graphData}
+       selectedMonth={selectedMonth}
+       setSelectedMonth={setSelectedMonth}
+      />
+      <StaffKPIAssignedCard kpis={userKpis} />
+      </div>
+
+     <div 
+       style={{
+        marginLeft:"20px",
+        marginBottom:"40px",
+       }}>
+      <StaffRecentActivity userActivities={userActivities}/>
+    </div>
+
+      
+</div>
+    
+</div>
+
+)};
 
 export default StaffDashboard;
