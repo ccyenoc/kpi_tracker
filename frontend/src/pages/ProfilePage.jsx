@@ -1,137 +1,154 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import '../ProfilePage.css';
-import { users } from "../data/userData";
+import './ProfilePage.css';
+import PageTitle from '../components/page_title';
 
 const ProfilePage = () => {
-    const currentUserId = "user_101";
-
-    const [fullName, setFullName] = useState(currentUserId?.name || "");
-    const [email, setEmail] = useState(currentUserId?.email || "");
-    const [role, setRole] = useState(currentUserId?.role || "");
-    const [department, setDepartment] = useState(currentUserId?.department || "");
-    const [phone, setPhone] = useState(currentUserId?.phone || "");
-
+    const [fullName, setFullName] = useState('John Manager');
+    const [email, setEmail] = useState('john.manager@example.com');
+    const [role, setRole] = useState('Manager');
+    const [department, setDepartment] = useState('HR');
+    const [phone, setPhone] = useState('(+60) 123-456-7890');
+    const [activeTab, setActiveTab] = useState('profile');
     const initials = fullName
-    .split(" ")
-    .map(n => n[0])
-    .join("")
-    .toUpperCase();
-    
-    const [activeTab, setActiveTab] = useState("profile");
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join('')
+        .toUpperCase();
 
     return (
-        <div className="sidebar">
-                <div className="mb-5">
-                    <div className="mb-2"><i className="bi bi-grid"></i> Dashboard</div>
-                    <div className="mb-2"><i className="bi bi-graph-up"></i> KPI Management</div>
-                    <div className="mb-2"><i className="bi bi-shield-check"></i> Verify KPI</div>
-                </div>
-                
-                    <div className="profile-pic">{initials}</div>
-                    <div>
-                        <p className="full-name-bold">{fullName}</p>
-                        <p className="role-small">{role}</p>
-                    </div>
+        <div className="d-flex flex-column">
 
-            <main className="header">
-                <header className="main-header">
-                    <nav className="profile-nav">Profile</nav>
-                    <div className="profile-actions">
-                        <i className="bi bi-moon me-3 cursor-pointer"></i>
-                    </div>
-                </header>
+            <PageTitle
+                title="Profile Management"
+                subtitle="Manage your account information and security settings" />
 
-                <h2 className="profile-header">Profile Management</h2>
-                <p className="profile-subheader">Manage your account information and security settings</p>
-
-                <div className="tab-pill-navigation">
-                    <button 
-                        className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+            <div className="mx-3 mb-3 tab-pill-navigation">
+                <div className={`button-slider ${activeTab === 'profile' ? 'profileActive' : activeTab === 'security' ? 'securityActive' : ''}`} />
+                <div className="row tab-pill-navigation-buttons">
+                    <button
+                        className={`col tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
                         onClick={() => setActiveTab('profile')}
                     >
                         Profile Information
                     </button>
-                    <button 
-                        className={`tab-btn ${activeTab === 'security' ? 'active' : ''}`}
+
+                    <button
+                        className={`col tab-btn ${activeTab === 'security' ? 'active' : ''}`}
+
                         onClick={() => setActiveTab('security')}
                     >
                         Security
                     </button>
                 </div>
 
+            </div>
+
+            {activeTab === 'profile' && (
                 <div className="content-wrapper">
-                    <div className="profile-header">
-                        <h5 className="profile-title">Personal Information</h5>
-                        <p className="profile-subtitle">View and update your personal details</p>
+                    <div className="tab-header">
+                        <h5 className="tab-title">Personal Information</h5>
+                        <p className="tab-subtitle">View and update your personal details</p>
                     </div>
 
-                    <div className="content-wrapper">
+                    <div>
                         <div className="full-name">
                             <label className="full-name-label">Full Name</label>
-                                    <i className="bi bi-person me-2 text-muted"></i>
-                                    <input 
-                                        type="text" 
-                                        className="input-full-name" 
-                                        value={fullName}
-                                        onChange={(e) => setFullName(e.target.value)}
-                                    />
-                                </div>
-
-                            <div className="email">
-                                <label className="email-label">Email</label>
-                                    <i className="bi bi-envelope me-2 text-muted"></i>
-                                    <input 
-                                        type="email" 
-                                        className="input-email" 
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                    />
-                            </div>
-
-                            <div className="role">
-                                <label className="role-label">Role</label>
-                                    <i className="bi bi-briefcase me-2 text-muted"></i>
-                                    <select 
-                                        className="form-select border-0 bg-transparent shadow-none"
-                                        value={role}
-                                        onChange={(e) => setRole(e.target.value)}
-                                    >
-                                        <option value="Manager">Manager</option>
-                                        <option value="Staff">Staff</option>
-                                    </select>
-                            </div>
-
-                            <div className="department">
-                                <label className="department-label">Department</label>
-                                    <i className="bi bi-building me-2 text-muted"></i>
-                                    <select 
-                                        className="form-select border-0 bg-transparent shadow-none"
-                                        value={department}
-                                        onChange={(e) => setDepartment(e.target.value)}
-                                    >
-                                        <option value="HR">HR</option>
-                                        <option value="IT">IT</option>
-                                        <option value="Finance">Finance</option>
-                                        <option value="Marketing">Marketing</option>
-                                    </select>
-                            </div>
-
-                            <div className="phone">
-                                <label className="phone-label">Phone</label>
-                                    <i className="bi bi-telephone me-2 text-muted"></i>
-                                    <input 
-                                        type="tel" 
-                                        className="form-control border-0 bg-transparent shadow-none" 
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}/>
-                                </div>
-                            
-                            <button className="btn-update-profile">Update Profile</button>
+                            <i className="bi bi-person me-2 text-muted"></i>
+                            <input
+                                type="text"
+                                className="input-full-name"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                            />
                         </div>
+
+                        <div className="email">
+                            <label className="email-label">Email</label>
+                            <i className="bi bi-envelope me-2 text-muted"></i>
+                            <input
+                                type="email"
+                                className="input-email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
                         </div>
-            </main>
+
+                        <div className="role">
+                            <label className="role-label">Role</label>
+                            <i className="bi bi-briefcase me-2 text-muted"></i>
+                            <select
+                                className="form-select border-0 bg-transparent shadow-none"
+                                value={role}
+                                onChange={(e) => setRole(e.target.value)}
+                            >
+                                <option value="Manager">Manager</option>
+                                <option value="Staff">Staff</option>
+                            </select>
+                        </div>
+
+                        <div className="department">
+                            <label className="department-label">Department</label>
+                            <i className="bi bi-building me-2 text-muted"></i>
+                            <select
+                                className="form-select border-0 bg-transparent shadow-none"
+                                value={department}
+                                onChange={(e) => setDepartment(e.target.value)}
+                            >
+                                <option value="HR">HR</option>
+                                <option value="IT">IT</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Marketing">Marketing</option>
+                            </select>
+                        </div>
+
+                        <div className="phone">
+                            <label className="phone-label">Phone</label>
+                            <i className="bi bi-telephone me-2 text-muted"></i>
+                            <input
+                                type="tel"
+                                className="form-control border-0 bg-transparent shadow-none"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)} />
+                        </div>
+
+                        <button className="btn-update-profile" type="button">Update Profile</button>
+                    </div>
+                </div>
+            )}
+            {activeTab === 'security' && (
+                <div>
+                    <div className="content-wrapper">
+                        <div className="tab-header">
+                            <h5 className="tab-title">Change Password</h5>
+                            <p className="tab-subtitle">Update your password to keep your account secure</p>
+                        </div>
+                        <div className="first-input">
+                            <label className="current-pw">Current Password</label>
+                            <input type="password" underline className="input-underline" placeholder=".........." />
+                        </div>
+                        <div className="second-input">
+                            <label className="new-pw">New Password</label>
+                            <input type="password" underline className="input-underline" placeholder=".........." />
+                        </div>
+                        <div className="second-input">
+                            <label className="confirm-pw">Confirm Password</label>
+                            <input type="password" underline className="input-underline" placeholder=".........." />
+                        </div>
+                        <button className="btn-update-pw">Update Password</button>
+                    </div>
+                    <div className='content-wrapper danger-zone'>
+                        <div className="tab-header">
+                            <h5 className="tab-title text-danger">Danger Zone</h5>
+                            <p className="tab-subtitle">Permanently delete your account and all associated data</p>
+                        </div>
+                        <button className="btn-danger"><i className="bi bi-trash me-2"></i>Delete Account</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

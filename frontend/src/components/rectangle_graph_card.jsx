@@ -19,12 +19,11 @@ function RectangleGraphCard(){
 
 
     return(
-        <div className="ms-3 mt-2"
+        <div className="mx-3 mb-2 flex-grow-1"
         style={{
             display : "flex",
             flexDirection: "column",
             height: "380px",
-            width:"97%",
             padding: "20px",
             backgroundColor: "#ffffff",
             boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",

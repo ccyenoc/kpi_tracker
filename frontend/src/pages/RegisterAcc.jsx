@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import '../RegisterAcc.css';
+import './RegisterAcc.css';
 import logo from "../assets/achievepro.png";
 
 const RegisterAcc = () => {
@@ -36,6 +36,7 @@ const RegisterAcc = () => {
   // need to change to backend 
   alert("Account created!");
 };
+
 
     return (
         <div className="auth-wrapper">
@@ -129,6 +130,7 @@ const RegisterAcc = () => {
                     </div>
 
                     <div className="mb-3">
+
             <label className="auth-label">Confirm Password</label>
             <div 
             className="auth-input-group">
@@ -147,13 +149,14 @@ const RegisterAcc = () => {
               </div>
               </div>
 
+
                     <button type="submit" className="btn-create-acc">
                         Create Account
                     </button>
                 </form>
 
                 <footer className="text-center">
-                Already have an account? <Link to="/">Sign in</Link>
+                Already have an account? <Link to="/signin">Sign in</Link>
                  </footer>
             </div>
         </div>

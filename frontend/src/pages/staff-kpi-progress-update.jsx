@@ -95,41 +95,29 @@ const StaffKPIUpdate = () => {
       flexDirection:"column",
     }}>
 
-      <Sidebar/>
-      <Header title="My KPI"/>
-
       {/*content*/}
       {/*4 dashboard cards*/}
-      <div
-        style={{
-           marginLeft:"150px",
-        }}>
         <DashboardCards stats={stats} />
-      </div>
 
       <div
         style={{
-           marginLeft:"170px",
+           marginLeft:"20px",
            gap:"20px",
         }}>
         <StaffOverallProgress kpis={userKpis} />
       </div>
       
-       <div
-        style={{
-           marginLeft:"150px",
-           marginTop:"20px",
-        }}>
+      
       <StaffSearchFilterKPI />
-      </div>
+
 
        <div
         style={{
         display: "grid",
         gridTemplateColumns: "repeat(2, 1fr)",  
         gap: "16px",
-        marginTop:"20px",
-        marginLeft:"170px",
+        marginTop:"30px",
+        marginLeft:"20px",
       }}
       >
      {userKpis.map((kpi) => (

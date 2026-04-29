@@ -89,14 +89,10 @@ const StaffDashboard = () => {
 
    return (
     <div>
-      
-      {/* Sidebar */}
-      <Sidebar />
-      <Header title="Dashboard"/>
+    
 
       <div className="d-flex" 
         style={{
-          marginLeft: "150px",
           width: "100%",
           flexDirection:"column",
             display: "flex",

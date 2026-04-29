@@ -1,5 +1,5 @@
-  import {useState} from "react";
-  import ManagerSidebar from"../components/manager_sidebar";
+import { user, useState } from "react";
+  import ManagerSidebar from"../components/Sidebar";
   import PageTitle from "../components/page_title";
   import DashboardCards from "../components/4x1_cards_layout";
   import KPISubmissionTable from "../components/kpi_submission_table";
@@ -42,13 +42,10 @@
           <div 
             className="d-flex"
             style={{
-              marginLeft: "150px",
               display: "flex",
               flexDirection : "column",
             }}>
           
-          <ManagerSidebar />
-          <Header title="Verify KPI Dashboard"/>
 
           <div 
             className="d-flex"

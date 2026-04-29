@@ -10,11 +10,7 @@ function TopBreadcrumb({ items }) {
       gap: "8px",
       fontSize: "16px",
       fontWeight:"bold",
-      padding:"16px",
-      marginBottom: "20px",
-      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-      width:"120%",
-      paddingLeft:"150px",
+      padding:"10px",
     }}>
       
       {/* Back button */}

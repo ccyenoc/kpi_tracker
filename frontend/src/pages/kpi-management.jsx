@@ -1,11 +1,11 @@
-import {user, useState} from "react";
-import ManagerSidebar from "../components/manager_sidebar";
+import { useState} from "react";
 import DashboardCards from "../components/4x1_cards_layout";
 import PageTitle from "../components/page_title";
 import SearchFilterKPI from "../components/search_filter_kpi"
 import KPIAssignedListCard from "../components/kpi_assigned_list";
 import { NavLink } from "react-router-dom";
 import Header from "../components/header"
+import { pathway } from "../Pathway";
 {/*mock data import*/}
 import { kpis } from "../data/kpiData";
 
@@ -44,13 +44,10 @@ function KPIManagement(){
         <div 
           className="d-flex"
           style={{
-            marginLeft: "150px",
             display: "flex",
             flexDirection : "column",
           }}>
         
-        <ManagerSidebar />
-        <Header />
 
         <div 
           className="d-flex"
@@ -65,17 +62,16 @@ function KPIManagement(){
           subtitle="Create, Update and Manage key performance indicators" />
 
 
-        <NavLink to="/create-kpi" style={{ textDecoration: "none" }}>
-        <button className="justy-content-center"
+        <NavLink to={pathway.CreateKPI} style={{ textDecoration: "none" }}>
+        <button className="justify-content-center text-white border-0"
          style={{
             width :"120px",
             height: "40px",
             fontSize:"14px",
-            color:"#ffffff",
+            margin:"0 20px 0 20px",
             backgroundColor:"#2b4cb3",
             borderColor:"#2b4cb3",
             borderRadius:"18px",
-            border: "none",     
          }}>+ Create KPI
         </button>
         </NavLink>

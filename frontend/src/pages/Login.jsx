@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import '../Login.css';
+import './Login.css';
 import logo from "../assets/achievepro.png";
+
 
 const Login = () => {
     const [credentials, setCredentials] = useState({

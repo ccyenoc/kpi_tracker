@@ -42,14 +42,12 @@ function StaffRankingCard() {
 
   return (
 
-    <div className="ms-2"
+    <div className="ms-2 flex-grow-1"
       style={{
-        width: "40%",
         backgroundColor: "#ffffff",
         padding: "20px",
         borderRadius: "15px",
         boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-        
       }}>
       <h4
        style={{

@@ -1,5 +1,6 @@
 import {useNavigate} from "react-router-dom"
 import KPIProgressPage from "../pages/kpi-progress";
+import { pathway } from "../Pathway";
 {/*import data*/}
 import { users } from "../data/userData";
 import { kpis } from "../data/kpiData";
@@ -61,14 +62,12 @@ const categoryMap = Object.fromEntries(
 );
 
   return (
-    <div 
+    <div className="mx-3"
     style={{ 
-        marginTop: "20px",
-        marginLeft:"20px",
+        marginTop: "10px",
         padding:"20px",
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-        borderRadius:"12px",
-        width: "109%", }}>
+        borderRadius:"12px" }}>
       
       {/* Header */}
       <div 
@@ -117,7 +116,7 @@ const categoryMap = Object.fromEntries(
             <div 
             style={rowStyle}
             key={item.id}
-            onClick={() => navigate("/verify-kpi", { state: item })}>
+            onClick={() => navigate(pathway.VerifyKPI, { state: item })}>
 
             {/* staff */}
             <div style={{ 

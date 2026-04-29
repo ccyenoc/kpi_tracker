@@ -32,8 +32,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
+    --text: #1E293B;
+    --text-h: #1E293B;
     --bg: #16171d;
     --border: #2e303a;
     --code-bg: #1f2028;
@@ -81,7 +81,7 @@ h1 {
   }
 }
 h2 {
-  font-size: 24px;
+  font-size: 42px;
   line-height: 118%;
   letter-spacing: -0.24px;
   margin: 0 0 8px;

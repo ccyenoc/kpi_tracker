@@ -1,44 +1,51 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-// --- USER IMPORTS ---
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Layout from "./components/Layout.jsx";
+import { routes } from "./Routes.jsx";
+import { useAuth } from "./Auth.jsx";
+import { pathway } from "./Pathway";
 import Login from "./pages/Login";
-import RegisterAcc from "./pages/RegisterAcc"
-import ProfilePage from "./pages/ProfilePage"
-import SecurityPage from "./pages/SecurityPage"
-
-// --- MANAGER IMPORTS ---
-import ManagerDashboard from "./pages/manager-dashboard"; 
-import KpiManagement from "./pages/kpi-management";
-import VerifyKPI from "./pages/verify-kpi";
-import VerifyKPIDashboard from "./pages/verify-kpi-dashboard";
-import CreateKPI from "./pages/create-kpi";
-import KPIProgressPage from "./pages/kpi-progress";
-
-// --- STAFF IMPORTS ---
-import StaffDashboard from "./pages/staff-dashboard";
-import StaffKPIUpdate from "./pages/staff-kpi-progress-update";
+import RegisterAcc from "./pages/RegisterAcc";
 
 function App() {
+  const { user } = useAuth();
+
   return (
     <BrowserRouter>
       <Routes>
-        {/*common user route*/}
-        <Route path="/" element={<Login />} />
+        <Route path="/signin" element={<Login />} />
         <Route path="/signup" element={<RegisterAcc />} />
-        <Route path="/profilepage" element={<ProfilePage />} />
-        <Route path="/securitypage" element={<SecurityPage />} />
 
-        
-        {/* staff Routes */}
-        <Route path="/pages/staff-dashboard" element={<StaffDashboard />} />
-        <Route path="/staff-kpi-progress-update" element={<StaffKPIUpdate />} />
+        {/* ROOT REDIRECT */}
+        <Route
+          path="/"
+          element={
+            user
+              ? (
+                  <Navigate
+                    to={
+                      user.role === "manager"
+                        ? pathway.ManagerDashboard
+                        : pathway.StaffDashboard
+                    }
+                  />
+                )
+              : <Navigate to={pathway.Login} />
+          }
+        />
 
-        {/* manager Routes */}
-        <Route path="/manager/dashboard" element={<ManagerDashboard />} />
-        <Route path="/kpi-management" element={<KpiManagement />} />
-        <Route path="/verify-kpi" element={<VerifyKPI />} />
-        <Route path="/verify-kpi-dashboard" element={<VerifyKPIDashboard />} />
-        <Route path="/create-kpi" element={<CreateKPI />} />
-        <Route path="/kpi-progress" element={<KPIProgressPage />} />
+        {/* PROTECTED ROUTES */}
+        <Route element={<Layout />}>
+          {user &&
+            routes(user.role).map((route, index) => (
+              <Route
+                key={index}
+                path={route.path}
+                element={route.element}
+              />
+            ))
+          }
+        </Route>
+
       </Routes>
     </BrowserRouter>
   );
