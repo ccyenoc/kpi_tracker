@@ -2,13 +2,24 @@ import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../ProfilePage.css';
+import { users } from "../data/userData";
 
 const ProfilePage = () => {
-    const [fullName, setFullName] = useState('John Manager'); 
-    const [email, setEmail] = useState('john.manager@example.com'); 
-    const [role, setRole] = useState('Manager'); 
-    const [department, setDepartment] = useState('HR'); 
-    const [phone, setPhone] = useState('(+60) 123-456-7890');
+    const currentUserId = "user_101";
+
+    const [fullName, setFullName] = useState(currentUserId?.name || "");
+    const [email, setEmail] = useState(currentUserId?.email || "");
+    const [role, setRole] = useState(currentUserId?.role || "");
+    const [department, setDepartment] = useState(currentUserId?.department || "");
+    const [phone, setPhone] = useState(currentUserId?.phone || "");
+
+    const initials = fullName
+    .split(" ")
+    .map(n => n[0])
+    .join("")
+    .toUpperCase();
+    
+    const [activeTab, setActiveTab] = useState("profile");
 
     return (
         <div className="sidebar">

@@ -24,6 +24,9 @@ function App() {
         {/*common user route*/}
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<RegisterAcc />} />
+        <Route path="/profilepage" element={<ProfilePage />} />
+        <Route path="/securitypage" element={<SecurityPage />} />
+
         
         {/* staff Routes */}
         <Route path="/pages/staff-dashboard" element={<StaffDashboard />} />
