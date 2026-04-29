@@ -1,5 +1,9 @@
 import {useNavigate} from "react-router-dom"
 import KPIProgressPage from "../pages/kpi-progress";
+import { STATUS_CONFIG } from "../config/statusConfig";
+{/*import mock data*/}
+import { users } from "../data/userData";
+import { categories } from "../data/categoriesData";
 
 function KPIAssignedListTable({data}) {
   const navigate = useNavigate();
@@ -54,13 +58,18 @@ function KPIAssignedListTable({data}) {
         <div style={{ flex: 3 }}>KPI Title</div>
         <div style={{ flex: 1 }}>Target</div>
         <div style={{ flex: 2 }}>Assigned To</div>
-        <div style={{ flex: 1 }}>Category</div>
+        <div style={{ flex: 2 }}>Category</div>
         <div style={{ flex: 1 }}>Deadline</div>
         <div style={{ flex: 1 }}>Status</div>
       </div>
 
       {/* Rows */}
-      {data.map((item, index) => (
+      {data.map((item, index) => {
+        const config = STATUS_CONFIG[item.status];
+
+        const category = categories.find(c => c.id === item.categoryId);
+
+        return (
         <div 
         key={index} 
         style={{
@@ -81,25 +90,38 @@ function KPIAssignedListTable({data}) {
             style={{ 
               fontSize: "13px", 
               color: "#6b7280" }}>
-              {item.desc}
+              {item.description}
             </div>
           </div>
 
           <div 
           style={{ 
             flex: 1 
-            }}>{item.target}</div>
+            }}>{item.target} {item.unit}</div>
+
           <div 
           style={{ 
             flex: 2 
-            }}>{item.team}</div>
+            }}>{
+  item.assignedUserIds
+    .map(id => users.find(u => u.id === id)?.name)
+    .join(", ")
+}</div>
 
           {/* Category */}
           <div 
           style={{
-             flex: 1 }}>
-            <span 
-            style={badgeStyle}>{item.category}</span>
+             flex: 2 }}>
+           <span
+  style={{
+    background: category?.color || "#e5e7eb",
+    padding: "4px 10px",
+    borderRadius: "10px",
+    fontSize: "12px"
+  }}
+>
+  {category?.name || "Unknown"}
+</span>
           </div>
 
           <div 
@@ -111,15 +133,22 @@ function KPIAssignedListTable({data}) {
           <div 
           style={{ 
             flex: 1 }}>
-            <span style={statusStyle(item.status)}>
-              {item.status}
-            </span>
+            <span
+  style={{
+    background: config?.color || "#e5e7eb",
+    padding: "4px 10px",
+    borderRadius: "10px",
+    fontSize: "12px"
+  }}
+>
+  {config?.label || item.status}
+</span>
           </div>
 
+        </div> )
+      })}
         </div>
-      ))}
-    </div>
-  );
+      )
 }
 
 export default KPIAssignedListTable;

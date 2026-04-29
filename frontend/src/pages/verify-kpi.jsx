@@ -3,10 +3,28 @@ import {useState} from "react"
 import ManagerSidebar from "../components/manager_sidebar";
 import PageTitle from "../components/page_title";
 import TopBreadcrumb from "../components/top_breadcrumb";
+{/*import data*/}
+import { users } from "../data/userData";
+import { kpis } from "../data/kpiData";
+import { categories } from "../data/categoriesData";
 
 function VerifyKPI(){
   const location = useLocation();
   const state = location.state || {};
+
+  const submission = state;
+
+const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+const kpiMap = Object.fromEntries(kpis.map(k => [k.id, k]));
+const categoryMap = Object.fromEntries(categories.map(c => [c.id, c]));
+
+const user = userMap[submission.submittedBy] || {};
+const kpi = kpiMap[submission.kpiId] || {};
+const category = categoryMap[kpi.categoryId] || {};
+
+const progress = kpi.target
+  ? Math.round((kpi.current / kpi.target) * 100)
+  : 0;
 
   const progressContainerStyle = {
   width: "100%",
@@ -144,30 +162,30 @@ const h3ContentStyle={
                     <h3 style={{
                         ...h3TitleStyle,
                         marginTop:"0px",}}>KPI Title</h3>
-                    <h3 style={h3ContentStyle}>{state.title}</h3>
+                    <h3 style={h3ContentStyle}>{kpi.title}</h3>
                     </div>
 
                     <div>
                      <h3 style={{
                         ...h3TitleStyle,
                         marginTop:"0px",}}>Category</h3>
-                    <h3 style={h3ContentStyle}>{state.category}</h3>
+                    <h3 style={h3ContentStyle}>{category.name}</h3>
                     </div>
                 </div>
 
                 {/*desc*/}
                 <h3 style={
                     h3TitleStyle}>KPI Description</h3>
-                <h3 style={h3ContentStyle}>{state.desc}</h3>
+                <h3 style={h3ContentStyle}>{kpi.description}</h3>
 
                  {/*progress*/}
                 <h3 style={h3TitleStyle}>Final Progress</h3>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={progressContainerStyle}>
-                <div style={progressBarStyle(state.progress)} />
+                <div style={progressBarStyle(progress)} />
                 </div>
                     <span style={{ fontSize: "16px" }}>
-                         {state.progress}%
+                         {progress}%
                     </span>
                 </div>
 
@@ -226,12 +244,12 @@ const h3ContentStyle={
                   }}>
                     <div>
                     <h3 style={h3TitleStyle}>Submitted Date</h3>
-                    <h3 style={h3ContentStyle}>{state.submitted_date}</h3>
+                    <h3 style={h3ContentStyle}>{submission.submittedAt}</h3>
                     </div>
 
                     <div>
                     <h3 style={h3TitleStyle}>Deadline</h3>
-                    <h3 style={h3ContentStyle}>{state.deadline}</h3>
+                    <h3 style={h3ContentStyle}>{kpi.deadline}</h3>
                     </div>
                 </div>
 

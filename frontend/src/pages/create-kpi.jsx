@@ -7,18 +7,12 @@ import TargetKPISelection from "../components/target_kpi"
 import Deadline from "../components/deadline"
 import KPIAssignStaff from "../components/kpi_assign_staff"
 import TopBreadcrumb from "../components/top_breadcrumb";
+import { users } from "../data/userData";
 
 function CreateKPI(){
-  {/*mock data*/}
-  const staffList = [
-  {
-    id: 1,
-    name: "John Smith",
-    email: "john.smith@company.com"
-  }
-];
     const [category, setCategory] = useState("")
     const [title, setTitle] = useState("")
+    const [unit, setUnit] = useState("");
 
     const KPI_TEMPLATES = {
     sales: ["Monthly Sales Revenue", "Closed Deals", "Conversion Rate"],
@@ -83,10 +77,10 @@ function CreateKPI(){
                 gap:"260px",
               }}>
 
-                <TargetKPISelection />
+                <TargetKPISelection unit={unit} setUnit={setUnit} />
                 <Deadline />
             </div>   
-            <KPIAssignStaff staffList={staffList} />
+            <KPIAssignStaff staffList={users} unit={unit} />
 
             <div
                 className="d-flex"
@@ -95,7 +89,7 @@ function CreateKPI(){
   display: "flex",
   justifyContent: "center", // ✅ horizontal center
   alignItems: "center",     // ✅ vertical center
-  gap: "50px"
+  gap: "50px",
 }}>
                 <button
                  style={{

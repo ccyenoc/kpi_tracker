@@ -36,12 +36,7 @@ function Card({ title, value, subtitle, color }) {
 }
 
 // this is for the dashboard top cards layout (4 x 1)
-function DashboardCards(
-  {title1 , value1, subtitle1,
-  title2 , value2, subtitle2,
-  title3 , value3, subtitle3,
-  title4 , value4, subtitle4,}
-) {
+function DashboardCards({ stats }) {
   return (
     <div
       style={{
@@ -50,33 +45,16 @@ function DashboardCards(
         padding: "0 20px 20px",
       }}
     >
-      <Card
-        title={title1}
-        value={value1}
-        subtitle={subtitle1}
-        color="#3b82f6"
-      />
-
-      <Card
-        title={title2}
-        value={value2}
-        subtitle={subtitle2}
-        color="#22c55e"
-      />
-
-      <Card
-        title={title3}
-        value={value3}
-        subtitle={subtitle3}
-        color="#facc15"
-      />
-
-      <Card
-        title={title4}
-        value={value4}
-        subtitle={subtitle4}
-        color="#ef4444"
-      />
+       {stats.map((item, index)=>(
+          <Card
+          key={index}
+          title={item.title}
+          value={item.value}
+          subtitle={item.subtitle}
+          color={item.color}
+          />
+       ))}
+    
     </div>
   );
 }

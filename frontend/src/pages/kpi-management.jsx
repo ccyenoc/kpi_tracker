@@ -5,30 +5,39 @@ import PageTitle from "../components/page_title";
 import SearchFilterKPI from "../components/search_filter_kpi"
 import KPIAssignedListCard from "../components/kpi_assigned_list";
 import { NavLink } from "react-router-dom";
+{/*mock data import*/}
+import { kpis } from "../data/kpiData";
 
 function KPIManagement(){
-    const temp_data = [
-  {
-    title: "Q1 Sales Target",
-    desc: "Achieve quarterly sales revenue target",
-    target: 500000,
-    unit: "USD",
-    team: "Sales Team",
-    category: "Revenue",
-    deadline: "2026-03-31", 
-    status: "Completed",
-  },
-  {
-    title: "Customer Satisfaction Score",
-    desc: "Maintain high customer satisfaction ratings",
-    target: 90,
-    unit: "%",
-    team: "Customer Service",
-    category: "Quality",
-    deadline: "2026-06-30",
-    status: "In Progress",
-  },
-];
+     {/*DATA*/}
+      {/*DASHBOARD DATA*/}
+      const stats = [
+      {
+        title: "Total KPIs",
+        value: kpis.length,
+        subtitle: "All defined KPIs",
+        color: "#3b82f6"
+      },
+      {
+        title: "Active KPIs",
+        value: kpis.filter(k => k.status === "in_progress").length,
+        subtitle: "Currently in progress",
+        color: "#22c55e"
+      },
+      {
+        title: "Pending Verification",
+        value: kpis.filter(k => k.status === "pending").length,
+        subtitle: "Pending for approval",
+        color: "#facc15"
+      },
+      {
+        title: "High Priority",
+        value: kpis.filter(k => k.priority === "high").length || 0,
+        subtitle: "Requires attention",
+        color: "#ef4444"
+      }
+    ];
+    
 
     return (
         <div 
@@ -72,27 +81,11 @@ function KPIManagement(){
         </div>
 
         {/*top 4 cards*/}
-        <DashboardCards 
-         title1="Total KPIs"
-         value1="3"
-         subtitle1="All defined KPIs"
-
-         title2="Active KPIs"
-         value2="3"
-         subtitle2="Currently in progress"
-
-         title3="Completed"
-         value3="1"
-         subtitle3="Finished KPIs"
-
-         title4="High Priority"
-         value4="2"
-         subtitle4="Requires attention"
-       />
+        <DashboardCards stats={stats}/>
 
        <SearchFilterKPI />
 
-       <KPIAssignedListCard data={temp_data}/>
+       <KPIAssignedListCard data={kpis}/>
        </div>
 
 

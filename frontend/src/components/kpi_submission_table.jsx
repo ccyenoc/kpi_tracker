@@ -1,38 +1,12 @@
 import {useNavigate} from "react-router-dom"
 import KPIProgressPage from "../pages/kpi-progress";
+{/*import data*/}
+import { users } from "../data/userData";
+import { kpis } from "../data/kpiData";
+import { categories } from "../data/categoriesData";
 
-function KPISubmissionTable() {
+function KPISubmissionTable({submissions}) {
   const navigate = useNavigate();
-
- {/*mock data*/}
- const data = [
-  {
-    id: 1,
-    name: "Alice",
-    email: "alice@mail.com",
-    title: "Sales KPI",
-    desc: "Monthly sales target",
-    current: 60,
-    target_kpi: 100,
-    category: "Sales",
-    submitted_date: "2026-04-20",
-    evidence: "Report.pdf",
-    status: "Approved"
-  },
-  {
-    id: 2,
-    name: "Bob",
-    email: "bob@mail.com",
-    title: "Marketing KPI",
-    desc: "Campaign reach",
-    current: 40,
-    target_kpi: 80,
-    category: "Marketing",
-    submitted_date: "2026-04-18",
-    evidence: "Screenshot.png",
-    status: "Pending"
-  }
-];
 
   const headerStyle = {
     display: "flex",
@@ -74,6 +48,18 @@ function KPISubmissionTable() {
   };
 };
 
+const userMap = Object.fromEntries(
+  users.map(u => [u.id, u])
+);
+
+const kpiMap = Object.fromEntries(
+  kpis.map(k => [k.id, k])
+);
+
+const categoryMap = Object.fromEntries(
+  categories.map(c => [c.id, c])
+);
+
   return (
     <div 
     style={{ 
@@ -89,7 +75,9 @@ function KPISubmissionTable() {
         style={headerStyle}>
         <div 
           style={{ 
-            flex: 1.2
+            flex: 1.2,
+            maxWidth: "100px",
+            minWidth: 0 ,
             }}>Staff</div>
         <div 
           style={{ 
@@ -120,7 +108,12 @@ function KPISubmissionTable() {
 
       <div>
 
-        {data.map(item => (
+        {submissions.map(item => {
+          const user = userMap[item.submittedBy];
+          const kpi = kpiMap[item.kpiId];
+          const category = categoryMap[kpi.categoryId];
+
+          return (
             <div 
             style={rowStyle}
             key={item.id}
@@ -128,17 +121,22 @@ function KPISubmissionTable() {
 
             {/* staff */}
             <div style={{ 
-            flex: 1.2
+            flex: 1.2,
+            maxWidth: "100px",
+            minWidth: 0 ,
+            whiteSpace: "normal",        //  allow wrapping
+            wordBreak: "break-word",     //  break long text
+            overflowWrap: "break-word" 
             }}>
             <div 
             style={{ 
               fontWeight: "500" 
-              }}>{item.name}</div>
+              }}>{user.name}</div>
             <div 
             style={{ 
               fontSize: "13px", 
               color: "#6b7280" }}>
-              {item.email}
+              {user.email}
             </div>
             </div>
 
@@ -148,13 +146,23 @@ function KPISubmissionTable() {
             }}>
             <div 
             style={{ 
-              fontWeight: "500" 
-              }}>{item.title}</div>
+              fontWeight: "500" ,
+              maxWidth: "200px",
+              minWidth: 0 ,
+              whiteSpace: "normal",        //  allow wrapping
+              wordBreak: "break-word",     //  break long text
+              overflowWrap: "break-word" 
+              }}>{kpi.title}</div>
             <div 
             style={{ 
               fontSize: "13px", 
-              color: "#6b7280" }}>
-              {item.desc}
+              color: "#6b7280",
+              maxWidth: "200px",
+              minWidth: 0 ,
+              whiteSpace: "normal",        //  allow wrapping
+              wordBreak: "break-word",     //  break long text
+              overflowWrap: "break-word"  }}>
+              {kpi.description}
             </div>
           </div>
 
@@ -173,7 +181,7 @@ function KPISubmissionTable() {
     overflow: "hidden"
   }}>
     <div style={{
-      width: `${(item.current / item.target_kpi) * 100}%`,
+      width: `${(item.current / item.target) * 100}%`,
       background: "#3b82f6",
       height: "100%"
     }} />
@@ -187,7 +195,7 @@ function KPISubmissionTable() {
             <div 
             style={{ 
               fontWeight: "500" 
-              }}>{item.category}</div>
+              }}>{category?.name}</div>
           </div>
 
           {/* submitted date */}
@@ -197,7 +205,7 @@ function KPISubmissionTable() {
             <div 
             style={{ 
               fontWeight: "500" 
-              }}>{item.submitted_date}</div>
+              }}>{item.submittedAt}</div>
           </div>
 
           {/* evidence */}
@@ -206,7 +214,12 @@ function KPISubmissionTable() {
             }}>
             <div 
             style={{ 
-              fontWeight: "500" 
+              fontWeight: "500" ,
+              maxWidth: "100px",
+              minWidth: 0 ,
+              whiteSpace: "normal",        //  allow wrapping
+              wordBreak: "break-word",     //  break long text
+              overflowWrap: "break-word" 
               }}>{item.evidence}</div>
           </div>
 
@@ -218,10 +231,11 @@ function KPISubmissionTable() {
                {item.status}
              </span>
           </div>
+        
 
 
             </div>
-        ))}
+        )})}
       </div>
       </div>
       

@@ -1,7 +1,47 @@
 import TopStaffCard from "./top_staff_card";
+// import mock data
+import { users } from "../data/userData";
+import { kpis } from "../data/kpiData";
+import { useMemo } from "react";
 
 function StaffRankingCard() {
+
+  const staffRanking = () => {
+    const ranking = users
+      .filter(u => u.role === "staff")
+      .map(user => {
+
+        // get KPIs assigned to this user
+        const userKpis = kpis.filter(kpi =>
+          kpi.assignedUserIds.includes(user.id)
+        );
+
+        const scores = userKpis.map(kpi => {
+          if (kpi.target === 0) return 0;
+          return (kpi.current / kpi.target) * 100;
+        });
+
+        const avgScore =
+          scores.length > 0
+            ? scores.reduce((a, b) => a + b, 0) / scores.length
+            : 0;
+
+        return {
+          id: user.id,
+          name: user.name,
+          score: Math.round(avgScore)
+        };
+      });
+
+    return ranking.sort((a, b) => b.score - a.score);
+  };
+
+  const top3 = useMemo(() => {
+  return staffRanking().slice(0, 3);
+}, []);
+
   return (
+
     <div className="ms-2"
       style={{
         width: "40%",
@@ -25,9 +65,14 @@ function StaffRankingCard() {
       </p>
 
       <div className="m-2"></div>
-      <TopStaffCard name="John Doe" score={87} rank={1} />
-      <TopStaffCard name="Jane Smith" score={85} rank={2} />
-      <TopStaffCard name="Alex Tan" score={82} rank={3} />
+      {top3.map((user, index) => (
+       <TopStaffCard
+       key={user.id}
+       name={user.name}
+       score={user.score}
+       rank={index + 1}
+  />
+))}
     </div>
   );
 }
