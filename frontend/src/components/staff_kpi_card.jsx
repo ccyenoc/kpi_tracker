@@ -48,7 +48,7 @@ const percentage = Math.round((currentVal / targetVal) * 100);
         borderRadius: "16px",
         border: `2px solid ${current.border}`,
         backgroundColor: current.bg,
-        width:"450px",
+        width:"100%",
         height:"90px",
       }}
     >

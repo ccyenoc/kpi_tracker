@@ -19,7 +19,7 @@ const StaffKPIAssignedCard = ({ kpis }) =>{
              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
              borderRadius: "15px",
              height: "320px",  
-             width:"490px",
+              width:"133%",
           }}>
             <h3
               style={{
