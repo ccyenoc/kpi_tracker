@@ -9,7 +9,7 @@ function StaffRecentActivity({userActivities}){
        className="d-flex"
        style={{
         marginTop:"20px",
-        maxWidth:"1070px",
+        width:"98%",
         padding:"20px",
         borderRadius:"12px",
         flexDirection:"column",
