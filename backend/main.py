@@ -9,9 +9,10 @@ import os
 import bcrypt
 import secrets
 import jwt
+from google.api_core.exceptions import AlreadyExists
 
 # Import Firebase configuration
-from firebase_secure import FIREBASE_CONFIG, FIREBASE_ADMIN_CONFIG, SERVICE_ACCOUNT_KEY_PATH, USERDATA_COLLECTION, USER_ROLES, print_config_status
+from firebase_secure import FIREBASE_CONFIG, FIREBASE_ADMIN_CONFIG, SERVICE_ACCOUNT_KEY_PATH, USERDATA_COLLECTION, USERAUTH_COLLECTION, USER_ROLES, print_config_status
 
 app = FastAPI()
 
@@ -52,7 +53,7 @@ class UserRegistration(BaseModel):
     name: str
     email: str
     password: str
-    phone: Optional[str] = ""  # Phone is optional
+    phone: Optional[str] = None  # Phone is optional
     role: str
     department: str
 
@@ -64,7 +65,7 @@ class UserLogin(BaseModel):
 
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
-    phone: Optional[str] = ""  # Allow empty string
+    phone: Optional[str] = None  # Allow empty string
     department: Optional[str] = None
 
 
@@ -80,6 +81,9 @@ class UserResponse(BaseModel):
     user: Optional[dict] = None
     dashboard: Optional[str] = None
     requiresEmailVerification: Optional[bool] = False
+
+
+USER_PROFILE_FIELDS = ("name", "email", "phone", "role", "department")
 
 
 # Helper functions for password hashing and JWT
@@ -102,6 +106,122 @@ def create_jwt_token(user_id: str, email: str) -> str:
 def verify_jwt_token(token: str) -> dict:
     """Verify and decode JWT token."""
     return jwt.decode(token, "SECRET_KEY_CHANGE_IN_PROD", algorithms=["HS256"])
+
+
+def build_user_profile_document(user_data: UserRegistration | dict) -> dict:
+    """Create the exact Firestore profile document shape for a user."""
+    return {
+        "name": user_data["name"] if isinstance(user_data, dict) else user_data.name,
+        "email": user_data["email"] if isinstance(user_data, dict) else user_data.email,
+        "phone": (user_data["phone"] if isinstance(user_data, dict) else user_data.phone) or "",
+        "role": user_data["role"] if isinstance(user_data, dict) else user_data.role,
+        "department": user_data["department"] if isinstance(user_data, dict) else user_data.department,
+    }
+
+
+def build_public_user_document(user_id: str, user_profile: dict) -> dict:
+    """Return the frontend-safe user shape with the generated user ID."""
+    return {
+        "id": user_id,
+        **build_user_profile_document(user_profile),
+    }
+
+
+def save_user_profile_document(user_ref, user_profile: dict) -> None:
+    """Overwrite a Firestore profile document with only the allowed fields."""
+    user_ref.set(build_user_profile_document(user_profile))
+
+
+def create_user_documents(users_ref, user_data: UserRegistration, hashed_password: str) -> tuple[str, dict]:
+    """Create a brand-new user profile and auth record without overwriting existing documents."""
+    base_profile = build_user_profile_document(user_data)
+    attempt_number = 0
+
+    while True:
+        attempt_number += 1
+        user_id = allocate_next_user_id(users_ref)
+        user_ref = users_ref.document(user_id)
+        auth_ref = db.collection(USERAUTH_COLLECTION).document(user_id)
+
+        try:
+            user_ref.create(base_profile)
+            auth_ref.create({
+                "userId": user_id,
+                "email": user_data.email,
+                "password_hash": hashed_password,
+            })
+            return user_id, base_profile
+        except AlreadyExists:
+            # ID was already taken; try again with the next candidate (do NOT delete existing docs)
+            if attempt_number >= 10:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Unable to allocate a new user ID after multiple attempts"
+                )
+            continue
+        except Exception as e:
+            # Non-AlreadyExists error during create: retry a few times, then fail
+            if attempt_number >= 10:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed creating user documents: {str(e)}"
+                )
+            continue
+
+
+def save_user_auth_document(user_id: str, email: str, password_hash: str) -> None:
+    """Store password hashes outside of userData so profile docs stay clean."""
+    db.collection(USERAUTH_COLLECTION).document(user_id).set({
+        "userId": user_id,
+        "email": email,
+        "password_hash": password_hash,
+    })
+
+
+def get_user_auth_hash(user_id: str) -> str:
+    """Load the password hash for a user from the auth collection."""
+    auth_doc = db.collection(USERAUTH_COLLECTION).document(user_id).get()
+    if not auth_doc.exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Authentication record not found")
+
+    auth_data = auth_doc.to_dict() or {}
+    return auth_data.get("password_hash", "")
+
+
+def allocate_next_user_id(users_ref) -> str:
+    """Allocate the next user ID using a transactional counter to guarantee sequential increment.
+
+    This uses a Firestore document `systemCounters/userIdCounter` to atomically increment
+    the `nextUserNumber` value so new signups receive sequential IDs (user_101, user_102...).
+    If the counter doesn't exist yet we compute a safe starting point from existing user IDs.
+    """
+    @firestore.transactional
+    def allocate_tx(transaction, users_ref_inner):
+        counter_ref = db.collection(USER_COUNTER_COLLECTION).document(USER_COUNTER_DOC)
+        counter_snapshot = counter_ref.get(transaction=transaction)
+
+        if counter_snapshot.exists:
+            counter_data = counter_snapshot.to_dict() or {}
+            next_user_number = int(counter_data.get("nextUserNumber", 100)) + 1
+        else:
+            # Initialize counter from the highest existing user_ number
+            existing_numbers = []
+            for user_snapshot in users_ref_inner.stream():
+                user_id = user_snapshot.id
+                if not user_id.startswith("user_"):
+                    continue
+                try:
+                    existing_numbers.append(int(user_id.split("_", 1)[1]))
+                except (IndexError, ValueError):
+                    continue
+
+            next_user_number = (max(existing_numbers) if existing_numbers else 100) + 1
+
+        transaction.set(counter_ref, {"nextUserNumber": next_user_number})
+        return f"user_{next_user_number}"
+
+    transaction = db.transaction()
+    return allocate_tx(transaction, users_ref)
 
 
 @app.get("/")
@@ -156,38 +276,15 @@ def register_user(user_data: UserRegistration):
                         detail="Email already registered"
                     )
 
-                # Generate incremental user ID (user_101, user_102, etc.)
-                all_users = list(users_ref.stream())
-                next_user_number = 101 + len(all_users)
-                user_id = f"user_{next_user_number}"
-
                 # Hash password
                 hashed_password = hash_password(user_data.password)
 
-                # Create user document in userData collection
-                user_doc = {
-                    "id": user_id,
-                    "name": user_data.name,
-                    "email": user_data.email,
-                    "phone": user_data.phone,
-                    "role": user_data.role,
-                    "department": user_data.department,
-                    "password_hash": hashed_password,
-                    "avatar": f"https://i.pravatar.cc/60?img={abs(hash(user_data.email)) % 70}",
-                    "assignedKpis": [],
-                    "teamIds": [],
-                    "active": True,
-                    "emailVerified": False,
-                    "createdAt": datetime.now(),
-                    "updatedAt": datetime.now()
-                }
-
-                # Store in userData collection
-                db.collection(USERDATA_COLLECTION).document(user_id).set(user_doc)
+                # Create fresh Firestore documents and never overwrite an existing user
+                user_id, user_profile_doc = create_user_documents(users_ref, user_data, hashed_password)
                 print(f"Created user in Firestore: {user_id}")
 
-                # Return user data without password hash
-                user_response = {k: v for k, v in user_doc.items() if k != 'password_hash'}
+                # Return user data with the generated user ID
+                user_response = build_public_user_document(user_id, user_profile_doc)
 
                 return UserResponse(
                     success=True,
@@ -243,10 +340,11 @@ def login_user(credentials: UserLogin):
 
                 user_doc = users[0]
                 user_id = user_doc.id
-                user_data = user_doc.to_dict()
+                user_data = user_doc.to_dict() or {}
 
-                # Verify password
-                if not verify_password(credentials.password, user_data.get('password_hash', '')):
+                # Verify password from the dedicated auth collection
+                password_hash = get_user_auth_hash(user_id)
+                if not verify_password(credentials.password, password_hash):
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail="Invalid email or password"
@@ -260,14 +358,11 @@ def login_user(credentials: UserLogin):
                 if user_data.get('role') == 'manager':
                     dashboard_url = "/manager/dashboard"
 
-                # Update last login timestamps
-                db.collection(USERDATA_COLLECTION).document(user_id).update({
-                    "lastLogin": datetime.now(),
-                    "updatedAt": datetime.now()
-                })
+                # Keep the userData document in the clean profile-only format
+                save_user_profile_document(db.collection(USERDATA_COLLECTION).document(user_id), user_data)
 
-                # Return user data without password hash
-                user_response = {k: v for k, v in user_data.items() if k != 'password_hash'}
+                # Return user data with the generated user ID
+                user_response = build_public_user_document(user_id, user_data)
 
                 return {
                     "success": True,
@@ -329,9 +424,8 @@ def get_current_user(request: Request):
         if db:
             user_doc = db.collection(USERDATA_COLLECTION).document(user_id).get()
             if user_doc.exists:
-                user_data = user_doc.to_dict()
-                # Remove password hash from response
-                user_response = {k: v for k, v in user_data.items() if k != 'password_hash'}
+                user_data = user_doc.to_dict() or {}
+                user_response = build_public_user_document(user_id, user_data)
                 return {"success": True, "user": user_response}
 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -351,9 +445,8 @@ def get_all_users():
             user_list = []
 
             for user in users:
-                user_data = user.to_dict()
-                # Remove password hash from response
-                user_response = {k: v for k, v in user_data.items() if k != 'password_hash'}
+                user_data = user.to_dict() or {}
+                user_response = build_public_user_document(user.id, user_data)
                 user_list.append(user_response)
 
             return {
@@ -423,20 +516,22 @@ def update_profile(profile_data: ProfileUpdate, request: Request):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
         # Build update dict with only provided fields
-        update_dict = {"updatedAt": datetime.now()}
+        update_dict = {}
         if profile_data.name:
             update_dict["name"] = profile_data.name
-        if profile_data.phone:
+        if profile_data.phone is not None:  # Allow empty string ""
             update_dict["phone"] = profile_data.phone
         if profile_data.department:
             update_dict["department"] = profile_data.department
 
-        # Update in Firestore
-        user_ref.update(update_dict)
+        # Overwrite the document with only the approved profile fields
+        updated_user = user_doc.to_dict() or {}
+        updated_user.update(update_dict)
+        save_user_profile_document(user_ref, updated_user)
 
         # Return updated user data
-        updated_user = user_ref.get().to_dict()
-        user_response = {k: v for k, v in updated_user.items() if k != 'password_hash'}
+        updated_user = user_ref.get().to_dict() or {}
+        user_response = build_public_user_document(user_id, updated_user)
 
         return {
             "success": True,
@@ -480,25 +575,24 @@ def update_password(password_data: PasswordUpdate, request: Request):
         if not user_doc.exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        user_data = user_doc.to_dict()
+        user_data = user_doc.to_dict() or {}
 
         # Verify current password
-        if not verify_password(password_data.currentPassword, user_data.get('password_hash', '')):
+        password_hash = get_user_auth_hash(user_id)
+        if not verify_password(password_data.currentPassword, password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Current password is incorrect"
             )
 
-        # Hash new password and update
+        # Hash new password and update the auth record only
         new_password_hash = hash_password(password_data.newPassword)
-        user_ref.update({
-            "password_hash": new_password_hash,
-            "updatedAt": datetime.now()
-        })
+        save_user_auth_document(user_id, user_data.get("email", ""), new_password_hash)
 
         return {
             "success": True,
-            "message": "Password updated successfully"
+            "message": "Password updated successfully",
+            "user": build_public_user_document(user_id, user_data)
         }
     except HTTPException:
         raise
@@ -526,12 +620,15 @@ def delete_account(request: Request):
 
         user_ref = db.collection(USERDATA_COLLECTION).document(user_id)
         user_doc = user_ref.get()
+        auth_ref = db.collection(USERAUTH_COLLECTION).document(user_id)
 
         if not user_doc.exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
         # Permanently delete the user document from Firestore
         user_ref.delete()
+        if auth_ref.get().exists:
+            auth_ref.delete()
         print(f"Permanently deleted user from Firestore: {user_id}")
 
         return {
