@@ -14,8 +14,8 @@ function StaffSearchFilterKPI(){
          borderRadius: "8px",   // Adjusted border radius to 8px
          border: "1px solid #ccc",
          boxSizing: "border-box", 
-         backgroundColor: "#1a1a1a",
-         color: "white",
+         backgroundColor: "#fff",
+         color: "black",
          outline: "none"
     };
 

@@ -9,28 +9,23 @@ import ProgressKPIAssignStaff from "../components/progress_kpi_assign_staff";
 import ProgressKPIGraph from "../components/progress_kpi_graph";
 import TopBreadcrumb from "../components/top_breadcrumb";
 
+{/*import mock data*/}
+import { categories } from "../data/categoriesData";
+
 function KPIProgressPage() {
     {/*access data about the current page*/ }
     const location = useLocation();
     const state = location.state || {};
+
+    const category = categories.find(c => c.id === state.categoryId);
 
     return(
       <div
         className="d-flex"
         style={{
             flexDirection:"column",
-            marginLeft:"150px",
             marginBottom:"20px",
         }}>
-
-            <ManagerSidebar />
-             <TopBreadcrumb
-                 items={[
-                     { label: "KPI Management", 
-                        path: "/kpi-management" },
-                     { label: "KPI Progress" }
-                     ]}
-            />
 
             {/*title*/}
             <PageTitle
@@ -77,7 +72,7 @@ function KPIProgressPage() {
                     }}>
 
                     <ProgressInputKPITitle title={state.title} />
-                    <ProgressCategorySelection category={state.category} />
+                    <ProgressCategorySelection category={category} />
 
                 </div>
 

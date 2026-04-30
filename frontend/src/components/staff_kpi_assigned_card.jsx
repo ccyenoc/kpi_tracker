@@ -21,6 +21,7 @@ const StaffKPIAssignedCard = ({ kpis = [] }) =>{
              borderRadius: "15px",
              minHeight: "400px",  
              width: "100%",
+             height: "500px",     
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
@@ -50,7 +51,7 @@ const StaffKPIAssignedCard = ({ kpis = [] }) =>{
                 flexDirection: "column", 
                 gap: "12px",
                 overflowY: "auto",
-                maxHeight: "500px" 
+                height: "400px",  
             }}>
                 {kpis && kpis.length > 0 ? (
                     kpis.map ((item, index) =>(

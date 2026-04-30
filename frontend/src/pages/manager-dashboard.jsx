@@ -52,7 +52,7 @@ function ManagerDashboard(){
       }}>
       {/* welcome message */}
       <PageTitle
-          title={`Welcome back, John!`}
+          title={"Welcome back, John!"}
           subtitle="Here's an overview of your performance tracking dashboard" />
 
       {/*top 4 cards*/}
@@ -66,7 +66,9 @@ function ManagerDashboard(){
         style={{
           gap: "20px",
           width: "100%",
-          flexWrap: "wrap"
+          flexWrap: "wrap",
+          maxHeight: "200px",
+          overflowY: "auto"
         }}>
         <StaffRankingCard />
         <ManagerDashboardKpi />

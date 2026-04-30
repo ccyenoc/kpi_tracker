@@ -2,12 +2,12 @@ export const categories = [
   {
     id: "cat_1",
     name: "Sales Performance",
-    color: "#3b82f6"
+    color: "#639fff"
   },
   {
     id: "cat_2",
     name: "Lead Genaration",
-    color: "#10b981"
+    color: "#7ef203"
   },
    {
     id: "cat_3",
@@ -17,7 +17,7 @@ export const categories = [
   {
     id: "cat_4",
     name: "Marketing Performance",
-    color: "#a800f0"
+    color: "#df93ff"
   },
    {
     id: "cat_5",

@@ -1,4 +1,5 @@
 function ProgressCategorySelection({category}) {
+  console.log("State Category", category);
   return (
     <div
       style={{
@@ -15,7 +16,7 @@ function ProgressCategorySelection({category}) {
 
       <h3 style={{ 
         fontSize:"14px",}}>
-        {category}
+        {category.name}
       </h3>
 
 

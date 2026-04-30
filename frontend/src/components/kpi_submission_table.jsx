@@ -36,7 +36,7 @@ function KPISubmissionTable({submissions}) {
 
   const statusStyle = (status) => {
   const colors = {
-    Approved: "#bbf7d0",       // green
+    Completed: "#bbf7d0",       // green
     Pending: "#fde68a",       // yellow
     Rejected: "#fecaca",  // red
   };
@@ -108,7 +108,8 @@ const categoryMap = Object.fromEntries(
       <div>
 
         {submissions.map(item => {
-          const user = userMap[item.submittedBy];
+          const user = userMap[item.userId];
+          console.log("User",user);
           const kpi = kpiMap[item.kpiId];
           const category = categoryMap[kpi.categoryId];
 

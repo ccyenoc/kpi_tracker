@@ -71,14 +71,14 @@ function KPIAssignedListTable({data}) {
         const category = categories.find(c => c.id === item.categoryId);
 
         return (
-        <div 
-        key={index} 
-        style={{
-    ...rowStyle,
-    cursor: "pointer"
+        <div
+        key={index}
+        style={{ ...rowStyle, cursor: "pointer" }}
+        onClick={() => {
+        console.log("clicked", item);
+        navigate(pathway.KPIProgressPage, { state: item });
   }}
-        onClick={() => navigate(pathway.KPIProgressPage, { state: item })}>
-          
+>
           {/* Title */}
           <div style={{ 
             flex: 3 

@@ -205,7 +205,11 @@ if (selectedMonth === "All") {
             position: "relative"
           }}>
           
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div 
+          style={{ 
+            flex: 1, 
+            minWidth: 0,
+            maxHeight: "500px",}}>
             <StaffMonthlyPerformanceGraph 
               graphData={graphData}
               selectedMonth={selectedMonth}
@@ -213,8 +217,13 @@ if (selectedMonth === "All") {
             />
           </div>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <StaffKPIAssignedCard kpis={userKpis} />
+          <div 
+          style={{ 
+            flex: 1, 
+            minWidth: 0,
+            maxHeight: "500px",
+}}>
+               <StaffKPIAssignedCard kpis={userKpis} />
           </div>
         </div>
 
