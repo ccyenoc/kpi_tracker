@@ -10,9 +10,10 @@ import bcrypt
 import secrets
 import jwt
 from google.api_core.exceptions import AlreadyExists
+import traceback
 
 # Import Firebase configuration
-from firebase_secure import FIREBASE_CONFIG, FIREBASE_ADMIN_CONFIG, SERVICE_ACCOUNT_KEY_PATH, USERDATA_COLLECTION, USERAUTH_COLLECTION, USER_ROLES, print_config_status
+from firebase_secure import FIREBASE_CONFIG, FIREBASE_ADMIN_CONFIG, SERVICE_ACCOUNT_KEY_PATH, USERDATA_COLLECTION, USERAUTH_COLLECTION, USER_COUNTER_COLLECTION, USER_COUNTER_DOC, USER_ROLES, print_config_status
 
 app = FastAPI()
 
@@ -139,7 +140,9 @@ def create_user_documents(users_ref, user_data: UserRegistration, hashed_passwor
 
     while True:
         attempt_number += 1
+        print(f"[register] create_user_documents attempt {attempt_number} for email={getattr(user_data, 'email', None)}")
         user_id = allocate_next_user_id(users_ref)
+        print(f"[register] candidate user_id={user_id}")
         user_ref = users_ref.document(user_id)
         auth_ref = db.collection(USERAUTH_COLLECTION).document(user_id)
 
@@ -153,6 +156,7 @@ def create_user_documents(users_ref, user_data: UserRegistration, hashed_passwor
             return user_id, base_profile
         except AlreadyExists:
             # ID was already taken; try again with the next candidate (do NOT delete existing docs)
+            print(f"[register] collision for {user_id} (AlreadyExists). Retrying...")
             if attempt_number >= 10:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -160,7 +164,9 @@ def create_user_documents(users_ref, user_data: UserRegistration, hashed_passwor
                 )
             continue
         except Exception as e:
-            # Non-AlreadyExists error during create: retry a few times, then fail
+            # Non-AlreadyExists error during create: log traceback, retry a few times, then fail
+            print(f"[register] exception during create_user_documents attempt {attempt_number}: {e}")
+            traceback.print_exc()
             if attempt_number >= 10:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -202,7 +208,12 @@ def allocate_next_user_id(users_ref) -> str:
 
         if counter_snapshot.exists:
             counter_data = counter_snapshot.to_dict() or {}
-            next_user_number = int(counter_data.get("nextUserNumber", 100)) + 1
+            try:
+                next_user_number = int(counter_data.get("nextUserNumber", 100)) + 1
+            except Exception as e:
+                print(f"[allocate] invalid counter data: {counter_data}; error: {e}")
+                traceback.print_exc()
+                next_user_number = 101
         else:
             # Initialize counter from the highest existing user_ number
             existing_numbers = []
@@ -218,10 +229,16 @@ def allocate_next_user_id(users_ref) -> str:
             next_user_number = (max(existing_numbers) if existing_numbers else 100) + 1
 
         transaction.set(counter_ref, {"nextUserNumber": next_user_number})
+        print(f"[allocate] counter set to nextUserNumber={next_user_number}")
         return f"user_{next_user_number}"
 
     transaction = db.transaction()
-    return allocate_tx(transaction, users_ref)
+    try:
+        return allocate_tx(transaction, users_ref)
+    except Exception as e:
+        print(f"[allocate] exception during allocate_tx: {e}")
+        traceback.print_exc()
+        raise
 
 
 @app.get("/")
@@ -280,7 +297,12 @@ def register_user(user_data: UserRegistration):
                 hashed_password = hash_password(user_data.password)
 
                 # Create fresh Firestore documents and never overwrite an existing user
-                user_id, user_profile_doc = create_user_documents(users_ref, user_data, hashed_password)
+                try:
+                    user_id, user_profile_doc = create_user_documents(users_ref, user_data, hashed_password)
+                except Exception as inner_e:
+                    print(f"[register] exception while creating user documents: {inner_e}")
+                    traceback.print_exc()
+                    raise
                 print(f"Created user in Firestore: {user_id}")
 
                 # Return user data with the generated user ID
@@ -464,6 +486,101 @@ def get_all_users():
             "success": False,
             "message": f"Failed to get users: {str(e)}"
         }
+
+
+@app.get("/api/debug/next-user-id")
+def debug_next_user_id():
+    """Return current counter doc, highest existing user_ number, and the next candidate ID (read-only).
+
+    This endpoint is for diagnostics only and does not modify any Firestore state.
+    """
+    try:
+        if not db:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+        users_ref = db.collection(USERDATA_COLLECTION)
+        counter_ref = db.collection(USER_COUNTER_COLLECTION).document(USER_COUNTER_DOC)
+
+        # Load counter doc if present
+        counter_snapshot = counter_ref.get()
+        counter_data = counter_snapshot.to_dict() if counter_snapshot.exists else None
+
+        # Find highest existing user_ number
+        existing_numbers = []
+        for user_snapshot in users_ref.stream():
+            uid = user_snapshot.id
+            if uid.startswith("user_"):
+                try:
+                    existing_numbers.append(int(uid.split("_", 1)[1]))
+                except (IndexError, ValueError):
+                    continue
+
+        highest_existing = max(existing_numbers) if existing_numbers else None
+
+        # Compute candidate without modifying the counter
+        if counter_data:
+            try:
+                candidate_num = int(counter_data.get("nextUserNumber", 100)) + 1
+            except Exception:
+                candidate_num = (highest_existing or 100) + 1
+        else:
+            candidate_num = (highest_existing or 100) + 1
+
+        candidate_id = f"user_{candidate_num}"
+
+        return {
+            "success": True,
+            "counter": counter_data,
+            "highest_existing": highest_existing,
+            "next_candidate": candidate_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Debug failed: {str(e)}")
+
+
+@app.post("/api/debug/init-user-counter")
+def init_user_counter():
+    """Initialize or repair `systemCounters/userIdCounter` to the highest existing `user_###`.
+
+    This is a one-time administrative helper to avoid allocating IDs that collide with
+    already existing user documents. It sets `nextUserNumber` to the highest existing
+    numeric suffix (or 100 if none exist). The allocator will still increment on next use.
+    """
+    try:
+        if not db:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+        users_ref = db.collection(USERDATA_COLLECTION)
+        counter_ref = db.collection(USER_COUNTER_COLLECTION).document(USER_COUNTER_DOC)
+
+        # Compute highest existing user_ number
+        existing_numbers = []
+        for user_snapshot in users_ref.stream():
+            uid = user_snapshot.id
+            if uid.startswith("user_"):
+                try:
+                    existing_numbers.append(int(uid.split("_", 1)[1]))
+                except (IndexError, ValueError):
+                    continue
+
+        highest_existing = max(existing_numbers) if existing_numbers else 100
+
+        # Set the counter to highest_existing so next allocation returns highest_existing + 1
+        counter_ref.set({"nextUserNumber": highest_existing})
+
+        return {
+            "success": True,
+            "message": "Counter initialized/updated",
+            "counter": {"nextUserNumber": highest_existing},
+            "highest_existing": highest_existing,
+            "next_candidate": f"user_{highest_existing + 1}"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Init counter failed: {str(e)}")
 
 
 @app.post("/api/verify-email")
