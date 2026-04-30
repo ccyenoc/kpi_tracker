@@ -10,6 +10,7 @@ const RegisterAcc = () => {
         email: '',
         role: '',
         department: '',
+        phone: '',
         password: '',
         confirmPassword: ''
     });
@@ -36,7 +37,7 @@ const RegisterAcc = () => {
             name: formData.fullName,
             email: formData.email,
             password: formData.password,
-            phone: formData.phone || "0000000000",  // Default phone if not provided
+            phone: formData.phone || "",  // Allow empty phone
             role: formData.role === "employee" ? "staff" : formData.role,  // Map "employee" to "staff"
             department: formData.department
         };
@@ -137,6 +138,18 @@ const RegisterAcc = () => {
                                 <option value="marketing">Marketing</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div className="mb-3">
+                        <label className="auth-label">Phone (Optional)</label>
+                        <input 
+                            type="tel" id="phone" className="form-control-custom"
+                            placeholder="+60 123-456-7890" 
+                            onChange={handleChange}
+                            style={{
+                                fontSize:"16px",
+                                paddingLeft:"20px",
+                            }} />
                     </div>
 
                     <div className="mb-3">
