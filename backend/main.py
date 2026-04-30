@@ -6,7 +6,6 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
 import os
-import uuid
 import bcrypt
 import secrets
 import jwt
@@ -53,7 +52,7 @@ class UserRegistration(BaseModel):
     name: str
     email: str
     password: str
-    phone: str
+    phone: Optional[str] = ""  # Phone is optional
     role: str
     department: str
 
@@ -61,6 +60,18 @@ class UserRegistration(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = ""  # Allow empty string
+    department: Optional[str] = None
+
+
+class PasswordUpdate(BaseModel):
+    currentPassword: str
+    newPassword: str
+    confirmPassword: str
 
 
 class UserResponse(BaseModel):
@@ -116,8 +127,8 @@ def health_check():
 def register_user(user_data: UserRegistration):
     """Register a new user with Firestore (no Firebase Auth)"""
     try:
-        # Validate required fields
-        required_fields = ['name', 'email', 'password', 'phone', 'role', 'department']
+        # Validate required fields (phone is optional)
+        required_fields = ['name', 'email', 'password', 'role', 'department']
         for field in required_fields:
             if not getattr(user_data, field):
                 raise HTTPException(
@@ -145,8 +156,10 @@ def register_user(user_data: UserRegistration):
                         detail="Email already registered"
                     )
 
-                # Generate a unique user ID
-                user_id = str(uuid.uuid4())
+                # Generate incremental user ID (user_101, user_102, etc.)
+                all_users = list(users_ref.stream())
+                next_user_number = 101 + len(all_users)
+                user_id = f"user_{next_user_number}"
 
                 # Hash password
                 hashed_password = hash_password(user_data.password)
@@ -386,6 +399,152 @@ def check_session(request: Request = None):
             "role": "staff"
         }
     }
+
+
+@app.put("/api/profile")
+def update_profile(profile_data: ProfileUpdate, request: Request):
+    """Update user profile information (name, phone, department)"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
+
+        token = auth_header.split(' ', 1)[1]
+        decoded = verify_jwt_token(token)
+        user_id = decoded.get('user_id')
+
+        if not db:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+        user_ref = db.collection(USERDATA_COLLECTION).document(user_id)
+        user_doc = user_ref.get()
+
+        if not user_doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # Build update dict with only provided fields
+        update_dict = {"updatedAt": datetime.now()}
+        if profile_data.name:
+            update_dict["name"] = profile_data.name
+        if profile_data.phone:
+            update_dict["phone"] = profile_data.phone
+        if profile_data.department:
+            update_dict["department"] = profile_data.department
+
+        # Update in Firestore
+        user_ref.update(update_dict)
+
+        # Return updated user data
+        updated_user = user_ref.get().to_dict()
+        user_response = {k: v for k, v in updated_user.items() if k != 'password_hash'}
+
+        return {
+            "success": True,
+            "message": "Profile updated successfully",
+            "user": user_response
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Profile update failed: {str(e)}"
+        )
+
+
+@app.put("/api/password")
+def update_password(password_data: PasswordUpdate, request: Request):
+    """Update user password (verify current password, update with new one)"""
+    try:
+        # Validate password confirmation
+        if password_data.newPassword != password_data.confirmPassword:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New passwords do not match"
+            )
+
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
+
+        token = auth_header.split(' ', 1)[1]
+        decoded = verify_jwt_token(token)
+        user_id = decoded.get('user_id')
+
+        if not db:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+        user_ref = db.collection(USERDATA_COLLECTION).document(user_id)
+        user_doc = user_ref.get()
+
+        if not user_doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        user_data = user_doc.to_dict()
+
+        # Verify current password
+        if not verify_password(password_data.currentPassword, user_data.get('password_hash', '')):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Current password is incorrect"
+            )
+
+        # Hash new password and update
+        new_password_hash = hash_password(password_data.newPassword)
+        user_ref.update({
+            "password_hash": new_password_hash,
+            "updatedAt": datetime.now()
+        })
+
+        return {
+            "success": True,
+            "message": "Password updated successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Password update failed: {str(e)}"
+        )
+
+
+@app.delete("/api/profile")
+def delete_account(request: Request):
+    """Delete user account permanently from Firestore"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
+
+        token = auth_header.split(' ', 1)[1]
+        decoded = verify_jwt_token(token)
+        user_id = decoded.get('user_id')
+
+        if not db:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+        user_ref = db.collection(USERDATA_COLLECTION).document(user_id)
+        user_doc = user_ref.get()
+
+        if not user_doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # Permanently delete the user document from Firestore
+        user_ref.delete()
+        print(f"Permanently deleted user from Firestore: {user_id}")
+
+        return {
+            "success": True,
+            "message": "Account has been permanently deleted"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Account deletion failed: {str(e)}"
+        )
 
 
 if __name__ == "__main__":
