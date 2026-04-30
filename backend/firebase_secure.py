@@ -27,6 +27,7 @@ FIREBASE_ADMIN_CONFIG = {
 SERVICE_ACCOUNT_KEY_PATH = os.getenv("SERVICE_ACCOUNT_KEY_PATH", "serviceAccountKey.json")
 
 USERDATA_COLLECTION = os.getenv("USERDATA_COLLECTION", "userData")
+USERAUTH_COLLECTION = os.getenv("USERAUTH_COLLECTION", "userAuth")
 
 USER_ROLES = {
     "STAFF": "staff",

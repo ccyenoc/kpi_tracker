@@ -211,8 +211,8 @@ const ProfilePage = () => {
         <div className="d-flex flex-column">
 
             <PageTitle
-                title="Profile Management"
-                subtitle="Manage your account information and security settings" />
+                title="Edit Profile"
+                subtitle="Edit your account information and save changes to Firebase" />
 
             {successMsg && (
                 <div className="alert alert-success mx-3 mb-3" role="alert">
@@ -261,8 +261,8 @@ const ProfilePage = () => {
             {activeTab === 'profile' && (
                 <div className="content-wrapper">
                     <div className="tab-header">
-                        <h5 className="tab-title"  style={{ fontSize:"16px"}}>Personal Information</h5>
-                        <p className="tab-subtitle"  style={{ fontSize:"14px"}}>View and update your personal details</p>
+                        <h5 className="tab-title"  style={{ fontSize:"16px"}}>Edit Profile</h5>
+                        <p className="tab-subtitle"  style={{ fontSize:"14px"}}>Update your profile details below</p>
                     </div>
 
                     <form onSubmit={handleUpdateProfile}>
@@ -314,13 +314,12 @@ const ProfilePage = () => {
                         </div>
 
                         <div className="phone">
-                            <label className="phone-label"  style={{ fontSize:"16px"}}>Phone (Optional)</label>
+                            <label className="phone-label"  style={{ fontSize:"16px"}}>Phone</label>
                             <input
                                 type="tel"
                                 className="form-control border-0 bg-transparent shadow-none"
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
-                                placeholder="+60 123-456-7890"
                                  style={{ fontSize:"16px"}} />
                         </div>
 
