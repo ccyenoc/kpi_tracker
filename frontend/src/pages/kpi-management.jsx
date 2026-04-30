@@ -4,7 +4,7 @@ import PageTitle from "../components/page_title";
 import SearchFilterKPI from "../components/search_filter_kpi"
 import KPIAssignedListCard from "../components/kpi_assigned_list";
 import { NavLink } from "react-router-dom";
-import Header from "../components/header"
+import Header from "../components/Header"
 import { pathway } from "../Pathway";
 {/*mock data import*/}
 import { kpis } from "../data/kpiData";

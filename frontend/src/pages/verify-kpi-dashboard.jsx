@@ -3,7 +3,7 @@ import { user, useState } from "react";
   import PageTitle from "../components/page_title";
   import DashboardCards from "../components/4x1_cards_layout";
   import KPISubmissionTable from "../components/kpi_submission_table";
-  import Header from "../components/header";
+  import Header from "../components/Header";
   {/*import data*/}
   import { submissions } from "../data/submissionData";
 

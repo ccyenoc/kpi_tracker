@@ -1,7 +1,7 @@
 import { Search, Bell } from "lucide-react";
-import TopBreadcrumb from "./top_breadcrumb";
+import TopBreadcrumb from "./top_breadcrumb.jsx";
 import { useLocation } from "react-router-dom";
-import { routes } from "../Routes";
+import { routes } from "../Routes.jsx";
 import { useAuth } from "../Auth.jsx";
 
 export default function Header() {
@@ -30,7 +30,10 @@ export default function Header() {
 
   return (
     <header className="d-flex justify-content-between align-items-center px-4 border-bottom bg-white position-sticky top-0"
-      style={{ height: "64px" }}
+      style={{ height: "64px",
+             zIndex: 1050
+    }}
+      
     >
       {breadcrumbs.length > 1 ? (
         <TopBreadcrumb items={breadcrumbs} />
