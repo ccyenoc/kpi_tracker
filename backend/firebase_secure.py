@@ -29,6 +29,10 @@ SERVICE_ACCOUNT_KEY_PATH = os.getenv("SERVICE_ACCOUNT_KEY_PATH", "serviceAccount
 USERDATA_COLLECTION = os.getenv("USERDATA_COLLECTION", "userData")
 USERAUTH_COLLECTION = os.getenv("USERAUTH_COLLECTION", "userAuth")
 
+# Counter collection/doc used to allocate sequential user IDs (user_101, user_102...)
+USER_COUNTER_COLLECTION = os.getenv("USER_COUNTER_COLLECTION", "systemCounters")
+USER_COUNTER_DOC = os.getenv("USER_COUNTER_DOC", "userIdCounter")
+
 USER_ROLES = {
     "STAFF": "staff",
     "MANAGER": "manager",
