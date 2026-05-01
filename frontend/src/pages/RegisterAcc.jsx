@@ -10,6 +10,7 @@ const RegisterAcc = () => {
         email: '',
         role: '',
         department: '',
+        phone: '',
         password: '',
         confirmPassword: ''
     });
@@ -22,20 +23,45 @@ const RegisterAcc = () => {
     };
     
 
-    const handleSubmit = (e) => {
-  e.preventDefault(); // stop page reload
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        // Check if both passwords match
+        if (formData.password !== formData.confirmPassword) {
+            alert("Passwords do not match!");
+            return;
+        }
 
-  console.log("Form Data:", formData);
+        // Map form field names to backend API field names
+        const payload = {
+            name: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+            phone: formData.phone || "",  // Allow empty phone
+            role: formData.role === "employee" ? "staff" : formData.role,  // Map "employee" to "staff"
+            department: formData.department
+        };
 
-  //check if both pasword entered the same
-  if (formData.password !== formData.confirmPassword) {
-    alert("Passwords do not match!");
-    return;
-  }
-
-  // need to change to backend 
-  alert("Account created!");
-};
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert("Account created successfully! You can now log in.");
+                window.location.href = '/signin';
+            } else {
+                alert(`Registration failed: ${data.detail || 'Please try again'}`);
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            alert('Registration failed. Please check your connection and try again.');
+        }
+    };
 
 
     return (
@@ -112,6 +138,18 @@ const RegisterAcc = () => {
                                 <option value="marketing">Marketing</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div className="mb-3">
+                        <label className="auth-label">Phone (Optional)</label>
+                        <input 
+                            type="tel" id="phone" className="form-control-custom"
+                            placeholder="+60 123-456-7890" 
+                            onChange={handleChange}
+                            style={{
+                                fontSize:"16px",
+                                paddingLeft:"20px",
+                            }} />
                     </div>
 
                     <div className="mb-3">
