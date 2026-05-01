@@ -15,10 +15,32 @@ const Login = () => {
         setCredentials({ ...credentials, [name]: value });
     };
 
-    const handleSignIn = (e) => {
+    const handleSignIn = async (e) => {
         e.preventDefault();
         console.log("Logging in with:", credentials);
-        alert(`Welcome back, ${credentials.email}!`);
+        
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credentials)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Store token and user in localStorage
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                // Redirect to dashboard based on role
+                window.location.href = data.dashboard;
+            } else {
+                alert(`Login failed: ${data.detail || 'Invalid credentials'}`);
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('Login failed. Please check your connection and try again.');
+        }
     };
 
     return (
