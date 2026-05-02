@@ -15,6 +15,8 @@ function SearchFilterKPI() {
     borderRadius: "15px",
     border: "1px solid #ccc",
     boxSizing: "border-box",
+    backgroundColor: "#f9f9f9",
+    color: "#333",
   };
 
   return (
