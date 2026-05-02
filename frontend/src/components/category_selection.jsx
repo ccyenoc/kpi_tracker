@@ -21,6 +21,7 @@ function CategorySelection({ }) {
           background: "#fff",
           cursor: "pointer",
           fontSize:"14px",
+          color: "#333",
         }}
       >
          <option value="">Select category</option>
