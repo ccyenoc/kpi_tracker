@@ -10,10 +10,8 @@ const StaffKPI = ({ kpi, onUpdate }) => {
 
   const current = statusStyle[kpi.status] || statusStyle.in_progress;
 
-  const [currentVal, targetVal] = kpi.progressText
-    .split(" ")[0]
-    .split("/")
-    .map(Number);
+  const currentVal = Number(kpi.current || 0);
+  const targetVal = Number(kpi.target || 0);
 
   const percentage =
     targetVal === 0 ? 0 : Math.round((currentVal / targetVal) * 100);

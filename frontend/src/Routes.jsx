@@ -6,7 +6,7 @@ import CreateKPI from "./pages/create-kpi";
 import VerifyKPIDashboard from "./pages/verify-kpi-dashboard";
 import KPIProgressPage from "./pages/kpi-progress";
 import ProfilePage from "./pages/ProfilePage";
-import StaffKPIUpdate from "./pages/staff-kpi-progress-update";
+import StaffKpiProgressUpdate from "./pages/staff-kpi-progress-update";
 
 export const routes = (role) => {
   switch (role) {
@@ -53,6 +53,8 @@ export const routes = (role) => {
           breadcrumb: "Profile",
           parent: "/manager/dashboard",
         },
+
+        
       ];
 
     case "staff":
@@ -63,9 +65,9 @@ export const routes = (role) => {
           breadcrumb: "Dashboard",
         },
         {
-          path: "/staff/kpi",
-          element: <StaffKPIUpdate />,
-          breadcrumb: "Staff KPI Update",
+          path: "/staff/kpi/:kpiId",
+          element: <StaffKpiProgressUpdate />,
+          breadcrumb: "Update KPI",
           parent: "/staff/dashboard",
         },
         {

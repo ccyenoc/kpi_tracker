@@ -1,6 +1,6 @@
 import StaffKPICard from "./staff_kpi_card"
 
-const StaffKPIAssignedCard = ({ kpis = [] }) =>{
+const StaffKPIAssignedCard = ({ kpis = [], onUpdate}) =>{
     return (
   <div
     className="d-flex"
@@ -55,7 +55,7 @@ const StaffKPIAssignedCard = ({ kpis = [] }) =>{
             }}>
                 {kpis && kpis.length > 0 ? (
                     kpis.map ((item, index) =>(
-                        <StaffKPICard key={index} kpi={item} />
+                        <StaffKPICard  key={item.id || index}  kpi={item} onUpdate={onUpdate} />
                     ))
                 ) : (
                     <p style={{ textAlign: "center", color: "#64748b", fontSize: "14px", marginTop: "20px" }}>

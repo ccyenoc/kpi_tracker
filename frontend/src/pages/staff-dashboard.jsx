@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from "react-router-dom";
 import { kpis } from "../data/kpiData";
 import DashboardCards from "../components/4x1_cards_layout";
 import StaffMonthlyPerformanceGraph from '../components/staff_monthly_performance_graph';
@@ -13,6 +14,12 @@ const StaffDashboard = () => {
   {/*DATA*/}
   {/*MOCK USER*/}
   const currentUserId = "user_101";
+
+  const navigate = useNavigate();
+
+  const goUpdate = (kpiId) => {
+    navigate(`/staff/kpi/${kpiId}`);
+  };
     
   const userKpis = kpis
   .filter(kpi => kpi.assignedUserIds.includes(currentUserId))
@@ -223,7 +230,7 @@ if (selectedMonth === "All") {
             minWidth: 0,
             maxHeight: "500px",
 }}>
-               <StaffKPIAssignedCard kpis={userKpis} />
+               <StaffKPIAssignedCard kpis={userKpis} onUpdate={goUpdate}/>
           </div>
         </div>
 

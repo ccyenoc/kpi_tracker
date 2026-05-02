@@ -1,7 +1,7 @@
-from fastapi import FastAPI, HTTPException, status, Request
+from fastapi import FastAPI, HTTPException, status, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
@@ -11,6 +11,8 @@ import secrets
 import jwt
 from google.api_core.exceptions import AlreadyExists
 import traceback
+from pathlib import Path
+import uuid
 
 # Import Firebase configuration
 from firebase_secure import FIREBASE_CONFIG, FIREBASE_ADMIN_CONFIG, SERVICE_ACCOUNT_KEY_PATH, USERDATA_COLLECTION, USERAUTH_COLLECTION, USER_COUNTER_COLLECTION, USER_COUNTER_DOC, USER_ROLES, print_config_status
@@ -759,6 +761,104 @@ def delete_account(request: Request):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Account deletion failed: {str(e)}"
         )
+
+@app.post("/api/kpi/update")
+async def update_kpi_progress(
+    kpiId: str = Form(...),
+    current: float = Form(...),
+    notes: str = Form(""),
+    files: List[UploadFile] = File(default=[])
+):
+    """
+    Update KPI progress and upload multiple evidence files.
+    Saves files locally in /uploads and saves submission record to Firestore.
+    """
+    try:
+        if not db:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Firebase/Firestore not configured"
+            )
+
+        upload_dir = "uploads"
+        os.makedirs(upload_dir, exist_ok=True)
+
+        saved_files = []
+
+        for file in files:
+            if not file.filename:
+                continue
+
+            original_name = Path(file.filename).name
+            stored_name = f"{uuid.uuid4()}_{original_name}"
+            file_path = os.path.join(upload_dir, stored_name)
+
+            content = await file.read()
+
+            with open(file_path, "wb") as f:
+                f.write(content)
+
+            saved_files.append({
+                "originalName": original_name,
+                "storedName": stored_name,
+                "path": file_path.replace("\\", "/")
+            })
+
+        submission_id = str(int(datetime.now().timestamp() * 1000))
+
+        new_submission = {
+            "id": submission_id,
+            "kpiId": kpiId,
+            "current": current,
+            "notes": notes,
+            "fileNames": [file["originalName"] for file in saved_files],
+            "files": saved_files,
+            "submittedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "status": "pending"
+        }
+
+        db.collection("kpiSubmissions").document(submission_id).set(new_submission)
+
+        return {
+            "success": True,
+            "message": "KPI progress updated successfully",
+            "submission": new_submission
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"KPI update failed: {str(e)}"
+        )
+        
+@app.get("/api/kpi/submissions")
+def get_kpi_submissions():
+    try:
+        if not db:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Firebase/Firestore not configured"
+            )
+
+        docs = db.collection("kpiSubmissions").stream()
+        submissions = []
+
+        for doc in docs:
+            data = doc.to_dict()
+            submissions.append(data)
+
+        return {
+            "success": True,
+            "submissions": submissions
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load KPI submissions: {str(e)}"
+        )    
 
 
 if __name__ == "__main__":
