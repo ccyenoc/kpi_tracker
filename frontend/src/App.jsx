@@ -15,7 +15,7 @@ function App() {
       <Routes>
         <Route path="/signin" element={<Login />} />
         <Route path="/signup" element={<RegisterAcc />} />
-        <Route path="/staff/kpi/:kpiId" element={<StaffKPIUpdate />} />
+
 
         {/* ROOT REDIRECT */}
         <Route
