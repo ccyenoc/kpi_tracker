@@ -271,7 +271,9 @@ def register_user(user_data: UserRegistration):
         # Validate required fields (phone is optional)
         required_fields = ['name', 'email', 'password', 'role', 'department']
         for field in required_fields:
-            if not getattr(user_data, field):
+            field_value = getattr(user_data, field)
+            if not field_value or (isinstance(field_value, str) and not field_value.strip()):
+                print(f"[register] Missing or empty required field: {field} = '{field_value}'")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Missing required field: {field}"
