@@ -21,24 +21,40 @@ const RegisterAcc = () => {
             [e.target.id]: e.target.value
         });
     };
-    
+
+    // Create Password
+    const isStrongPassword = (password) => {
+        const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+        return regex.test(password);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        // Check if both passwords match
-        if (formData.password !== formData.confirmPassword) {
-            alert("Passwords do not match!");
+
+        // Check email format
+        if (!formData.email.includes("@")) {
+            alert("Email format is incomplete");
             return;
         }
 
-        // Map form field names to backend API field names
+        // Check password strength
+        if (!isStrongPassword(formData.password)) {
+            alert("Create a 8 digit password with number letter");
+            return;
+        }
+
+        // Check confirm password
+        if (formData.password !== formData.confirmPassword) {
+            alert("Password not match");
+            return;
+        }
+
         const payload = {
             name: formData.fullName,
             email: formData.email,
             password: formData.password,
-            phone: formData.phone || "",  // Allow empty phone
-            role: formData.role === "employee" ? "staff" : formData.role,  // Map "employee" to "staff"
+            phone: formData.phone || "",
+            role: formData.role === "employee" ? "staff" : formData.role,
             department: formData.department
         };
 
@@ -48,154 +64,152 @@ const RegisterAcc = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 alert("Account created successfully! You can now log in.");
                 window.location.href = '/signin';
             } else {
-                alert(`Registration failed: ${data.detail || 'Please try again'}`);
+                // Email already exists
+                if (
+                    data.detail &&
+                    data.detail.toLowerCase().includes("email")
+                ) {
+                    alert("Email already registered");
+                } else {
+                    alert(`Registration failed: ${data.detail || 'Please try again'}`);
+                }
             }
+
         } catch (error) {
-            console.error('Registration error:', error);
-            alert('Registration failed. Please check your connection and try again.');
+            console.error("Registration error:", error);
+            alert("Registration failed. Please check your connection.");
         }
     };
-
 
     return (
         <div className="auth-wrapper">
             <div className="auth-card">
+
                 <div className="text-center mb-4">
-                     <div style={{ 
-                        textAlign: "center", }}>
-                                         <img 
-                                            src={logo} 
-                                            alt="Achieve Logo" 
-                                            style={{ width: "120px", height: "auto" }}
-                                        />
-                                        </div>
-                        <span className="auth-header">AchievePro</span>
+                    <div style={{ textAlign: "center" }}>
+                        <img
+                            src={logo}
+                            alt="Achieve Logo"
+                            style={{ width: "120px", height: "auto" }}
+                        />
+                    </div>
+
+                    <span className="auth-header">AchievePro</span>
                     <h3 className="auth-title">Create an account</h3>
-                    <p className="auth-subtitle">Enter your information to get started</p>
+                    <p className="auth-subtitle">
+                        Enter your information to get started
+                    </p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
+
                     <div className="mb-3">
                         <label className="auth-label">Full Name</label>
-                        <input 
-                            type="text" id="fullName" className="form-control-custom"
-                            placeholder="John Doe" required 
-                            onChange={handleChange} 
-                             style={{
-                                fontSize:"16px",
-                                paddingLeft:"20px",
-                            }} />
+                        <input
+                            type="text"
+                            id="fullName"
+                            className="form-control-custom"
+                            placeholder="John Doe"
+                            required
+                            onChange={handleChange}
+                        />
                     </div>
 
                     <div className="mb-3">
                         <label className="auth-label">Email</label>
-                        <input 
-                            type="email" id="email" className="form-control-custom"
-                            placeholder="name@company.com" required 
+                        <input
+                            type="text"
+                            id="email"
+                            className="form-control-custom"
+                            placeholder="name@company.com"
+                            required
                             onChange={handleChange}
-                            style={{
-                                fontSize:"16px",
-                                paddingLeft:"20px",
-                            }} />
+                        />
                     </div>
 
                     <div className="mb-3">
-                            <label className="auth-label">Role</label>
-                            <select 
-                            id="role" 
-                            className="form-control-custom" 
-                            required onChange={handleChange}
-                            style={{
-                                fontSize:"16px",
-                                paddingLeft:"20px",
-                            }}>
-                                <option value="">Select Role</option>
-                                <option value="manager">Manager</option>
-                                <option value="employee">Employee</option>
-                            </select>
+                        <label className="auth-label">Role</label>
+                        <select
+                            id="role"
+                            className="form-control-custom"
+                            required
+                            onChange={handleChange}
+                        >
+                            <option value="">Select Role</option>
+                            <option value="manager">Manager</option>
+                            <option value="employee">Employee</option>
+                        </select>
+                    </div>
 
-                        <div className="mb-3">
-                            <label className="auth-label">Department</label>
-                            <select 
-                            id="department" 
-                            className="form-control-custom" 
-                            required onChange={handleChange}
-                            style={{
-                                fontSize:"16px",
-                                paddingLeft:"20px",
-                            }}>
-                                <option value="">Choose Department</option>
-                                <option value="hr">HR</option>
-                                <option value="it">IT</option>
-                                <option value="finance">Finance</option>
-                                <option value="marketing">Marketing</option>
-                            </select>
-                        </div>
+                    <div className="mb-3">
+                        <label className="auth-label">Department</label>
+                        <select
+                            id="department"
+                            className="form-control-custom"
+                            required
+                            onChange={handleChange}
+                        >
+                            <option value="">Choose Department</option>
+                            <option value="hr">HR</option>
+                            <option value="it">IT</option>
+                            <option value="finance">Finance</option>
+                            <option value="marketing">Marketing</option>
+                        </select>
                     </div>
 
                     <div className="mb-3">
                         <label className="auth-label">Phone (Optional)</label>
-                        <input 
-                            type="tel" id="phone" className="form-control-custom"
-                            placeholder="+60 123-456-7890" 
+                        <input
+                            type="tel"
+                            id="phone"
+                            className="form-control-custom"
+                            placeholder="+60 123-456-7890"
                             onChange={handleChange}
-                            style={{
-                                fontSize:"16px",
-                                paddingLeft:"20px",
-                            }} />
+                        />
                     </div>
 
                     <div className="mb-3">
                         <label className="auth-label">Password</label>
-                        <div 
-            className="auth-input-group">
-                        <i className="bi bi-lock input-icon"></i>
                         <input
-                            type="password" id="password" className="form-control-custom"
-                            placeholder="Min. 6 characters" required 
+                            type="password"
+                            id="password"
+                            className="form-control-custom"
+                            placeholder="Minimum 8 characters"
+                            required
                             onChange={handleChange}
-                             style={{
-                                fontSize:"16px",
-                            }} />
-                    </div>
+                        />
                     </div>
 
                     <div className="mb-3">
-
-            <label className="auth-label">Confirm Password</label>
-            <div 
-            className="auth-input-group">
-              <i className="bi bi-lock input-icon"></i>
-              <input
-                type="password"
-                id="confirmPassword"
-                className="form-control-custom"
-                name="confirmPassword"
-                placeholder="Confirm password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                 style={{
-                     fontSize:"16px",
-                }} />
-              </div>
-              </div>
-
+                        <label className="auth-label">Confirm Password</label>
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            className="form-control-custom"
+                            placeholder="Confirm password"
+                            required
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                        />
+                    </div>
 
                     <button type="submit" className="btn-create-acc">
                         Create Account
                     </button>
+
                 </form>
 
-                <footer className="text-center">
-                Already have an account? <Link to="/signin">Sign in</Link>
-                 </footer>
+                <footer className="text-center mt-3">
+                    Already have an account? <Link to="/signin">Sign in</Link>
+                </footer>
+
             </div>
         </div>
     );
