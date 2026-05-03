@@ -15,6 +15,9 @@ const RegisterAcc = () => {
         confirmPassword: ''
     });
 
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -22,9 +25,17 @@ const RegisterAcc = () => {
         });
     };
 
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
+
+    const toggleConfirmPasswordVisibility = () => {
+        setShowConfirmPassword(!showConfirmPassword);
+    };
+
     // Create Password
     const isStrongPassword = (password) => {
-        const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+        const regex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
         return regex.test(password);
     };
 
@@ -177,27 +188,65 @@ const RegisterAcc = () => {
 
                     <div className="mb-3">
                         <label className="auth-label">Password</label>
-                        <input
-                            type="password"
-                            id="password"
-                            className="form-control-custom"
-                            placeholder="Minimum 8 characters"
-                            required
-                            onChange={handleChange}
-                        />
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                id="password"
+                                className="form-control-custom"
+                                placeholder="Minimum 8 characters"
+                                required
+                                onChange={handleChange}
+                            />
+                            <button
+                                type="button"
+                                onClick={togglePasswordVisibility}
+                                style={{
+                                    position: 'absolute',
+                                    right: '10px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '1.2em',
+                                    color: '#666'
+                                }}
+                            >
+                                {showPassword ? '👁️' : '👁️‍🗨️'}
+                            </button>
+                        </div>
                     </div>
 
                     <div className="mb-3">
                         <label className="auth-label">Confirm Password</label>
-                        <input
-                            type="password"
-                            id="confirmPassword"
-                            className="form-control-custom"
-                            placeholder="Confirm password"
-                            required
-                            value={formData.confirmPassword}
-                            onChange={handleChange}
-                        />
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type={showConfirmPassword ? "text" : "password"}
+                                id="confirmPassword"
+                                className="form-control-custom"
+                                placeholder="Confirm password"
+                                required
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                            />
+                            <button
+                                type="button"
+                                onClick={toggleConfirmPasswordVisibility}
+                                style={{
+                                    position: 'absolute',
+                                    right: '10px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '1.2em',
+                                    color: '#666'
+                                }}
+                            >
+                                {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                            </button>
+                        </div>
                     </div>
 
                     <button type="submit" className="btn-create-acc">
