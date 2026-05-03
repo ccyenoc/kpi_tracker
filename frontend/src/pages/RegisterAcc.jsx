@@ -15,14 +15,20 @@ const RegisterAcc = () => {
         confirmPassword: ''
     });
 
+    const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.id]: e.target.value
         });
+
+        setErrorMessage('');
+        setSuccessMessage('');
     };
 
-    // Create Password
+    // Password validation
     const isStrongPassword = (password) => {
         const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
         return regex.test(password);
@@ -31,21 +37,37 @@ const RegisterAcc = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        setErrorMessage('');
+        setSuccessMessage('');
+
+        // Check empty fields
+        if (
+            !formData.fullName ||
+            !formData.email ||
+            !formData.role ||
+            !formData.department ||
+            !formData.password ||
+            !formData.confirmPassword
+        ) {
+            setErrorMessage("Please fill in all blanks");
+            return;
+        }
+
         // Check email format
         if (!formData.email.includes("@")) {
-            alert("Email format is incomplete");
+            setErrorMessage("Email format is incomplete");
             return;
         }
 
         // Check password strength
         if (!isStrongPassword(formData.password)) {
-            alert("Create a 8 digit password with number letter");
+            setErrorMessage("Create a 8 digit password with number letter");
             return;
         }
 
         // Check confirm password
         if (formData.password !== formData.confirmPassword) {
-            alert("Password not match");
+            setErrorMessage("Password not match");
             return;
         }
 
@@ -68,23 +90,24 @@ const RegisterAcc = () => {
             const data = await response.json();
 
             if (data.success) {
-                alert("Account created successfully! You can now log in.");
-                window.location.href = '/signin';
+                setSuccessMessage("Account created successfully! Redirecting...");
+                setTimeout(() => {
+                    window.location.href = '/signin';
+                }, 1500);
             } else {
-                // Email already exists
                 if (
                     data.detail &&
                     data.detail.toLowerCase().includes("email")
                 ) {
-                    alert("Email already registered");
+                    setErrorMessage("Email already registered");
                 } else {
-                    alert(`Registration failed: ${data.detail || 'Please try again'}`);
+                    setErrorMessage("Registration failed. Please try again.");
                 }
             }
 
         } catch (error) {
             console.error("Registration error:", error);
-            alert("Registration failed. Please check your connection.");
+            setErrorMessage("Registration failed. Please check your connection.");
         }
     };
 
@@ -108,6 +131,20 @@ const RegisterAcc = () => {
                     </p>
                 </div>
 
+                {/* UI Error Message */}
+                {errorMessage && (
+                    <div className="alert alert-danger text-center py-2">
+                        {errorMessage}
+                    </div>
+                )}
+
+                {/* UI Success Message */}
+                {successMessage && (
+                    <div className="alert alert-success text-center py-2">
+                        {successMessage}
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit}>
 
                     <div className="mb-3">
@@ -117,7 +154,7 @@ const RegisterAcc = () => {
                             id="fullName"
                             className="form-control-custom"
                             placeholder="John Doe"
-                            required
+                            value={formData.fullName}
                             onChange={handleChange}
                         />
                     </div>
@@ -129,7 +166,7 @@ const RegisterAcc = () => {
                             id="email"
                             className="form-control-custom"
                             placeholder="name@company.com"
-                            required
+                            value={formData.email}
                             onChange={handleChange}
                         />
                     </div>
@@ -139,7 +176,7 @@ const RegisterAcc = () => {
                         <select
                             id="role"
                             className="form-control-custom"
-                            required
+                            value={formData.role}
                             onChange={handleChange}
                         >
                             <option value="">Select Role</option>
@@ -153,7 +190,7 @@ const RegisterAcc = () => {
                         <select
                             id="department"
                             className="form-control-custom"
-                            required
+                            value={formData.department}
                             onChange={handleChange}
                         >
                             <option value="">Choose Department</option>
@@ -171,6 +208,7 @@ const RegisterAcc = () => {
                             id="phone"
                             className="form-control-custom"
                             placeholder="+60 123-456-7890"
+                            value={formData.phone}
                             onChange={handleChange}
                         />
                     </div>
@@ -182,7 +220,7 @@ const RegisterAcc = () => {
                             id="password"
                             className="form-control-custom"
                             placeholder="Minimum 8 characters"
-                            required
+                            value={formData.password}
                             onChange={handleChange}
                         />
                     </div>
@@ -194,7 +232,6 @@ const RegisterAcc = () => {
                             id="confirmPassword"
                             className="form-control-custom"
                             placeholder="Confirm password"
-                            required
                             value={formData.confirmPassword}
                             onChange={handleChange}
                         />
