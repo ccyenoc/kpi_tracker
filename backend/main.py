@@ -4,11 +4,13 @@ from pydantic import BaseModel
 from typing import Optional, List
 import firebase_admin
 from firebase_admin import credentials, firestore
+from google.cloud.firestore import FieldFilter
 from datetime import datetime
 import os
 import bcrypt
 import secrets
 import jwt
+import time
 from google.api_core.exceptions import AlreadyExists
 import traceback
 from pathlib import Path
@@ -102,7 +104,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def create_jwt_token(user_id: str, email: str) -> str:
     """Create a JWT token for the user."""
-    payload = {"user_id": user_id, "email": email, "exp": datetime.utcnow().timestamp() + (24 * 3600)}
+    payload = {"user_id": user_id, "email": email, "exp": time.time() + (24 * 3600)}
     return jwt.encode(payload, "SECRET_KEY_CHANGE_IN_PROD", algorithm="HS256")
 
 
@@ -288,7 +290,7 @@ def register_user(user_data: UserRegistration):
             try:
                 # Check if user already exists in Firestore
                 users_ref = db.collection(USERDATA_COLLECTION)
-                existing_user = list(users_ref.where('email', '==', user_data.email).get())
+                existing_user = list(users_ref.where(filter=FieldFilter('email', '==', user_data.email)).stream())
                 if existing_user:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -354,7 +356,7 @@ def login_user(credentials: UserLogin):
             try:
                 # Find user by email in Firestore
                 users_ref = db.collection(USERDATA_COLLECTION)
-                users = list(users_ref.where('email', '==', credentials.email).get())
+                users = list(users_ref.where(filter=FieldFilter('email', '==', credentials.email)).stream())
                 
                 if not users:
                     raise HTTPException(
