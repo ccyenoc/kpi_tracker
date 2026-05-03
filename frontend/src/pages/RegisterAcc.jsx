@@ -4,6 +4,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './RegisterAcc.css';
 import logo from "../assets/achievepro.png";
 
+const API_BASE_URL = 'http://localhost:8000';
+
 const RegisterAcc = () => {
     const [formData, setFormData] = useState({
         fullName: '',
@@ -43,7 +45,7 @@ const RegisterAcc = () => {
         };
 
         try {
-            const response = await fetch('/api/register', {
+            const response = await fetch(`${API_BASE_URL}/api/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

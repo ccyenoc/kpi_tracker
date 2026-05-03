@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './Login.css';
 import logo from "../assets/achievepro.png";
 
+const API_BASE_URL = 'http://localhost:8000';
 
 const Login = () => {
     const [credentials, setCredentials] = useState({
@@ -20,7 +21,7 @@ const Login = () => {
         console.log("Logging in with:", credentials);
         
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch(`${API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(credentials)
