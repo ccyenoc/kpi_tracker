@@ -9,8 +9,11 @@ import UpdateKpiModal from "../components/staff_update_kpi"
 import { kpis } from "../data/kpiData";
 import { categories } from "../data/categoriesData"; // adjust path if needed
 import { submissions } from "../data/submissionData"; // if you're using this too
+import { useParams } from "react-router-dom";
 
 const StaffKPIUpdate = () => {
+  const { kpiId } = useParams();
+  
   const [selectedKpi, setSelectedKpi] = useState(null);
   const [submissionHistory, setSubmissionHistory] = useState(() => {
     const saved = localStorage.getItem("kpiSubmissionHistory");
