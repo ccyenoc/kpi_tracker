@@ -21,6 +21,10 @@ function CreateKPI(){
     customer: ["CSAT", "NPS", "Response Time"]
   }
 
+  const handleConfirm = () => {
+    alert(`KPI Created:\nTitle: ${title}\nCategory: ${category}\nTarget: ${unit}`);
+  }
+
     return(
       <div>
           
@@ -83,6 +87,7 @@ function CreateKPI(){
                  gap: "50px",
                 }}>
                 <button
+                  onClick={handleConfirm}
                  style={{
                    width:"200px",      
                    backgroundColor: "#2b4cb3",

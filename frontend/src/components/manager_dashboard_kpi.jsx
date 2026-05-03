@@ -1,6 +1,8 @@
 import KpiCard from "./kpi_card";
 
 function ManagerDashboardKpi() {
+  console.log("ManagerDashboardKpi loaded");
+  
   return (
     <div className="me-2 flex-grow-1"
       style={{

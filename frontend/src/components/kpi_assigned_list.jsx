@@ -1,6 +1,7 @@
 import KPIAssignedListTable from "./kpi_assigned_list_table";
 
 function KPIAssignedListCard({data}){
+  console.log("KPIAssignedListCard loaded with data:", data);
 
     return(
         <div 
