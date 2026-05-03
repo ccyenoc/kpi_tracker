@@ -95,7 +95,7 @@ const RegisterAcc = () => {
 
         // Check password strength
         if (!isStrongPassword(formData.password)) {
-            setErrorMessage("Create a 8 digit password with number letter");
+            setErrorMessage("Password must be at least 8 characters and include both letters and numbers");
             setShowErrorModal(true);
             return;
         }
