@@ -11,6 +11,8 @@ import { kpis } from "../data/kpiData";
 
 function ManagerDashboard(){
 
+  console.log("Manager Dashboard loaded");
+
   {/*DATA*/}
   {/*DASHBOARD DATA*/}
   const stats = [

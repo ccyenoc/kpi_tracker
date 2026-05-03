@@ -46,7 +46,7 @@ export const kpis = [
     status: "at_risk",
     deadline: "2026-05-20",
     categoryId: "cat_3",
-    categoryName: "Project",
+    categoryName: "Property Management",
     assignedUserIds: ["user_101"],
     kpiAssignments: [
       { userId: "user_101", target: 100, current: 45 }
@@ -64,7 +64,7 @@ export const kpis = [
     status: "in_progress",
     deadline: "2026-12-31",
     categoryId: "cat_4",
-    categoryName: "Development",
+    categoryName: "Marketing Performance",
     assignedUserIds: ["user_101"],
     kpiAssignments: [
       { userId: "user_101", target: 40, current: 12 }

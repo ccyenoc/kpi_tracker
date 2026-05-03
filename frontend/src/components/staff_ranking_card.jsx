@@ -5,6 +5,7 @@ import { kpis } from "../data/kpiData";
 import { useMemo } from "react";
 
 function StaffRankingCard() {
+  console.log("StaffRankingCard loaded");
 
   const staffRanking = () => {
     const ranking = users
