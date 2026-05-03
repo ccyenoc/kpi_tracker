@@ -25,6 +25,15 @@ const Login = () => {
     const handleSignIn = async (e) => {
         e.preventDefault();
 
+        //blank email/password
+        if (
+            credentials.email.trim() === '' ||
+            credentials.password.trim() === ''
+        ) {
+            setErrorMessage("Please fill in all blanks");
+            return;
+        }
+
         try {
             const response = await fetch('/api/login', {
                 method: 'POST',
@@ -42,18 +51,32 @@ const Login = () => {
                 localStorage.setItem('user', JSON.stringify(data.user));
 
                 window.location.href = data.dashboard;
+
             } else {
-                setErrorMessage(
-                    data.detail || 'Incorrect email or password.'
-                );
+                // Valid email + wrong password
+                if (
+                    data.detail &&
+                    data.detail.toLowerCase().includes("authentication")
+                ) {
+                    setErrorMessage("Authentication record not found");
+                }
+
+                // Email not exist
+                else if (
+                    data.detail &&
+                    data.detail.toLowerCase().includes("invalid")
+                ) {
+                    setErrorMessage("Invalid email or password");
+                }
+
+                else {
+                    setErrorMessage("Invalid email or password");
+                }
             }
 
         } catch (error) {
             console.error('Login error:', error);
-
-            setErrorMessage(
-                'Authentication record not found or server connection failed.'
-            );
+            setErrorMessage("Authentication record not found");
         }
     };
 
@@ -81,6 +104,7 @@ const Login = () => {
                 )}
 
                 <form onSubmit={handleSignIn}>
+
                     <div className="mb-3">
                         <label className="email-label">Email</label>
                         <i className="bi bi-envelope"></i>
@@ -92,7 +116,6 @@ const Login = () => {
                             placeholder="name@company.com"
                             value={credentials.email}
                             onChange={handleChange}
-                            required
                         />
                     </div>
 
@@ -107,7 +130,6 @@ const Login = () => {
                             placeholder="Enter your password"
                             value={credentials.password}
                             onChange={handleChange}
-                            required
                         />
                     </div>
 
@@ -122,6 +144,7 @@ const Login = () => {
                     >
                         Sign In
                     </button>
+
                 </form>
 
                 <footer className="small text-muted">
