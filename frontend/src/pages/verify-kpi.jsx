@@ -106,6 +106,15 @@ const progress = kpi.target
     height: "100%",
     maxHeight: "50px",
   }
+
+  const handleApprove = () => {
+    alert("KPI Submission Approved!");
+  }
+
+  const handleReturn = () => {
+    alert("KPI Submission Returned for Revision.");
+  }
+
   return (
     <div>
       <div className="d-flex flex-column justify-content-center">
@@ -259,8 +268,12 @@ const progress = kpi.target
                 flexDirection: "row",
                 gap: "50px",
               }}>
-              <button style={buttonStyle}>Approve</button>
-              <button style={buttonStyle}>Return</button>
+              <button style={buttonStyle} onClick={handleApprove}>
+                Approve
+              </button>
+              <button style={buttonStyle} onClick={handleReturn}>
+                Return
+              </button>
             </div>
           </div>
         </div>
