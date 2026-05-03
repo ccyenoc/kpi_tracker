@@ -1,4 +1,6 @@
 function PageTitle({ title, subtitle }) {
+  console.log("PageTitle loaded");
+  
   return (
     <div
       className="d-flex"

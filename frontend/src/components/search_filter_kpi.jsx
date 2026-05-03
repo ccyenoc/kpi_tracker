@@ -1,4 +1,8 @@
-function SearchFilterKPI() {
+import React, { useState } from 'react';
+
+function SearchFilterKPI({ searchKPI, setSearchKPI, searchStaff, setSearchStaff, filterCategory, setFilterCategory, filterStatus, setFilterStatus }) {
+  console.log("SearchFilterKPI loaded");
+
   const title = {
     fontWeight: "bold",
     textAlign: "left",
@@ -15,7 +19,11 @@ function SearchFilterKPI() {
     borderRadius: "15px",
     border: "1px solid #ccc",
     boxSizing: "border-box",
+    backgroundColor: "#f9f9f9",
+    color: "#333",
   };
+
+  
 
   return (
     <div
@@ -51,6 +59,8 @@ function SearchFilterKPI() {
           <input
             type="text"
             placeholder="  Search KPI... "
+            value={searchKPI}
+            onChange={(e) => setSearchKPI(e.target.value)}
             style={fieldStyle}
           />
         </div>
@@ -65,6 +75,8 @@ function SearchFilterKPI() {
           <input
             type="text"
             placeholder="  Search Staff..."
+            value={searchStaff}
+            onChange={(e) => setSearchStaff(e.target.value)}
             style={fieldStyle}
           />
         </div>
@@ -83,11 +95,16 @@ function SearchFilterKPI() {
               appearance: "none",
               WebkitAppearance: "none",
               MozAppearance: "none",
-            }}>
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="high">High Priority</option>
+            }}
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+          >
+            <option value="">All Categories</option>
+            <option value="sales">Sales</option>
+            <option value="marketing">Marketing</option>
+            <option value="operations">Operations</option>
+            <option value="finance">Finance</option>
+            <option value="property">Property</option>
           </select>
         </div>
 
@@ -104,11 +121,14 @@ function SearchFilterKPI() {
               appearance: "none",
               WebkitAppearance: "none",
               MozAppearance: "none",
-            }}>
+            }}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
             <option value="">All Status</option>
-            <option value="active">Active</option>
+            <option value="in_progress">In Progress</option>
             <option value="completed">Completed</option>
-            <option value="high">High Priority</option>
+            <option value="at_risk">At Risk</option>
           </select>
         </div>
       </div>

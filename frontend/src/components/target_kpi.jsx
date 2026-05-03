@@ -41,6 +41,7 @@ function TargetKPISelection({ unit, setUnit }){
                   background: "#fff",
                   cursor: "pointer",
                   fontSize:"14px",
+                  color: "#333"
                  }}>
 
                    <option value="">Select Unit</option>
