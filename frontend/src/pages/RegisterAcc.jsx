@@ -17,12 +17,17 @@ const RegisterAcc = () => {
 
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.id]: e.target.value
         });
+        setErrorMessage('');
     };
 
     const togglePasswordVisibility = () => {
@@ -38,51 +43,67 @@ const RegisterAcc = () => {
         const regex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
         return regex.test(password);
     };
+    // Email validation
+    const isValidEmail = (email) => {
+        const regex = /^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        return regex.test(email);
+    };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMessage('');
+        setSuccessMessage('');
 
         // Check required fields
         if (!formData.fullName.trim()) {
-            alert("Full name is required");
+            setErrorMessage("Full name is required");
+            setShowErrorModal(true);
             return;
         }
 
         if (!formData.email.trim()) {
-            alert("Email is required");
+            setErrorMessage("Email is required");
+            setShowErrorModal(true);
             return;
         }
 
         // Check email format
-        if (!formData.email.includes("@")) {
-            alert("Email format is incomplete");
+        if (!isValidEmail(formData.email.trim())) {
+            setErrorMessage("Please enter a valid email address (e.g., name@company.com)");
+            setShowErrorModal(true);
             return;
         }
 
         if (!formData.role) {
-            alert("Please select a role");
+            setErrorMessage("Please select a role");
+            setShowErrorModal(true);
             return;
         }
 
         if (!formData.department) {
-            alert("Please select a department");
+            setErrorMessage("Please select a department");
+            setShowErrorModal(true);
             return;
         }
 
         if (!formData.password.trim()) {
-            alert("Password is required");
+            setErrorMessage("Password is required");
+            setShowErrorModal(true);
             return;
         }
 
         // Check password strength
         if (!isStrongPassword(formData.password)) {
-            alert("Create a 8 digit password with number letter");
+            setErrorMessage("Create a 8 digit password with number letter");
+            setShowErrorModal(true);
             return;
         }
 
         // Check confirm password
         if (formData.password !== formData.confirmPassword) {
-            alert("Password not match");
+            setErrorMessage("Password not match");
+            setShowErrorModal(true);
             return;
         }
 
@@ -105,23 +126,28 @@ const RegisterAcc = () => {
             const data = await response.json();
 
             if (data.success) {
-                alert("Account created successfully! You can now log in.");
-                window.location.href = '/signin';
+                setSuccessMessage("Account created successfully! You can now log in.");
+                setShowSuccessModal(true);
+                setTimeout(() => {
+                    window.location.href = '/signin';
+                }, 2000);
             } else {
                 // Email already exists
                 if (
                     data.detail &&
                     data.detail.toLowerCase().includes("email")
                 ) {
-                    alert("Email already registered");
+                    setErrorMessage("Email already registered");
                 } else {
-                    alert(`Registration failed: ${data.detail || 'Please try again'}`);
+                    setErrorMessage(`Registration failed: ${data.detail || 'Please try again'}`);
                 }
+                setShowErrorModal(true);
             }
 
         } catch (error) {
             console.error("Registration error:", error);
-            alert("Registration failed. Please check your connection.");
+            setErrorMessage("Registration failed. Please check your connection.");
+            setShowErrorModal(true);
         }
     };
 
@@ -281,6 +307,82 @@ const RegisterAcc = () => {
 
                 </form>
 
+                {/* Error Modal */}
+                {showErrorModal && (
+                    <div style={{
+                        position: 'fixed',
+                        top: '0',
+                        left: '0',
+                        right: '0',
+                        bottom: '0',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: '1000'
+                    }}>
+                        <div style={{
+                            backgroundColor: '#fff',
+                            borderRadius: '8px',
+                            padding: '30px',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                            maxWidth: '400px',
+                            width: '90%',
+                            textAlign: 'center'
+                        }}>
+                            <div style={{ color: '#dc3545', fontSize: '3em', marginBottom: '15px' }}>⚠️</div>
+                            <h4 style={{ color: '#333', marginBottom: '15px' }}>Error</h4>
+                            <p style={{ color: '#666', marginBottom: '25px', fontSize: '0.95em' }}>{errorMessage}</p>
+                            <button
+                                onClick={() => setShowErrorModal(false)}
+                                style={{
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '10px 30px',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.95em',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Success Modal */}
+                {showSuccessModal && (
+                    <div style={{
+                        position: 'fixed',
+                        top: '0',
+                        left: '0',
+                        right: '0',
+                        bottom: '0',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: '1000'
+                    }}>
+                        <div style={{
+                            backgroundColor: '#fff',
+                            borderRadius: '8px',
+                            padding: '30px',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                            maxWidth: '400px',
+                            width: '90%',
+                            textAlign: 'center'
+                        }}>
+                            <div style={{ color: '#28a745', fontSize: '3em', marginBottom: '15px' }}>✓</div>
+                            <h4 style={{ color: '#333', marginBottom: '15px' }}>Success</h4>
+                            <p style={{ color: '#666', marginBottom: '25px', fontSize: '0.95em' }}>{successMessage}</p>
+                            <p style={{ color: '#999', fontSize: '0.85em' }}>Redirecting to login...</p>
+                        </div>
+                    </div>
+                )}
+
                 <footer className="text-center mt-3">
                     Already have an account? <Link to="/signin">Sign in</Link>
                 </footer>
@@ -289,5 +391,4 @@ const RegisterAcc = () => {
         </div>
     );
 };
-
 export default RegisterAcc;
