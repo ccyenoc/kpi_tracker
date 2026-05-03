@@ -42,9 +42,35 @@ const RegisterAcc = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Check required fields
+        if (!formData.fullName.trim()) {
+            alert("Full name is required");
+            return;
+        }
+
+        if (!formData.email.trim()) {
+            alert("Email is required");
+            return;
+        }
+
         // Check email format
         if (!formData.email.includes("@")) {
             alert("Email format is incomplete");
+            return;
+        }
+
+        if (!formData.role) {
+            alert("Please select a role");
+            return;
+        }
+
+        if (!formData.department) {
+            alert("Please select a department");
+            return;
+        }
+
+        if (!formData.password.trim()) {
+            alert("Password is required");
             return;
         }
 
