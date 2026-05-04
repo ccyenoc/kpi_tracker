@@ -6,6 +6,7 @@ import './SecurityPage.css';
 const SecurityPage = () => {
     const [activeTab, setActiveTab] = useState('profile');
     const [showConfirm, setShowConfirm] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     return (
         <div className="sidebar">
@@ -67,10 +68,12 @@ const SecurityPage = () => {
                             <div className="danger-zone-card">
                                 <h5 className="danger-zone">Danger Zone</h5>
                                 <p className="text-muted small">Permanently delete your account and all associated data</p>
-                                <button className="btn-danger" onClick={() => setShowConfirm(true)}>
+                                <button className="btn-danger" onClick={() => {
+                                    setErrorMessage("Are you sure? This will permanently delete your account. This action cannot be undone.");
+                                    setShowConfirm(true);
+                                }}>
                                     <i className="bi bi-trash me-2"></i>Delete Account
                                 </button>
-                                
                             </div>
                         </div>
                 </div>
@@ -79,29 +82,31 @@ const SecurityPage = () => {
             <div className="confirm-overlay">
                 <div className="confirm-box">
                     <h5>Are you sure?</h5>
-            <p>
-                This will permanently delete your account. This action cannot be undone.
-            </p>
-            <div className="confirm-actions">
-                <button 
-                    className="btn btn-secondary me-2"
-                    onClick={() => setShowConfirm(false)}
-                >
-                    Cancel
-                </button>
-                <button 
-                    className="btn btn-danger"
-                    onClick={() => {
-                        console.log("Account deleted");
-                        setShowConfirm(false);
-                    }}
-                >
-                    Delete
-                </button>
+                    <p>{errorMessage}</p>
+                    <div className="confirm-actions">
+                        <button 
+                            className="btn btn-secondary me-2"
+                            onClick={() => {
+                                setShowConfirm(false);
+                                setErrorMessage('');
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            className="btn btn-danger"
+                            onClick={() => {
+                                console.log("Account deleted");
+                                setShowConfirm(false);
+                                setErrorMessage('');
+                            }}
+                        >
+                            Delete
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-)}
+            )}
         </div>
     );
 };
