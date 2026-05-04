@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function KPIAssignStaff({ staffList, unit }) {
+function KPIAssignStaff({ staffList, unit, assignedStaff, setAssignedStaff }){
 
     const [kpiValue, setKpiValue] = useState(100)
 
@@ -24,7 +24,6 @@ const filteredStaff = staffList.filter(
     )
 );
 
-const [selectedStaff, setSelectedStaff] = useState([]);
 
     return (
      <div
@@ -78,14 +77,14 @@ const [selectedStaff, setSelectedStaff] = useState([]);
           borderBottom: "1px solid #eee"
         }}
         onClick={() => {
-          if (!selectedStaff.find(s => s.id === staff.id)) {
-            setSelectedStaff([
-              ...selectedStaff,
-              { ...staff, kpi: 0 }
-            ]);
-          }
-          setSearchTerm("");
-        }}
+  if (!assignedStaff.find(s => s.id === staff.id)) {
+    setAssignedStaff([
+      ...assignedStaff,
+      { ...staff, kpi: 0 }
+    ]);
+  }
+  setSearchTerm("");
+}}
       >
         {staff.name} ({staff.email})
       </div>
@@ -124,7 +123,7 @@ const [selectedStaff, setSelectedStaff] = useState([]);
 
   </div>
 
-  {selectedStaff.length === 0 ? (
+  {assignedStaff.length === 0 ? (
   <div
     style={{
       padding: "20px",
@@ -135,7 +134,7 @@ const [selectedStaff, setSelectedStaff] = useState([]);
   >
     No staff assigned yet
   </div>
-) : selectedStaff.map((staff) => (
+) : assignedStaff.map((staff) => (
   <div
     key={staff.id}
     style={{
@@ -147,7 +146,7 @@ const [selectedStaff, setSelectedStaff] = useState([]);
   >
      <span
     onClick={() => {
-      setSelectedStaff(selectedStaff.filter(s => s.id !== staff.id));
+      setAssignedStaff(assignedStaff.filter(s => s.id !== staff.id));
     }}
     style={{
       position: "absolute",
@@ -174,12 +173,12 @@ const [selectedStaff, setSelectedStaff] = useState([]);
       type="number"
       value={staff.kpi}
       onChange={(e) => {
-        const updated = selectedStaff.map(s =>
-          s.id === staff.id
-            ? { ...s, kpi: Number(e.target.value) }
-            : s
-        );
-        setSelectedStaff(updated);
+       const updated = assignedStaff.map(s =>
+       s.id === staff.id
+         ? { ...s, kpi: Number(e.target.value) }
+         : s
+       );
+        setAssignedStaff(updated);
       }}
       style={{
         width: "80px",
