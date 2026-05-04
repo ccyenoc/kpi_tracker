@@ -1,4 +1,4 @@
-function CategorySelection({ }) {
+function CategorySelection({ value, setValue }) {
   return (
     <div
       style={{
@@ -14,6 +14,8 @@ function CategorySelection({ }) {
       </h3>
 
       <select
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
         style={{
           padding: "10px",
           borderRadius: "8px",

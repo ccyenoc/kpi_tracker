@@ -26,6 +26,7 @@ const Login = () => {
 
     const handleSignIn = async (e) => {
         e.preventDefault();
+        console.log(credentials);
 
         //blank email/password
         if (

@@ -20,7 +20,8 @@ const categoryMap = Object.fromEntries(categories.map(c => [c.id, c]));
 const user = userMap[submission.submittedBy] || {};
 const kpi = kpiMap[submission.kpiId] || {};
 const category = categoryMap[kpi.categoryId] || {};
-
+const [showApproveModal, setShowApproveModal] = useState(false);
+const [showReturnModal, setShowReturnModal] = useState(false);
 const progress = kpi.target
   ? Math.round((kpi.current / kpi.target) * 100)
   : 0;
@@ -108,11 +109,11 @@ const progress = kpi.target
   }
 
   const handleApprove = () => {
-    alert("KPI Submission Approved!");
-  }
+    setShowApproveModal(true);
+  };
 
   const handleReturn = () => {
-    alert("KPI Submission Returned for Revision.");
+    setShowReturnModal(true);
   }
 
   return (
@@ -278,15 +279,119 @@ const progress = kpi.target
           </div>
         </div>
       </div>
+
+    {showApproveModal && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.3)",
+      zIndex: 9999
+    }}
+  >
+    <div
+      style={{
+        background: "#fff",
+        padding: "30px",
+        borderRadius: "12px",
+        width: "350px",
+        textAlign: "center",
+        boxShadow: "0 8px 20px rgba(0,0,0,0.2)"
+      }}
+    >
+      {/* ✅ Icon */}
+      <div style={{ fontSize: "40px", color: "#22c55e" }}>✔</div>
+
+      {/* Title */}
+      <h4 style={{ marginTop: "10px" }}>Approved Successfully</h4>
+
+      {/* Message */}
+      <p style={{ color: "#555", fontSize: "14px" }}>
+        KPI submission has been approved.
+      </p>
+
+      {/* Button */}
+      <button
+        onClick={() => setShowApproveModal(false)}
+        style={{
+          marginTop: "15px",
+          padding: "8px 20px",
+          borderRadius: "8px",
+          border: "none",
+          backgroundColor: "#2b4cb3",
+          color: "#fff",
+          cursor: "pointer"
+        }}
+      >
+        OK
+      </button>
     </div>
+  </div>
+      )}
 
+      {showReturnModal && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.3)",
+      zIndex: 9999
+    }}
+  >
+    <div
+      style={{
+        background: "#fff",
+        padding: "30px",
+        borderRadius: "12px",
+        width: "350px",
+        textAlign: "center",
+        boxShadow: "0 8px 20px rgba(0,0,0,0.2)"
+      }}
+    >
+      {/* ✅ Icon */}
+      <div style={{ fontSize: "40px", color: "#22c55e" }}>✔</div>
 
+      {/* Title */}
+      <h4 style={{ marginTop: "10px" }}>Returned for Revision</h4>
 
+      {/* Message */}
+      <p style={{ color: "#555", fontSize: "14px" }}>
+        KPI submission has been returned for revision.
+      </p>
 
+      {/* Button */}
+      <button
+        onClick={() => setShowReturnModal(false)}
+        style={{
+          marginTop: "15px",
+          padding: "8px 20px",
+          borderRadius: "8px",
+          border: "none",
+          backgroundColor: "#2b4cb3",
+          color: "#fff",
+          cursor: "pointer"
+        }}
+      >
+        OK
+      </button>
+    </div>
+  </div>
+      )}
 
-
-
-
+          </div>
+    
   )
 }
 
