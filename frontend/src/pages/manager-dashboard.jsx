@@ -68,9 +68,7 @@ function ManagerDashboard(){
         style={{
           gap: "20px",
           width: "100%",
-          flexWrap: "wrap",
-          maxHeight: "200px",
-          overflowY: "auto"
+
         }}>
         <StaffRankingCard />
         <ManagerDashboardKpi />

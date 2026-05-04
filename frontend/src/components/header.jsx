@@ -8,6 +8,30 @@ export default function Header() {
   const location = useLocation();
   const { user } = useAuth();
 
+  const handleLogout = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (token) {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+            }
+            // Clear localStorage and redirect to login
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/signin';
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Still redirect even if API call fails
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/signin';
+        }
+    };
+
   const routeList = routes(user?.role);
 
   const routeMap = Object.fromEntries(
@@ -40,16 +64,6 @@ export default function Header() {
         </h5>
       )}
 
-      <div className="d-flex align-items-center gap-3">
-        <Search />
-        <Bell />
-        <div
-          className="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center"
-          style={{ width: 40, height: 40 }}
-        >
-          JS
-        </div>
-      </div>
     </header>
   );
 }
