@@ -100,11 +100,11 @@ function SearchFilterKPI({ searchKPI, setSearchKPI, searchStaff, setSearchStaff,
             onChange={(e) => setFilterCategory(e.target.value)}
           >
             <option value="">All Categories</option>
-            <option value="sales">Sales</option>
-            <option value="marketing">Marketing</option>
-            <option value="operations">Operations</option>
-            <option value="finance">Finance</option>
-            <option value="property">Property</option>
+            <option value="cat_1">Sales Performance</option>
+            <option value="cat_2">Lead Generation</option>
+            <option value="cat_3">Property Management</option>
+            <option value="cat_4">Marketing Performance</option>
+            <option value="cat_5">Customer Experience</option>
           </select>
         </div>
 

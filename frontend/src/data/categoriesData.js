@@ -6,12 +6,12 @@ export const categories = [
   },
   {
     id: "cat_2",
-    name: "Lead Genaration",
+    name: "Lead Generation",
     color: "#7ef203"
   },
    {
     id: "cat_3",
-    name: "Property Mangement",
+    name: "Property Management",
     color: "#fff200"
   },
   {

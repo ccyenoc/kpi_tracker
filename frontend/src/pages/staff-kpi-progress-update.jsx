@@ -21,38 +21,13 @@ const StaffKPIUpdate = () => {
   });
   const [progressUpdates, setProgressUpdates] = useState({});
   const currentUserId = "user_101";
+  const [searchKPI, setSearchKPI] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
-  useEffect(() => {
-    const fetchSubmissionHistory = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:8006/api/kpi/submissions");
-        const result = await response.json();
-
-        if (result.success) {
-          const groupedHistory = {};
-
-          result.submissions.forEach((submission) => {
-            if (!groupedHistory[submission.kpiId]) {
-              groupedHistory[submission.kpiId] = [];
-            }
-
-            groupedHistory[submission.kpiId].push(submission);
-          });
-
-          setSubmissionHistory(groupedHistory);
-        }
-      } catch (error) {
-        console.error("Failed to load submission history:", error);
-      }
-    };
-
-    fetchSubmissionHistory();
-  }, []);
-
-  console.log(categories);
   const categoryMap = Object.fromEntries(
-  categories.map(c => [c.id, c])
-  );
+    categories.map(c => [c.id, c])
+    );
 
   const submissionMap = Object.fromEntries(
   submissions.map(s => [s.kpiId, s])
@@ -79,7 +54,7 @@ const StaffKPIUpdate = () => {
         return total + (item.fileNames?.length || 0);
       }, 0);
 
-    const newStatus = currentValue >= targetValue ? "pending" : "in_progress";
+    const newStatus = kpi.status;
 
     return {
       ...kpi,
@@ -110,6 +85,54 @@ const StaffKPIUpdate = () => {
 
   
   });
+  const filteredKPIs = userKpis.filter(kpi => {
+  const matchSearch =
+      searchKPI === "" ||
+      kpi.title.toLowerCase().includes(searchKPI.toLowerCase());
+
+  const matchCategory =
+    filterCategory === "" ||
+    kpi.categoryName === filterCategory;
+
+  const matchStatus =
+    filterStatus === "" ||
+    kpi.status === filterStatus;
+
+  return matchSearch && matchCategory && matchStatus;
+});
+
+  useEffect(() => {
+    const fetchSubmissionHistory = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8006/api/kpi/submissions");
+        const result = await response.json();
+
+        if (result.success) {
+          const groupedHistory = {};
+
+          result.submissions.forEach((submission) => {
+            if (!groupedHistory[submission.kpiId]) {
+              groupedHistory[submission.kpiId] = [];
+            }
+
+            groupedHistory[submission.kpiId].push(submission);
+          });
+
+          setSubmissionHistory(groupedHistory);
+        }
+      } catch (error) {
+        console.error("Failed to load submission history:", error);
+      }
+    };
+
+    fetchSubmissionHistory();
+  }, []);
+
+  console.log(categories);
+
+
+
+
 
 
    const stats = [
@@ -219,7 +242,14 @@ const StaffKPIUpdate = () => {
         justifyContent: "stretch"
       }}>
         <div style={{ flex: 1 }}>
-          <StaffSearchFilterKPI />
+          <StaffSearchFilterKPI
+            searchKPI={searchKPI}
+            setSearchKPI={setSearchKPI}
+            filterCategory={filterCategory}
+            setFilterCategory={setFilterCategory}
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
+          />
         </div>
       </div>
 
@@ -233,7 +263,7 @@ const StaffKPIUpdate = () => {
         width: "100%"
       }}
       >
-     {userKpis.map((kpi) => (
+     {filteredKPIs.map((kpi) => (
        <StaffKPI 
        key={kpi.id} 
        kpi={kpi}
