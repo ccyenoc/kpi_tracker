@@ -186,11 +186,12 @@ function Sidebar(){
             </a>
 
                 <button
-                    className="btn btn-outline-danger"
+                    className="btn"
                     onClick={handleLogout}
                     style={{ 
                         fontSize: "14px",
-                        backgroundColor:"#FFFFFF",
+                        backgroundColor:"#ed2c2c",
+                        color:"#ffffff",
                      }}
                 >
                   Logout
