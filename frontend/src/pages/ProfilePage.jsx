@@ -183,30 +183,6 @@ const ProfilePage = () => {
         }
     };
 
-    const handleLogout = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            if (token) {
-                await fetch('/api/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-            }
-            // Clear localStorage and redirect to login
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/signin';
-        } catch (error) {
-            console.error('Logout error:', error);
-            // Still redirect even if API call fails
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/signin';
-        }
-    };
-
     return (
         <div className="d-flex flex-column">
 
@@ -226,15 +202,7 @@ const ProfilePage = () => {
                 </div>
             )}
 
-            <div className="mx-3 mb-3" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                    className="btn btn-outline-danger"
-                    onClick={handleLogout}
-                    style={{ fontSize: "14px" }}
-                >
-                    <i className="bi bi-box-arrow-right"></i> Logout
-                </button>
-            </div>
+    
 
             <div className="mx-3 mb-3 tab-pill-navigation">
                 <div className={`button-slider ${activeTab === 'profile' ? 'profileActive' : activeTab === 'security' ? 'securityActive' : ''}`} />
