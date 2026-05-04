@@ -13,6 +13,7 @@ const ProfilePage = () => {
     const [department, setDepartment] = useState('');
     const [phone, setPhone] = useState('');
     const [activeTab, setActiveTab] = useState('profile');
+    const [showConfirm, setShowConfirm] = useState(false);
     
     // Password state
     const [currentPassword, setCurrentPassword] = useState('');
@@ -146,10 +147,10 @@ const ProfilePage = () => {
         }
     };
 
-    const handleDeleteAccount = async () => {
-        if (!window.confirm('Are you sure? This will permanently delete your account and all associated data. This action cannot be undone.')) {
-            return;
-        }
+        const handleDeleteAccount = async () => {
+            setErrorMsg('');
+            setShowConfirm(true); 
+    };
 
         setLoading(true);
 
@@ -351,6 +352,45 @@ const ProfilePage = () => {
                     </div>
                 </div>
             )}
+
+            {showConfirm && (
+    <div className="confirm-overlay">
+        <div className="confirm-box">
+            <h5>Are you sure?</h5>
+            <p>This will permanently delete your account and all associated data. This action cannot be undone.</p>
+            <div className="confirm-actions">
+                <button className="btn btn-secondary me-2" onClick={() => setShowConfirm(false)}>
+                    Cancel
+                </button>
+                <button className="btn btn-danger" onClick={async () => {
+                    setShowConfirm(false);
+                    setLoading(true);
+                    try {
+                        const token = localStorage.getItem('token');
+                        const response = await fetch('/api/profile', {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            localStorage.removeItem('token');
+                            localStorage.removeItem('user');
+                            window.location.href = '/signin';
+                        } else {
+                            setErrorMsg(data.detail || 'Failed to delete account');
+                        }
+                    } catch (error) {
+                        setErrorMsg('Failed to delete account. Please try again.');
+                    } finally {
+                        setLoading(false);
+                    }
+                }}>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+)}
         </div>
     );
 };
