@@ -1,6 +1,13 @@
 import KpiCard from "./kpi_card";
+import { useMemo } from "react";
+import { getAtRiskKpis, getUnderperformKpis, getDaysLeft } from "../utils/kpiUtils";
+import { kpis } from "../data/kpiData";
 
 function ManagerDashboardKpi() {
+
+  const atRisk = useMemo(() => getAtRiskKpis(kpis), [kpis]);
+  const underperform = useMemo(() => getUnderperformKpis(kpis), [kpis]);
+
   return (
     <div className="me-2 flex-grow-1"
       style={{
@@ -10,33 +17,31 @@ function ManagerDashboardKpi() {
         height: "100%",
       }}
     >
+     {/* AT RISK */}
       <div style={{ flex: 1, display: "flex" }}>
         <KpiCard
           title="At Risk KPIs"
           subtitle="KPIs that are at risk of not being accomplished on time"
-          items={[
-            {
-              title: "Property Sales Target",
-              subtitle: "2 / 20 units sold",
-              timeLeft: "1 day left",
-              status: "risk",
-            },
-          ]}
+          items={atRisk.map(kpi => ({
+            title: kpi.title,
+            subtitle: `${kpi.current} / ${kpi.target} ${kpi.unit}`,
+            timeLeft: getDaysLeft(kpi.deadline),
+            status: "risk",
+          }))}
         />
       </div>
 
+      {/* UNDERPERFORM */}
       <div style={{ flex: 1, display: "flex" }}>
         <KpiCard
           title="Underperform"
           subtitle="KPIs that are off track to meet their targets"
-          items={[
-            {
-              title: "Customer Retention",
-              subtitle: "40% retention",
-              timeLeft: "Overdue",
-              status: "underperform",
-            },
-          ]}
+          items={underperform.map(kpi => ({
+            title: kpi.title,
+            subtitle: `${kpi.current} / ${kpi.target} ${kpi.unit}`,
+            timeLeft: getDaysLeft(kpi.deadline),
+            status: "underperform",
+          }))}
         />
       </div>
     </div>
