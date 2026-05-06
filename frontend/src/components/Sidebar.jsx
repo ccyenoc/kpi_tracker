@@ -16,6 +16,35 @@ function Sidebar(){
     //         .catch(err => console.error(err))
     // }, []);
 
+    const roleDisplay = {
+     manager: "Manager",
+     staff: "Staff",
+    };
+
+      const handleLogout = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (token) {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+            }
+            // Clear localStorage and redirect to login
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/signin';
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Still redirect even if API call fails
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/signin';
+        }
+    };
+
     return(
         // bootstap classes : 
         // 1. d-flex : use flexbox layout
@@ -136,6 +165,13 @@ function Sidebar(){
                 
             </ul>
 
+            <div
+              style ={{
+                display:"flex",
+                flexDirection:"column",
+                justifyContent:"flex-content",
+                gap:"10px",
+              }}>
             <a href={pathway.ProfilePage} className="mt-auto pt-4 border-top text-decoration-none text-white">
                 <div className="d-flex align-items-center gap-2 px-2 py-2 rounded">
                 <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style={{ width: 32, height: 32, backgroundColor: '#155DFC', fontSize: '12px' }}>
@@ -144,9 +180,24 @@ function Sidebar(){
                 <div>
                     <div className="small fw-medium">{user ? user.name : "Jane Staff"}</div>
                     <div className="text-white-50" style={{ fontSize: '10px' }}>{user ? user.role : "Staff"}</div>
+                    
                 </div>
                 </div>
             </a>
+
+                <button
+                    className="btn"
+                    onClick={handleLogout}
+                    style={{ 
+                        fontSize: "14px",
+                        backgroundColor:"#ed2c2c",
+                        color:"#ffffff",
+                     }}
+                >
+                  Logout
+                </button>
+
+            </div>
 
         </div>
     )

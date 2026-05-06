@@ -5,6 +5,7 @@ import { useAuth } from "./Auth.jsx";
 import { pathway } from "./Pathway";
 import Login from "./pages/Login";
 import RegisterAcc from "./pages/RegisterAcc";
+import StaffKPIUpdate from "./pages/staff-kpi-progress-update";
 
 function App() {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ function App() {
       <Routes>
         <Route path="/signin" element={<Login />} />
         <Route path="/signup" element={<RegisterAcc />} />
+
 
         {/* ROOT REDIRECT */}
         <Route

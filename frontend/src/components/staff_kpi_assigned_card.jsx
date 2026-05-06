@@ -1,6 +1,15 @@
 import StaffKPICard from "./staff_kpi_card"
+import { useState } from "react";
 
-const StaffKPIAssignedCard = ({ kpis = [] }) =>{
+const StaffKPIAssignedCard = ({ kpis = [], onUpdate}) =>{
+
+    const [statusFilter, setStatusFilter] = useState("All");
+
+    const filteredKPIs =
+     statusFilter === "All"
+     ? kpis
+     : kpis.filter(kpi => kpi.status === statusFilter);
+
     return (
   <div
     className="d-flex"
@@ -41,8 +50,20 @@ const StaffKPIAssignedCard = ({ kpis = [] }) =>{
                     }}>KPIs assigned are shown below</h3>
                 </div>
                 
-                <select style={{ borderRadius: "8px", border: "1px solid #e2e8f0", padding: "4px 8px", fontSize: "12px" }}>
-                    <option>All</option>
+                <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{ 
+                    borderRadius: "8px", 
+                    border: "1px solid #e2e8f0", 
+                    padding: "4px 8px", 
+                    fontSize: "12px" }}>
+                    <option value="All">All</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="at_risk">At Risk</option>
+                    <option value="underperformed">Underperformed</option>
                 </select>
             </div>
 
@@ -53,9 +74,9 @@ const StaffKPIAssignedCard = ({ kpis = [] }) =>{
                 overflowY: "auto",
                 height: "400px",  
             }}>
-                {kpis && kpis.length > 0 ? (
-                    kpis.map ((item, index) =>(
-                        <StaffKPICard key={index} kpi={item} />
+                {filteredKPIs && filteredKPIs.length > 0 ? (
+                    filteredKPIs.map ((item, index) =>(
+                        <StaffKPICard  key={item.id || index}  kpi={item} onUpdate={onUpdate} />
                     ))
                 ) : (
                     <p style={{ textAlign: "center", color: "#64748b", fontSize: "14px", marginTop: "20px" }}>

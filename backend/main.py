@@ -1,16 +1,20 @@
-from fastapi import FastAPI, HTTPException, status, Request
+from fastapi import FastAPI, HTTPException, status, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import firebase_admin
 from firebase_admin import credentials, firestore
+from google.cloud.firestore import FieldFilter
 from datetime import datetime
 import os
 import bcrypt
 import secrets
 import jwt
+import time
 from google.api_core.exceptions import AlreadyExists
 import traceback
+from pathlib import Path
+import uuid
 
 # Import Firebase configuration
 from firebase_secure import FIREBASE_CONFIG, FIREBASE_ADMIN_CONFIG, SERVICE_ACCOUNT_KEY_PATH, USERDATA_COLLECTION, USERAUTH_COLLECTION, USER_COUNTER_COLLECTION, USER_COUNTER_DOC, USER_ROLES, print_config_status
@@ -100,7 +104,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def create_jwt_token(user_id: str, email: str) -> str:
     """Create a JWT token for the user."""
-    payload = {"user_id": user_id, "email": email, "exp": datetime.utcnow().timestamp() + (24 * 3600)}
+    payload = {"user_id": user_id, "email": email, "exp": time.time() + (24 * 3600)}
     return jwt.encode(payload, "SECRET_KEY_CHANGE_IN_PROD", algorithm="HS256")
 
 
@@ -267,7 +271,9 @@ def register_user(user_data: UserRegistration):
         # Validate required fields (phone is optional)
         required_fields = ['name', 'email', 'password', 'role', 'department']
         for field in required_fields:
-            if not getattr(user_data, field):
+            field_value = getattr(user_data, field)
+            if not field_value or (isinstance(field_value, str) and not field_value.strip()):
+                print(f"[register] Missing or empty required field: {field} = '{field_value}'")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Missing required field: {field}"
@@ -286,7 +292,7 @@ def register_user(user_data: UserRegistration):
             try:
                 # Check if user already exists in Firestore
                 users_ref = db.collection(USERDATA_COLLECTION)
-                existing_user = list(users_ref.where('email', '==', user_data.email).get())
+                existing_user = list(users_ref.where(filter=FieldFilter('email', '==', user_data.email)).stream())
                 if existing_user:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -352,7 +358,7 @@ def login_user(credentials: UserLogin):
             try:
                 # Find user by email in Firestore
                 users_ref = db.collection(USERDATA_COLLECTION)
-                users = list(users_ref.where('email', '==', credentials.email).get())
+                users = list(users_ref.where(filter=FieldFilter('email', '==', credentials.email)).stream())
                 
                 if not users:
                     raise HTTPException(
@@ -759,6 +765,104 @@ def delete_account(request: Request):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Account deletion failed: {str(e)}"
         )
+
+@app.post("/api/kpi/update")
+async def update_kpi_progress(
+    kpiId: str = Form(...),
+    current: float = Form(...),
+    notes: str = Form(""),
+    files: List[UploadFile] = File(default=[])
+):
+    """
+    Update KPI progress and upload multiple evidence files.
+    Saves files locally in /uploads and saves submission record to Firestore.
+    """
+    try:
+        if not db:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Firebase/Firestore not configured"
+            )
+
+        upload_dir = "uploads"
+        os.makedirs(upload_dir, exist_ok=True)
+
+        saved_files = []
+
+        for file in files:
+            if not file.filename:
+                continue
+
+            original_name = Path(file.filename).name
+            stored_name = f"{uuid.uuid4()}_{original_name}"
+            file_path = os.path.join(upload_dir, stored_name)
+
+            content = await file.read()
+
+            with open(file_path, "wb") as f:
+                f.write(content)
+
+            saved_files.append({
+                "originalName": original_name,
+                "storedName": stored_name,
+                "path": file_path.replace("\\", "/")
+            })
+
+        submission_id = str(int(datetime.now().timestamp() * 1000))
+
+        new_submission = {
+            "id": submission_id,
+            "kpiId": kpiId,
+            "current": current,
+            "notes": notes,
+            "fileNames": [file["originalName"] for file in saved_files],
+            "files": saved_files,
+            "submittedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "status": "pending"
+        }
+
+        db.collection("kpiSubmissions").document(submission_id).set(new_submission)
+
+        return {
+            "success": True,
+            "message": "KPI progress updated successfully",
+            "submission": new_submission
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"KPI update failed: {str(e)}"
+        )
+        
+@app.get("/api/kpi/submissions")
+def get_kpi_submissions():
+    try:
+        if not db:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Firebase/Firestore not configured"
+            )
+
+        docs = db.collection("kpiSubmissions").stream()
+        submissions = []
+
+        for doc in docs:
+            data = doc.to_dict()
+            submissions.append(data)
+
+        return {
+            "success": True,
+            "submissions": submissions
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load KPI submissions: {str(e)}"
+        )    
 
 
 if __name__ == "__main__":
