@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
       .then((res) => res.json())
       .then((data) => setUser(data))
       .catch(() =>
-        setUser({ name: "John Staff", role: "staff" })
+        setUser({ name: "John Staff", role: "manager" })
       );
   }, []);
 

@@ -11,6 +11,8 @@ import { kpis } from "../data/kpiData";
 
 function ManagerDashboard(){
 
+  console.log("Manager Dashboard loaded");
+
   {/*DATA*/}
   {/*DASHBOARD DATA*/}
   const stats = [
@@ -66,9 +68,7 @@ function ManagerDashboard(){
         style={{
           gap: "20px",
           width: "100%",
-          flexWrap: "wrap",
-          maxHeight: "200px",
-          overflowY: "auto"
+
         }}>
         <StaffRankingCard />
         <ManagerDashboardKpi />
