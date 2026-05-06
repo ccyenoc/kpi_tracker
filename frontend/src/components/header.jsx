@@ -65,17 +65,6 @@ export default function Header() {
           {breadcrumbs[0]?.label || "Dashboard"}
         </h5>
       )}
-
-      <div className="d-flex align-items-center gap-3">
-        <Search />
-        <Bell />
-        <div
-          className="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center"
-          style={{ width: 40, height: 40 }}
-        >
-          {user?.name?.charAt(0)?.toUpperCase() || "U"}
-        </div>
-      </div>
     </header>
   );
 }
