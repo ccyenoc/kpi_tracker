@@ -6,7 +6,7 @@ export const categories = [
   },
   {
     id: "cat_2",
-    name: "Lead Genaration",
+    name: "Lead Generation",
     color: "#7ef203"
   },
    {
