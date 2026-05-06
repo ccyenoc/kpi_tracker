@@ -1,4 +1,4 @@
-function InputKPITitle() {
+function InputKPITitle({ value, setValue }) {
   return (
     <div
       style={{
@@ -11,6 +11,8 @@ function InputKPITitle() {
 
       <input
         type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
         placeholder="Enter KPI title"
         style={{
           width: "100%",

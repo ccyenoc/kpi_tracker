@@ -1,4 +1,4 @@
-function TargetKPISelection({ unit, setUnit }){
+function TargetKPISelection({ unit, setUnit, target, setTarget }){
 
     return(
         <div
@@ -21,19 +21,21 @@ function TargetKPISelection({ unit, setUnit }){
                 gap:"30px",
               }}>
                 <input
-                 type="text"
-                 placeholder="Enter KPI"
-                 style={{
-                   width: "100%",
-                   padding: "10px",
-                   borderRadius: "8px",
-                   border: "1px solid #ccc"
-                }}
+                  type="number"
+                  value={target}
+                  onChange={(e) => setTarget(Number(e.target.value))}
+                  placeholder="Enter KPI"
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #ccc"
+                  }}
                 />
 
                 <select
-                  value={unit} // ✅ controlled
-                  onChange={(e) => setUnit(e.target.value)} // ✅ update parent
+                  value={unit} 
+                  onChange={(e) => setUnit(e.target.value)} 
                   style={{
                   padding: "10px",
                   borderRadius: "8px",
@@ -41,6 +43,7 @@ function TargetKPISelection({ unit, setUnit }){
                   background: "#fff",
                   cursor: "pointer",
                   fontSize:"14px",
+                  color: "#333"
                  }}>
 
                    <option value="">Select Unit</option>
