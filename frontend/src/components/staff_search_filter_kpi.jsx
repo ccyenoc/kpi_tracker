@@ -1,4 +1,4 @@
-function StaffSearchFilterKPI(){
+function StaffSearchFilterKPI({ searchKPI, setSearchKPI, filterCategory, setFilterCategory, filterStatus, setFilterStatus}) {
     const title = {
         fontWeight: "bold",
         textAlign: "left",
@@ -18,6 +18,7 @@ function StaffSearchFilterKPI(){
          color: "black",
          outline: "none"
     };
+
 
     return(
         <div
@@ -49,6 +50,8 @@ function StaffSearchFilterKPI(){
             <div style={{ flex: 2, display: "flex", flexDirection:"column" }}>
                 <p style={title}>Search KPI</p>
                 <input
+                value={searchKPI}
+                    onChange={(e) => setSearchKPI(e.target.value)}
                     type ="text"
                     placeholder="Search KPI..."
                     style={fieldStyle}
@@ -59,28 +62,36 @@ function StaffSearchFilterKPI(){
            <div style={{ flex: 1, display: "flex", flexDirection:"column" }}>
                 <p style={title}>Filter Category</p>
                 <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
                     style={{
                         ...fieldStyle,
                         appearance: "auto", 
                     }}>
-                    <option value="">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="high">High Priority</option>
+                    <option value="">All Categories</option>
+                    <option value="Sales Performance">Sales Performance</option>
+                    <option value="Lead Generation">Lead Generation</option>
+                    <option value="Property Management">Property Management</option>
+                    <option value="Marketing Performance">Marketing Performance</option>
+                    <option value="Customer Experience">Customer Experience</option>
                 </select>
             </div>
 
             <div style={{ flex: 1, display: "flex", flexDirection:"column" }}>
                 <p style={title}>Filter Status</p>
                 <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
                     style={{
                         ...fieldStyle,
                         appearance: "auto",
                     }}>
                     <option value="">All Status</option>
-                    <option value="active">Active</option>
                     <option value="completed">Completed</option>
-                    <option value="high">High Priority</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="at_risk">At Risk</option>
+                    <option value="underperformed">Underperformed</option>
                 </select>
             </div>
         </div>

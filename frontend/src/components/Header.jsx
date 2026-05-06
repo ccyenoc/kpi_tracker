@@ -1,12 +1,37 @@
 import { Search, Bell } from "lucide-react";
-import TopBreadcrumb from "./top_breadcrumb.jsx";
+import TopBreadcrumb from "./top_breadcrumb";
 import { useLocation } from "react-router-dom";
-import { routes } from "../Routes.jsx";
+import { routes } from "../Routes";
 import { useAuth } from "../Auth.jsx";
 
 export default function Header() {
   const location = useLocation();
   const { user } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (token) {
+        await fetch("/api/logout", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/signin";
+    } catch (error) {
+      console.error("Logout error:", error);
+
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/signin";
+    }
+  };
 
   const routeList = routes(user?.role);
 
@@ -29,11 +54,9 @@ export default function Header() {
   }
 
   return (
-    <header className="d-flex justify-content-between align-items-center px-4 border-bottom bg-white position-sticky top-0"
-      style={{ height: "64px",
-             zIndex: 1050
-    }}
-      
+    <header
+      className="d-flex justify-content-between align-items-center px-4 border-bottom bg-white position-sticky top-0"
+      style={{ height: "64px" }}
     >
       {breadcrumbs.length > 1 ? (
         <TopBreadcrumb items={breadcrumbs} />
@@ -50,7 +73,7 @@ export default function Header() {
           className="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center"
           style={{ width: 40, height: 40 }}
         >
-          JS
+          {user?.name?.charAt(0)?.toUpperCase() || "U"}
         </div>
       </div>
     </header>

@@ -3,6 +3,9 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './Login.css';
 import logo from "../assets/achievepro.png";
 
+{/* mock data */}
+import { users } from "../data/userData";
+
 
 const Login = () => {
     const [credentials, setCredentials] = useState({
@@ -17,8 +20,50 @@ const Login = () => {
 
     const handleSignIn = (e) => {
         e.preventDefault();
-        console.log("Logging in with:", credentials);
-        alert(`Welcome back, ${credentials.email}!`);
+
+        //blank email/password
+        if (
+            credentials.email.trim() === '' ||
+            credentials.password.trim() === ''
+        ) {
+            setErrorMessage("Please fill in all blanks");
+            return;
+        }
+
+        try {
+            const foundUser = users.find(
+                u => u.email === credentials.email
+            );
+            
+            if(!foundUser){
+                setErrorMessage("Authentication record not found");
+                return;
+            }
+
+            if(foundUser.password != credentials.password){
+                setErrorMessage("Invalid email or password");
+                return;
+            }
+
+            // when login is successfull
+            const {password, ...userWithoutPassword}= foundUser;
+
+            localStorage.setItem("user",JSON.stringify(userWithoutPassword));
+            localStorage.setItem("token","fake-token");
+
+            // redict to dashboard based on role
+            if(foundUser.role === 'manager'){
+                window.location.href = '/manager/dashboard';
+            }
+            else{
+                window.location.href = '/staff/dashboard';
+            }
+        
+
+        } catch (error) {
+            console.error('Login error:', error);
+            setErrorMessage("Something went wrong");
+        }
     };
 
     return (
