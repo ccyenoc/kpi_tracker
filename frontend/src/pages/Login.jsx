@@ -8,6 +8,8 @@ import { users } from "../data/userData";
 
 
 const Login = () => {
+    const [errorMessage, setErrorMessage] = useState('');
+
     const [credentials, setCredentials] = useState({
         email: '',
         password: ''
@@ -78,6 +80,12 @@ const Login = () => {
                     </div>
                     <h2 className="big-title">Welcome back</h2>
                     <p className="subtitle">Enter your credentials to access your account</p>
+
+                    {errorMessage && (
+                    <div className="alert alert-danger py-2">
+                        {errorMessage}
+                    </div>
+                )}
 
                 <form onSubmit={handleSignIn}>
                     <div className="mb-3">

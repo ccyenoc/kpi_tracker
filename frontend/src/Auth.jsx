@@ -7,13 +7,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/user")
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() =>
-        setUser({ name: "John Staff", role: "manager" })
-      );
-  }, []);
+  const storedUser = localStorage.getItem("user");
+
+  if (storedUser) {
+    setUser(JSON.parse(storedUser));
+  } else {
+    setUser(null);
+  }
+}, []);
 
   return (
     <AuthContext.Provider value={{ user, setUser }}>
