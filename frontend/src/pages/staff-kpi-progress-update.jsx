@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardCards from "../components/4x1_cards_layout";
 import { Target, CheckCircle, TrendingUp, AlertCircle, Clock } from "lucide-react";
 import StaffOverallProgress from "../components/staff_overall_progress";
@@ -9,16 +9,25 @@ import UpdateKpiModal from "../components/staff_update_kpi"
 import { kpis } from "../data/kpiData";
 import { categories } from "../data/categoriesData"; // adjust path if needed
 import { submissions } from "../data/submissionData"; // if you're using this too
+import { useParams } from "react-router-dom";
 
 const StaffKPIUpdate = () => {
-  const [selectedKpi, setSelectedKpi] = useState(null);
+  const { kpiId } = useParams();
   
+  const [selectedKpi, setSelectedKpi] = useState(null);
+  const [submissionHistory, setSubmissionHistory] = useState(() => {
+    const saved = localStorage.getItem("kpiSubmissionHistory");
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [progressUpdates, setProgressUpdates] = useState({});
   const currentUserId = "user_101";
+  const [searchKPI, setSearchKPI] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
-  console.log(categories);
   const categoryMap = Object.fromEntries(
-  categories.map(c => [c.id, c])
-);
+    categories.map(c => [c.id, c])
+    );
 
   const submissionMap = Object.fromEntries(
   submissions.map(s => [s.kpiId, s])
@@ -34,14 +43,27 @@ const StaffKPIUpdate = () => {
     const category = categoryMap[kpi.categoryId];
     const submission = submissionMap[kpi.id];
 
+    const history = submissionHistory[kpi.id] || [];
+    const latestUpdate = history[history.length - 1];
+
+    const currentValue = latestUpdate?.current ?? userData?.current ?? 0;
+    const targetValue = userData?.target || 0;
+
+    const evidenceCount =
+      history.reduce((total, item) => {
+        return total + (item.fileNames?.length || 0);
+      }, 0);
+
+    const newStatus = kpi.status;
+
     return {
       ...kpi,
 
       // progress
-      current: userData?.current || 0,
-      target: userData?.target || 0,
+      current: currentValue,
+      target: targetValue,
 
-      progressText: `${userData?.current || 0} / ${userData?.target || 0} ${kpi.unit}`,
+      progressText: `${currentValue} / ${targetValue} ${kpi.unit}`,
 
       deadlineText: `${Math.ceil(
         (new Date(kpi.deadline) - new Date()) / (1000 * 60 * 60 * 24)
@@ -51,12 +73,66 @@ const StaffKPIUpdate = () => {
       categoryColor: category?.color || "#e5e7eb",
 
     
-      evidenceCount: submission ? 1 : 0,
-      updatedAt: submission?.submittedAt || null
+      status: latestUpdate ? newStatus : kpi.status,
+
+      evidenceCount: evidenceCount,
+      evidence: `${evidenceCount} file${evidenceCount === 1 ? "" : "s"}`,
+
+      updatedAt: latestUpdate?.submittedAt || submission?.submittedAt || null,
+      notes: latestUpdate?.notes || "",
+      submissionHistory: history
     };
 
   
   });
+  const filteredKPIs = userKpis.filter(kpi => {
+  const matchSearch =
+      searchKPI === "" ||
+      kpi.title.toLowerCase().includes(searchKPI.toLowerCase());
+
+  const matchCategory =
+    filterCategory === "" ||
+    kpi.categoryName === filterCategory;
+
+  const matchStatus =
+    filterStatus === "" ||
+    kpi.status === filterStatus;
+
+  return matchSearch && matchCategory && matchStatus;
+});
+
+  useEffect(() => {
+    const fetchSubmissionHistory = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8006/api/kpi/submissions");
+        const result = await response.json();
+
+        if (result.success) {
+          const groupedHistory = {};
+
+          result.submissions.forEach((submission) => {
+            if (!groupedHistory[submission.kpiId]) {
+              groupedHistory[submission.kpiId] = [];
+            }
+
+            groupedHistory[submission.kpiId].push(submission);
+          });
+
+          setSubmissionHistory(groupedHistory);
+        }
+      } catch (error) {
+        console.error("Failed to load submission history:", error);
+      }
+    };
+
+    fetchSubmissionHistory();
+  }, []);
+
+  console.log(categories);
+
+
+
+
 
 
    const stats = [
@@ -85,6 +161,54 @@ const StaffKPIUpdate = () => {
       color: "#ef4444"
     }
   ];
+
+  const handleSubmitUpdate = async (updateData) => {
+    try {
+      const formData = new FormData();
+
+      formData.append("kpiId", updateData.kpiId);
+      formData.append("current", updateData.current);
+      formData.append("notes", updateData.notes || "");
+
+      updateData.files.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      const response = await fetch("http://127.0.0.1:8006/api/kpi/update", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to update KPI progress");
+      }
+
+      const result = await response.json();
+      const newSubmission = result.submission;
+
+      setSubmissionHistory((prev) => {
+        const oldHistory = prev[newSubmission.kpiId] || [];
+
+        const updatedHistory = {
+          ...prev,
+          [newSubmission.kpiId]: [...oldHistory, newSubmission],
+        };
+
+        /*localStorage.setItem(
+          "kpiSubmissionHistory",
+          JSON.stringify(updatedHistory)
+        );*/
+
+        return updatedHistory;
+      });
+
+      alert("Progress updated successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update progress. Please check backend.");
+    }
+  };
 
  return(
   <div
@@ -118,7 +242,14 @@ const StaffKPIUpdate = () => {
         justifyContent: "stretch"
       }}>
         <div style={{ flex: 1 }}>
-          <StaffSearchFilterKPI />
+          <StaffSearchFilterKPI
+            searchKPI={searchKPI}
+            setSearchKPI={setSearchKPI}
+            filterCategory={filterCategory}
+            setFilterCategory={setFilterCategory}
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
+          />
         </div>
       </div>
 
@@ -132,7 +263,7 @@ const StaffKPIUpdate = () => {
         width: "100%"
       }}
       >
-     {userKpis.map((kpi) => (
+     {filteredKPIs.map((kpi) => (
        <StaffKPI 
        key={kpi.id} 
        kpi={kpi}
@@ -140,9 +271,11 @@ const StaffKPIUpdate = () => {
     ))}
 
     <UpdateKpiModal
-  kpi={selectedKpi}
-  onClose={() => setSelectedKpi(null)}
-/>
+      kpi={selectedKpi}
+      onClose={() => setSelectedKpi(null)}
+      onSubmit={handleSubmitUpdate}
+      history={selectedKpi ? submissionHistory[selectedKpi.id] || [] : []}
+    />
      </div>
       
     
