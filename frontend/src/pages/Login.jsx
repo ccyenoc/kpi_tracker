@@ -3,9 +3,13 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './Login.css';
 import logo from "../assets/achievepro.png";
 
-const API_BASE_URL = 'http://localhost:8006';
+{/* mock data */}
+import { users } from "../data/userData";
+
 
 const Login = () => {
+    const [errorMessage, setErrorMessage] = useState('');
+
     const [credentials, setCredentials] = useState({
         email: '',
         password: ''
@@ -26,7 +30,6 @@ const Login = () => {
 
     const handleSignIn = async (e) => {
         e.preventDefault();
-        console.log(credentials);
 
         //blank email/password
         if (
@@ -38,48 +41,38 @@ const Login = () => {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(credentials)
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                // Save login info
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-
-                window.location.href = data.dashboard;
-
-            } else {
-                // Valid email + wrong password
-                if (
-                    data.detail &&
-                    data.detail.toLowerCase().includes("authentication")
-                ) {
-                    setErrorMessage("Authentication record not found");
-                }
-
-                // Email not exist
-                else if (
-                    data.detail &&
-                    data.detail.toLowerCase().includes("invalid")
-                ) {
-                    setErrorMessage("Invalid email or password");
-                }
-
-                else {
-                    setErrorMessage("Invalid email or password");
-                }
+            const foundUser = users.find(
+                u => u.email === credentials.email
+            );
+            
+            if(!foundUser){
+                setErrorMessage("Authentication record not found");
+                return;
             }
+
+            if(foundUser.password != credentials.password){
+                setErrorMessage("Invalid email or password");
+                return;
+            }
+
+            // when login is successfull
+            const {password, ...userWithoutPassword}= foundUser;
+
+            localStorage.setItem("user",JSON.stringify(userWithoutPassword));
+            localStorage.setItem("token","fake-token");
+
+            // redict to dashboard based on role
+            if(foundUser.role === 'manager'){
+                window.location.href = '/manager/dashboard';
+            }
+            else{
+                window.location.href = '/staff/dashboard';
+            }
+        
 
         } catch (error) {
             console.error('Login error:', error);
-            setErrorMessage("Authentication record not found");
+            setErrorMessage("Something went wrong");
         }
     };
 
@@ -93,14 +86,10 @@ const Login = () => {
                         alt="Achieve Logo"
                         style={{ width: "120px", height: "auto" }}
                     />
-                </div>
-
-                <h2 className="big-title">Welcome back</h2>
-                <p className="subtitle">
-                    Enter your credentials to access your account
-                </p>
-
-                {errorMessage && (
+               </div>
+                    <h2 className="big-title">Welcome back</h2>
+                    <p className="subtitle">Enter your credentials to access your account</p>
+                    {errorMessage && (
                     <div className="alert alert-danger py-2">
                         {errorMessage}
                     </div>
