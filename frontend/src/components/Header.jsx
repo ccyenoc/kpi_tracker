@@ -56,7 +56,9 @@ export default function Header() {
   return (
     <header
       className="d-flex justify-content-between align-items-center px-4 border-bottom bg-white position-sticky top-0"
-      style={{ height: "64px" }}
+      style={{ 
+        height: "64px",
+        zIndex: 9999, }}
     >
       {breadcrumbs.length > 1 ? (
         <TopBreadcrumb items={breadcrumbs} />

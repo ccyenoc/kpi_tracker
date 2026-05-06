@@ -44,13 +44,13 @@ function ManagerDashboard(){
 
    return (
     <div className="d-flex">
-      
-      {/* Sidebar */}
 
 
-      <div className="d-flex flex-column" 
+      <div 
+        className="d-flex flex-column" 
         style={{
           width: "100%",
+          backgroundColor: "#fff",
       }}>
       {/* welcome message */}
       <PageTitle

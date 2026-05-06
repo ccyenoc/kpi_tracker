@@ -21,30 +21,19 @@ function RectangleGraphCard(){
     return(
         <div className="mx-3 mb-2 flex-grow-1"
         style={{
+            position: "relative",
+            zIndex: 1,
             display : "flex",
             flexDirection: "column",
             height: "380px",
             padding: "20px",
             backgroundColor: "#ffffff",
             boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-            flex: "0 0 250px",  
+            width: "97%", 
             borderRadius : "15px",
             fontSize: "16px",
         }}>
             
-            {/*} 
-            backend connection
-            <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data}>
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="value" />
-                </LineChart>
-            </ResponsiveContainer>
-            {*/}
-
-            {/* frontend demonstration purpose */}
             <div
               style={{
                 display : "flex",
@@ -62,9 +51,14 @@ function RectangleGraphCard(){
 
                 <div style={{ 
                   width: "100%", 
-                  height: "300px" }}>
-          <ResponsiveContainer width="100%" height="100%">
-           <LineChart data={data}>
+                  height: "300px",
+                  overflow: "hidden"  }}>
+          <ResponsiveContainer 
+          width="100%" 
+          height="100%">
+           <LineChart 
+            data={data}
+            margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
 
             <XAxis dataKey="time" />
