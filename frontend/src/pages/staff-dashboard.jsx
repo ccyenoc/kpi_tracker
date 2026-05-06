@@ -173,7 +173,11 @@ if (selectedMonth === "All") {
 ];
 
    return (
-    <div style={{ backgroundColor: "#f8fafc", minHeight: "100vh", width: "100%" }}>
+    <div 
+      style={{ 
+        backgroundColor: "#ffffff", 
+        minHeight: "100vh", 
+        width: "100%" }}>
       <div 
         style={{
           width: "100%",
@@ -185,10 +189,9 @@ if (selectedMonth === "All") {
         <div 
           style={{ 
             padding: "20px",
-            backgroundColor: "#f8fafc",
+            backgroundColor: "#ffffff",
             width: "100%",
             boxSizing: "border-box",
-            borderBottom: "1px solid #e2e8f0"
           }}
         >
           <h2 style={{ margin: 0 }}>Welcome back, John!</h2>
