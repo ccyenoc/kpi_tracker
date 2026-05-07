@@ -6,6 +6,7 @@ export const users = [
     phone: "011111111",
     role: "staff",
     department: "finance",
+    password: "123456",
   },
   {
     id: "user_102",
@@ -14,6 +15,7 @@ export const users = [
     phone: "011111111",
     role: "staff",
     department: "finance",
+    password: "123456",
   },
   {
     id: "user_manager",
@@ -22,5 +24,6 @@ export const users = [
     phone: "011111111",
     role: "manager",
     department: "finance",
+    password: "123456",
   }
 ];

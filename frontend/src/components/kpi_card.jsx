@@ -21,13 +21,15 @@ function KpiCard({ title, subtitle, items = [] }) {
 
       <p 
         style={{ 
-            fontSize: "13px", 
+            fontSize: "14px", 
             color: "#64748b",
             textAlign: "left",
             }}>{subtitle}</p>
 
       <div 
-        style={{ marginTop: "10px" }}>
+        style={{ 
+          marginTop: "10px" 
+          }}>
         {items.map((item, index) => (
           <KPIItem key={index} {...item} />
         ))}

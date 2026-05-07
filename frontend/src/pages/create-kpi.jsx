@@ -17,8 +17,21 @@ function CreateKPI(){
     const [errorMessage, setErrorMessage] = useState("");
     const [target, setTarget] = useState("");
     const [deadline, setDeadline] = useState(null);
+    const [searchStaff, setSearchStaff] = useState("");
     const [assignedStaff, setAssignedStaff] = useState([]);
     const [showModal, setShowModal] = useState(false);
+
+    const resetForm = () => {
+  setTitle("");
+  setDescription("");
+  setCategory("");
+  setUnit("");
+  setTarget("");
+  setDeadline(null);
+  setSearchStaff("")
+  setAssignedStaff([]);
+  setErrorMessage("");
+};
 
   const KPI_TEMPLATES = {
     sales: ["Monthly Sales Revenue", "Closed Deals", "Conversion Rate"],
@@ -148,6 +161,8 @@ function CreateKPI(){
               unit={unit}
               assignedStaff={assignedStaff}
               setAssignedStaff={setAssignedStaff}
+              searchStaff={searchStaff}
+              setSearchStaff={setSearchStaff}
             />
 
             <div
@@ -155,8 +170,8 @@ function CreateKPI(){
                 style={{
                   marginTop: "20px",
                   display: "flex",
-                  justifyContent: "center", // ✅ horizontal center
-                  alignItems: "center",     // ✅ vertical center
+                  justifyContent: "center",
+                  alignItems: "center",    
                  gap: "50px",
                 }}>
                 <button
@@ -202,7 +217,10 @@ function CreateKPI(){
                 <button 
                   type="button" 
                   className="btn-close" 
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
                 ></button>
               </div>
 
@@ -220,7 +238,10 @@ function CreateKPI(){
               <div className="modal-footer">
                 <button 
                   className="btn btn-primary"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+  setShowModal(false);
+  resetForm();
+}}
                 >
                   OK
                 </button>
