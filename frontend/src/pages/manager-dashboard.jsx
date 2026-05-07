@@ -6,6 +6,7 @@ import RectangleGraphCard from "../components/rectangle_graph_card.jsx";
 import StaffRankingCard from "../components/staff_ranking_card.jsx";
 import ManagerDashboardKpi from "../components/manager_dashboard_kpi.jsx";
 import Sidebar from "../components/Sidebar.jsx";
+import { getAtRiskKpis, getUnderperformKpis } from "../utils/kpiUtils.js";
 {/*mock data import*/}
 import { kpis } from "../data/kpiData";
 
@@ -44,13 +45,13 @@ function ManagerDashboard(){
 
    return (
     <div className="d-flex">
-      
-      {/* Sidebar */}
 
 
-      <div className="d-flex flex-column" 
+      <div 
+        className="d-flex flex-column" 
         style={{
           width: "100%",
+          backgroundColor: "#fff",
       }}>
       {/* welcome message */}
       <PageTitle
