@@ -173,7 +173,7 @@ if (selectedMonth === "All") {
 ];
 
    return (
-    <div style={{ backgroundColor: "#f8fafc", minHeight: "100vh", width: "100%" }}>
+    <div style={{ backgroundColor: "#ffffff", minHeight: "100vh", width: "100%" }}>
       <div 
         style={{
           width: "100%",

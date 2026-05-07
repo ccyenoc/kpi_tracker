@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function KPIAssignStaff({ staffList, unit, assignedStaff, setAssignedStaff }){
+function KPIAssignStaff({ staffList, unit, assignedStaff, setAssignedStaff , searchStaff, setSearchStaff }){
 
     const [kpiValue, setKpiValue] = useState(100)
 
@@ -13,14 +13,13 @@ function KPIAssignStaff({ staffList, unit, assignedStaff, setAssignedStaff }){
   fontSize:"14px",
 };
 
-const [searchTerm, setSearchTerm] = useState("");
 
 const filteredStaff = staffList.filter(
   (staff) =>
     staff.role === "staff" &&
     (
-      staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      staff.email.toLowerCase().includes(searchTerm.toLowerCase())
+      staff.name.toLowerCase().includes(searchStaff.toLowerCase()) ||
+      staff.email.toLowerCase().includes(searchStaff.toLowerCase())
     )
 );
 
@@ -46,7 +45,8 @@ const filteredStaff = staffList.filter(
 
             <input
               type ="text"
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchStaff}
+              onChange={(e) => setSearchStaff(e.target.value)}
               placeholder="  Search Staff... "
               style={{
                 textAlign:"start",
@@ -57,7 +57,7 @@ const filteredStaff = staffList.filter(
                 outline: "none", }}
             />
 
-            {searchTerm && (
+            {searchStaff && (
   <div
     style={{
       border: "1px solid #eee",
@@ -83,7 +83,7 @@ const filteredStaff = staffList.filter(
       { ...staff, kpi: 0 }
     ]);
   }
-  setSearchTerm("");
+  setSearchStaff("");
 }}
       >
         {staff.name} ({staff.email})

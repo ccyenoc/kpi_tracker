@@ -17,6 +17,7 @@ function CreateKPI(){
     const [errorMessage, setErrorMessage] = useState("");
     const [target, setTarget] = useState("");
     const [deadline, setDeadline] = useState(null);
+    const [searchStaff, setSearchStaff] = useState("");
     const [assignedStaff, setAssignedStaff] = useState([]);
     const [showModal, setShowModal] = useState(false);
 
@@ -27,6 +28,7 @@ function CreateKPI(){
   setUnit("");
   setTarget("");
   setDeadline(null);
+  setSearchStaff("")
   setAssignedStaff([]);
   setErrorMessage("");
 };
@@ -159,6 +161,8 @@ function CreateKPI(){
               unit={unit}
               assignedStaff={assignedStaff}
               setAssignedStaff={setAssignedStaff}
+              searchStaff={searchStaff}
+              setSearchStaff={setSearchStaff}
             />
 
             <div
@@ -214,9 +218,9 @@ function CreateKPI(){
                   type="button" 
                   className="btn-close" 
                   onClick={() => {
-  setShowModal(false);
-  resetForm();
-}}
+                  setShowModal(false);
+                  resetForm();
+                }}
                 ></button>
               </div>
 

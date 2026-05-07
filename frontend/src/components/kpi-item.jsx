@@ -1,11 +1,6 @@
 function KPIItem({ title, subtitle, timeLeft, status }) {
 
   const styles = {
-  in_progress: {
-    bg: "#dcfce7",
-    border: "#22c55e",
-    badge: "#16a34a",
-  },
   at_risk: {
     bg: "#fef9c3",
     border: "#facc15",
@@ -19,6 +14,11 @@ function KPIItem({ title, subtitle, timeLeft, status }) {
 };
 
 const style = styles[status];
+
+const statusLabelMap = {
+  at_risk: "At Risk",
+  underperform: "Underperform",
+};
 
 const numbers = subtitle.match(/\d+(\.\d+)?/g);
 const current = parseFloat(numbers?.[0] || 0);
@@ -45,6 +45,7 @@ const progress = (current / total) * 100;
           display: "flex", 
           textAlign:"left",
           flexDirection:"row",
+          alignItems:"center",
           gap: "8px" }}>
           <p 
           style={{ 
@@ -63,7 +64,7 @@ const progress = (current / total) * 100;
               fontSize: "11px",
             }}
           >
-            {status}
+            {statusLabelMap[status] || status}
           </div>
         </div>
 
