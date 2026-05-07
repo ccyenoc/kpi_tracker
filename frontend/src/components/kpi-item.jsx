@@ -46,14 +46,13 @@ const progress = (current / total) * 100;
           textAlign:"left",
           flexDirection:"row",
           alignItems:"center",
-          gap: "8px" }}>
-          <p 
+           justifyContent: "space-between",}}>
+          <h3
           style={{ 
             fontWeight: "600", 
-            fontSize: "14px", 
-            margin: 0 }}>
+            fontSize: "14px", }}>
             {title}
-          </p>
+          </h3>
 
           <div
             style={{
@@ -97,23 +96,24 @@ const progress = (current / total) * 100;
        </div>
 
         {/*status*/}
-        <p 
+        <h3
         style={{ 
           fontSize: "12px", 
-          margin: "4px 0",
           textAlign:"left", }}>
           {subtitle}
-        </p>
+        </h3>
+
         </div>
 
-        <p 
+         <h3
         style={{ 
           fontSize: "11px", 
           color: "#555", 
-          margin: 0,
-          textAlign:"left", }}>
+          textAlign:"left",}}>
           ⏱ {timeLeft}
-        </p>
+        </h3>
+
+  
     
     </div>
   );

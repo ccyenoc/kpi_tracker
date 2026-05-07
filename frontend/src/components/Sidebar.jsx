@@ -179,7 +179,7 @@ function Sidebar(){
                 </div>
                 <div>
                     <div className="small fw-medium">{user ? user.name : "Jane Staff"}</div>
-                    <div className="text-white-50" style={{ fontSize: '10px' }}>{user ? user.role : "Staff"}</div>
+                    <div className="text-white-50" style={{ fontSize: '10px' }}>{user ? roleDisplay[user.role] : "Staff"}</div>
                     
                 </div>
                 </div>

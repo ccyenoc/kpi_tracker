@@ -22,7 +22,8 @@ function ManagerDashboardKpi() {
         <KpiCard
           title="At Risk KPIs"
           subtitle="KPIs that are at risk of not being accomplished on time"
-          items={atRisk.map(kpi => ({
+          items={
+             atRisk.length === 0 ? []: atRisk.map(kpi => ({
             title: kpi.title,
             subtitle: `${kpi.current} / ${kpi.target} ${kpi.unit}`,
             timeLeft: getDaysLeft(kpi.deadline),
