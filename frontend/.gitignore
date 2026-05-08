@@ -25,6 +25,10 @@ dist-ssr
 
 serviceAccountKey.json
 
+# Uploaded evidence files
+backend/uploads/
+uploads/
+
 # Backend generated files
 backend/__pycache__/
 __pycache__/
