@@ -30,6 +30,10 @@ backend/__pycache__/
 __pycache__/
 *.pyc
 
+# Uploaded evidence files
+backend/uploads/
+uploads/
+
 # Secret files
 backend/serviceAccountKey.json
 serviceAccountKey.json

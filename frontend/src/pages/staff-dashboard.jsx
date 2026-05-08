@@ -1,25 +1,116 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { kpis as mockKpis } from "../data/kpiData";
+import { activityLogs as mockActivityLogs } from "../data/activityLog";
+import { submissions as mockSubmissions } from "../data/submissionData";
 import { useNavigate } from "react-router-dom";
-import { kpis } from "../data/kpiData";
 import DashboardCards from "../components/4x1_cards_layout";
 import StaffMonthlyPerformanceGraph from '../components/staff_monthly_performance_graph';
 import StaffKPIAssignedCard from "../components/staff_kpi_assigned_card";
-import { activityLogs, getTimeAgo } from "../data/activityLog";
 import StaffRecentActivity from '../components/staff_recent_activity';
-{/*import mock data*/}
-import { submissions } from "../data/submissionData";
 
 const StaffDashboard = () => {
 
   {/*DATA*/}
   {/*MOCK USER*/}
-  const currentUserId = "user_101";
+  const API_BASE_URL = "http://127.0.0.1:8006";
+  
+  const [dataMode, setDataMode] = useState(() => {
+    return localStorage.getItem("kpiDataMode") || "mock";
+  });
+
+  const [kpis, setKpis] = useState(mockKpis);
+  const [submissions, setSubmissions] = useState(mockSubmissions);
+  const [activityLogs, setActivityLogs] = useState(mockActivityLogs);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem("user");
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const currentUserId =
+    dataMode === "mock" ? "user_101" : currentUser?.id || "user_101";
 
   const goUpdate = (kpiId) => {
     navigate(`/staff/kpi/${kpiId}`);
   };
+
+  const useMockData = () => {
+    localStorage.setItem("kpiDataMode", "mock");
+    setDataMode("mock");
+    setKpis(mockKpis);
+    setSubmissions(mockSubmissions);
+    setActivityLogs(mockActivityLogs);
+    setError("");
+  };
+
+  const useRealData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      localStorage.setItem("kpiDataMode", "real");
+      setDataMode("real");
+
+      const [kpiRes, submissionRes, activityRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/kpi`),
+        fetch(`${API_BASE_URL}/api/kpi/submissions`),
+        fetch(`${API_BASE_URL}/api/activity-logs`)
+      ]);
+
+      if (!kpiRes.ok) throw new Error("Failed to fetch KPI data");
+      if (!submissionRes.ok) throw new Error("Failed to fetch submission data");
+      if (!activityRes.ok) throw new Error("Failed to fetch activity logs");
+
+      const kpiData = await kpiRes.json();
+      const submissionData = await submissionRes.json();
+      const activityData = await activityRes.json();
+
+      setKpis(kpiData.kpis || []);
+      setSubmissions(submissionData.submissions || []);
+      setActivityLogs(activityData.activityLogs || []);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to load real data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          return;
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/user`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch current user");
+        }
+
+        const data = await res.json();
+        setCurrentUser(data.user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
     
   const userKpis = kpis
   .filter(kpi => kpi.assignedUserIds.includes(currentUserId))
@@ -92,6 +183,7 @@ userKpis.forEach(kpi => {
       prediction: 0
     };
   }
+
 
   const userData = kpi.kpiAssignments.find(u => u.userId === currentUserId);
   const targetVal = userData?.target || 0;
@@ -190,7 +282,42 @@ if (selectedMonth === "All") {
             boxSizing: "border-box",
           }}
         >
-          <h2 style={{ margin: 0 }}>Welcome back, John!</h2>
+          <h2 style={{ margin: 0 }}>
+            Welcome back, {dataMode === "mock" ? "John" : currentUser?.name || "Staff"}!
+          </h2>
+        </div>
+
+        <div style={{ padding: "0 20px 20px 20px", display: "flex", gap: "10px", alignItems: "center" }}>
+          <button
+            onClick={useMockData}
+            style={{
+              padding: "10px 16px",
+              borderRadius: "8px",
+              border: "none",
+              cursor: "pointer",
+              backgroundColor: dataMode === "mock" ? "#3b82f6" : "#e5e7eb",
+              color: dataMode === "mock" ? "#ffffff" : "#111827"
+            }}
+          >
+            Use Mock Data
+          </button>
+
+          <button
+            onClick={useRealData}
+            style={{
+              padding: "10px 16px",
+              borderRadius: "8px",
+              border: "none",
+              cursor: "pointer",
+              backgroundColor: dataMode === "real" ? "#22c55e" : "#e5e7eb",
+              color: dataMode === "real" ? "#ffffff" : "#111827"
+            }}
+          >
+            Use Real Data
+          </button>
+
+          {loading && <span>Loading real data...</span>}
+          {error && <span style={{ color: "red" }}>{error}</span>}
         </div>
 
         {/*top 4 cards*/}
