@@ -4,7 +4,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './RegisterAcc.css';
 import logo from "../assets/achievepro.png";
 
-const API_BASE_URL = 'http://localhost:8006';
+// In development, use Vite proxy; in production, use absolute URL
+const API_BASE_URL = import.meta.env.MODE === 'development' ? '' : 'http://localhost:8006';
 
 const RegisterAcc = () => {
     const [formData, setFormData] = useState({
@@ -19,16 +20,29 @@ const RegisterAcc = () => {
 
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [verificationCode, setVerificationCode] = useState('');
+    const [isEmailVerified, setIsEmailVerified] = useState(false);
+    const [verificationStatus, setVerificationStatus] = useState('');
+    const [isSendingCode, setIsSendingCode] = useState(false);
+    const [isVerifyingCode, setIsVerifyingCode] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const handleChange = (e) => {
+        const { id, value } = e.target;
         setFormData({
             ...formData,
-            [e.target.id]: e.target.value
+            [id]: value
         });
+
+        if (id === 'email') {
+            setIsEmailVerified(false);
+            setVerificationStatus('');
+            setVerificationCode('');
+        }
+
         setErrorMessage('');
     };
 
@@ -49,6 +63,99 @@ const RegisterAcc = () => {
     const isValidEmail = (email) => {
         const regex = /^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         return regex.test(email);
+    };
+
+
+    const sendVerificationCode = async () => {
+        const email = formData.email.trim().toLowerCase();
+        setErrorMessage('');
+        setSuccessMessage('');
+        setVerificationStatus('');
+
+        if (!email) {
+            setErrorMessage('Please enter your email first');
+            setShowErrorModal(true);
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            setErrorMessage('Please enter a valid email address before requesting a code');
+            setShowErrorModal(true);
+            return;
+        }
+
+        setIsSendingCode(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/verify-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                const message = data.detail || data.message || 'Failed to send verification code';
+                setErrorMessage(message);
+                setShowErrorModal(true);
+                return;
+            }
+
+            setVerificationStatus('Verification code sent. Please check your email.');
+            setIsEmailVerified(false);
+        } catch (error) {
+            console.error('Verification email error:', error);
+            setErrorMessage('Failed to send verification code. Please try again.');
+            setShowErrorModal(true);
+        } finally {
+            setIsSendingCode(false);
+        }
+    };
+
+
+    const verifyCode = async () => {
+        const email = formData.email.trim().toLowerCase();
+        const code = verificationCode.trim();
+        setErrorMessage('');
+
+        if (!email) {
+            setErrorMessage('Please enter your email first');
+            setShowErrorModal(true);
+            return;
+        }
+
+        if (!/^\d{6}$/.test(code)) {
+            setErrorMessage('Verification code must be 6 digits');
+            setShowErrorModal(true);
+            return;
+        }
+
+        setIsVerifyingCode(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/verify-code`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, code })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                const message = data.detail || data.message || 'Failed to verify code';
+                setErrorMessage(message);
+                setShowErrorModal(true);
+                return;
+            }
+
+            setIsEmailVerified(true);
+            setVerificationStatus('Email verified successfully. You can continue signup.');
+        } catch (error) {
+            console.error('Verify code error:', error);
+            setErrorMessage('Failed to verify code. Please try again.');
+            setShowErrorModal(true);
+        } finally {
+            setIsVerifyingCode(false);
+        }
     };
 
 
@@ -73,6 +180,12 @@ const RegisterAcc = () => {
         // Check email format
         if (!isValidEmail(formData.email.trim())) {
             setErrorMessage("Please enter a valid email address (e.g., name@company.com)");
+            setShowErrorModal(true);
+            return;
+        }
+
+        if (!isEmailVerified) {
+            setErrorMessage("Please verify your email before creating an account");
             setShowErrorModal(true);
             return;
         }
@@ -111,7 +224,7 @@ const RegisterAcc = () => {
 
         const payload = {
             name: formData.fullName,
-            email: formData.email,
+            email: formData.email.trim().toLowerCase(),
             password: formData.password,
             phone: formData.phone || "",
             role: formData.role === "employee" ? "staff" : formData.role,
@@ -189,14 +302,70 @@ const RegisterAcc = () => {
 
                     <div className="mb-3">
                         <label className="auth-label">Email</label>
-                        <input
-                            type="text"
-                            id="email"
-                            className="form-control-custom"
-                            placeholder="name@company.com"
-                            required
-                            onChange={handleChange}
-                        />
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <input
+                                type="text"
+                                id="email"
+                                className="form-control-custom"
+                                placeholder="name@company.com"
+                                required
+                                onChange={handleChange}
+                                style={{ flex: 1 }}
+                            />
+                            <button
+                                type="button"
+                                onClick={sendVerificationCode}
+                                disabled={isSendingCode}
+                                style={{
+                                    border: '1px solid #0d6efd',
+                                    background: '#0d6efd',
+                                    color: '#fff',
+                                    borderRadius: '6px',
+                                    padding: '10px 12px',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: '0.9em'
+                                }}
+                            >
+                                {isSendingCode ? 'Sending...' : 'Send Code'}
+                            </button>
+                        </div>
+                        {verificationStatus && (
+                            <p style={{ marginTop: '8px', marginBottom: '0', fontSize: '0.85em', color: isEmailVerified ? '#198754' : '#0d6efd' }}>
+                                {verificationStatus}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="mb-3">
+                        <label className="auth-label">Verification Code</label>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <input
+                                type="text"
+                                id="verificationCode"
+                                className="form-control-custom"
+                                placeholder="6-digit code"
+                                value={verificationCode}
+                                onChange={(e) => setVerificationCode(e.target.value)}
+                                maxLength={6}
+                                style={{ flex: 1 }}
+                            />
+                            <button
+                                type="button"
+                                onClick={verifyCode}
+                                disabled={isVerifyingCode}
+                                style={{
+                                    border: '1px solid #198754',
+                                    background: '#198754',
+                                    color: '#fff',
+                                    borderRadius: '6px',
+                                    padding: '10px 12px',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: '0.9em'
+                                }}
+                            >
+                                {isVerifyingCode ? 'Verifying...' : 'Verify'}
+                            </button>
+                        </div>
                     </div>
 
                     <div className="mb-3">

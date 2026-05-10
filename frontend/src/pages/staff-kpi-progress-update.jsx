@@ -14,7 +14,8 @@ import { useParams } from "react-router-dom";
 const StaffKPIUpdate = () => {
   const { kpiId } = useParams();
   
-  const API_BASE_URL = "http://127.0.0.1:8006";
+  // In development, use Vite proxy; in production, use absolute URL
+  const API_BASE_URL = import.meta.env.MODE === 'development' ? '' : 'http://127.0.0.1:8006';
 
 const groupSubmissionsByKpi = (submissionList = []) => {
   const groupedHistory = {};

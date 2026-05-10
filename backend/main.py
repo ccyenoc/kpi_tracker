@@ -11,6 +11,10 @@ import bcrypt
 import secrets
 import jwt
 import time
+import smtplib
+import hashlib
+import re
+from email.message import EmailMessage
 from google.api_core.exceptions import AlreadyExists
 import traceback
 from pathlib import Path
@@ -70,6 +74,15 @@ class UserLogin(BaseModel):
     password: str
 
 
+class EmailVerificationRequest(BaseModel):
+    email: str
+
+
+class EmailCodeVerificationRequest(BaseModel):
+    email: str
+    code: str
+
+
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None  # Allow empty string
@@ -91,6 +104,132 @@ class UserResponse(BaseModel):
 
 
 USER_PROFILE_FIELDS = ("name", "email", "phone", "role", "department")
+
+EMAIL_VERIFICATION_COLLECTION = os.getenv("EMAIL_VERIFICATION_COLLECTION", "emailVerifications")
+VERIFICATION_CODE_TTL_SECONDS = int(os.getenv("VERIFICATION_CODE_TTL_SECONDS", "600"))
+
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() in ("1", "true", "yes", "on")
+
+
+def normalize_email(email: str) -> str:
+    """Return canonical lower-cased email for comparisons and storage."""
+    return (email or "").strip().lower()
+
+
+def generate_verification_code() -> str:
+    """Generate a random 6-digit code."""
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def hash_verification_code(email: str, code: str, salt: str) -> str:
+    """Hash verification code to avoid storing raw codes in Firestore."""
+    payload = f"{normalize_email(email)}:{salt}:{code}".encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def is_email_registered_case_insensitive(target_email: str) -> bool:
+    """Check if an email already exists in userData, case-insensitive."""
+    if not db:
+        return False
+
+    normalized_target = normalize_email(target_email)
+    users_ref = db.collection(USERDATA_COLLECTION)
+
+    # Fast path for already normalized records.
+    direct_matches = list(users_ref.where(filter=FieldFilter('email', '==', normalized_target)).stream())
+    if direct_matches:
+        return True
+
+    # Backward-compatible scan for older mixed-case records.
+    for user_snapshot in users_ref.stream():
+        user_data = user_snapshot.to_dict() or {}
+        if normalize_email(user_data.get("email", "")) == normalized_target:
+            return True
+    return False
+
+
+def send_email_verification_message(target_email: str, verification_code: str) -> None:
+    """Send verification code email through SMTP settings from environment variables."""
+    if not SMTP_HOST or not SMTP_USER or not SMTP_PASSWORD or not SMTP_FROM:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="SMTP is not configured. Please set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM"
+        )
+
+    msg = EmailMessage()
+    msg["Subject"] = "Your AchievePro verification code"
+    msg["From"] = SMTP_FROM
+    msg["To"] = target_email
+    msg.set_content(
+        "Use this verification code to complete your signup:\n\n"
+        f"{verification_code}\n\n"
+        f"This code expires in {VERIFICATION_CODE_TTL_SECONDS // 60} minutes."
+    )
+
+    try:
+        if SMTP_USE_TLS and SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
+            return
+
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+            if SMTP_USE_TLS:
+                server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send verification email: {str(e)}"
+        )
+
+
+def save_verification_code(email: str, code: str) -> int:
+    """Store verification code hash with expiry for a normalized email."""
+    if not db:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+    normalized_email = normalize_email(email)
+    salt = secrets.token_hex(16)
+    expires_at = int(time.time()) + VERIFICATION_CODE_TTL_SECONDS
+
+    db.collection(EMAIL_VERIFICATION_COLLECTION).document(normalized_email).set({
+        "email": normalized_email,
+        "codeHash": hash_verification_code(normalized_email, code, salt),
+        "codeSalt": salt,
+        "expiresAt": expires_at,
+        "verified": False,
+        "createdAt": int(time.time()),
+    })
+    return expires_at
+
+
+def email_is_verified(email: str) -> bool:
+    """Return True if a valid verification record is marked as verified."""
+    if not db:
+        return False
+
+    normalized_email = normalize_email(email)
+    verification_doc = db.collection(EMAIL_VERIFICATION_COLLECTION).document(normalized_email).get()
+    if not verification_doc.exists:
+        return False
+
+    verification_data = verification_doc.to_dict() or {}
+    return bool(verification_data.get("verified", False))
+
+
+def clear_email_verification(email: str) -> None:
+    """Remove verification record after successful registration."""
+    if not db:
+        return
+    normalized_email = normalize_email(email)
+    db.collection(EMAIL_VERIFICATION_COLLECTION).document(normalized_email).delete()
 
 
 # Helper functions for password hashing and JWT
@@ -288,14 +427,23 @@ def register_user(user_data: UserRegistration):
                 detail="Role must be 'staff' or 'manager'"
             )
 
+        # Normalize email for stable matching/storage.
+        user_data.email = normalize_email(user_data.email)
+
+        # Ensure email ownership is verified before allowing signup.
+        if not email_is_verified(user_data.email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email is not verified. Please verify your email before signing up"
+            )
+
         # Create user in Firestore with bcrypt password hash
         if db:
             print(f"Using Firestore for registration: {user_data.email}")
             try:
                 # Check if user already exists in Firestore
                 users_ref = db.collection(USERDATA_COLLECTION)
-                existing_user = list(users_ref.where(filter=FieldFilter('email', '==', user_data.email)).stream())
-                if existing_user:
+                if is_email_registered_case_insensitive(user_data.email):
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Email already registered"
@@ -315,6 +463,9 @@ def register_user(user_data: UserRegistration):
 
                 # Return user data with the generated user ID
                 user_response = build_public_user_document(user_id, user_profile_doc)
+
+                # Remove one-time verification record after a successful signup.
+                clear_email_verification(user_data.email)
 
                 return UserResponse(
                     success=True,
@@ -592,17 +743,85 @@ def init_user_counter():
 
 
 @app.post("/api/verify-email")
-def send_verification_email(email: dict):
-    """Send email verification link"""
+def send_verification_email(email_data: EmailVerificationRequest):
+    """Generate and send a 6-digit verification code for signup email ownership."""
     try:
-        target_email = email.get('email')
+        target_email = normalize_email(email_data.email)
         if not target_email:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is required")
 
-        # In a real scenario, generate a verification link and send it
-        return {"success": True, "message": "Verification email sent successfully"}
+        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", target_email):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email format")
+
+        if is_email_registered_case_insensitive(target_email):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+        code = generate_verification_code()
+        expires_at = save_verification_code(target_email, code)
+        send_email_verification_message(target_email, code)
+
+        return {
+            "success": True,
+            "message": "Verification code sent successfully",
+            "expiresInSeconds": max(0, expires_at - int(time.time()))
+        }
+    except HTTPException:
+        raise
     except Exception as e:
-        return {"success": False, "message": f"Failed to send verification email: {str(e)}"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send verification email: {str(e)}"
+        )
+
+
+@app.post("/api/verify-code")
+def verify_email_code(verification_data: EmailCodeVerificationRequest):
+    """Validate a submitted verification code and mark email as verified."""
+    try:
+        if not db:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+        target_email = normalize_email(verification_data.email)
+        code = (verification_data.code or "").strip()
+
+        if not target_email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is required")
+        if not re.match(r"^\d{6}$", code):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code must be 6 digits")
+
+        verification_ref = db.collection(EMAIL_VERIFICATION_COLLECTION).document(target_email)
+        verification_doc = verification_ref.get()
+        if not verification_doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No verification code found for this email")
+
+        doc_data = verification_doc.to_dict() or {}
+        expires_at = int(doc_data.get("expiresAt", 0))
+        if int(time.time()) > expires_at:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code expired")
+
+        stored_salt = doc_data.get("codeSalt", "")
+        stored_hash = doc_data.get("codeHash", "")
+        candidate_hash = hash_verification_code(target_email, code, stored_salt)
+
+        if not secrets.compare_digest(candidate_hash, stored_hash):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code")
+
+        verification_ref.set({
+            "email": target_email,
+            "verified": True,
+            "verifiedAt": int(time.time()),
+            "expiresAt": expires_at,
+            "createdAt": doc_data.get("createdAt", int(time.time())),
+        })
+
+        return {"success": True, "message": "Email verified successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Verification failed: {str(e)}"
+        )
 
 
 @app.get("/api/session")
