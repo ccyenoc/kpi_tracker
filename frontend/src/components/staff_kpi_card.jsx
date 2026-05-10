@@ -1,4 +1,4 @@
-const StaffKPICard = ({ kpi }) => {
+const StaffKPICard = ({ kpi, onUpdate}) => {
   const statusStyle = {
     completed: { border: "#22c55e", bg: "#f0fdf4", icon: "✅" },
     in_progress: { border: "#3b82f6", bg: "#eff6ff", icon: "⏳" },

@@ -6,21 +6,58 @@ import StaffSearchFilterKPI from "../components/staff_search_filter_kpi"
 import StaffKPI from "../components/staff_kpi";
 import UpdateKpiModal from "../components/staff_update_kpi"
 {/*mock data*/}
-import { kpis } from "../data/kpiData";
-import { categories } from "../data/categoriesData"; // adjust path if needed
-import { submissions } from "../data/submissionData"; // if you're using this too
+import { kpis as mockKpis } from "../data/kpiData";
+import { categories as mockCategories } from "../data/categoriesData";
+import { submissions as mockSubmissions } from "../data/submissionData";
 import { useParams } from "react-router-dom";
 
 const StaffKPIUpdate = () => {
   const { kpiId } = useParams();
   
-  const [selectedKpi, setSelectedKpi] = useState(null);
-  const [submissionHistory, setSubmissionHistory] = useState(() => {
-    const saved = localStorage.getItem("kpiSubmissionHistory");
-    return saved ? JSON.parse(saved) : {};
+  const API_BASE_URL = "http://127.0.0.1:8006";
+
+const groupSubmissionsByKpi = (submissionList = []) => {
+  const groupedHistory = {};
+
+  submissionList.forEach((submission) => {
+    if (!groupedHistory[submission.kpiId]) {
+      groupedHistory[submission.kpiId] = [];
+    }
+
+    groupedHistory[submission.kpiId].push(submission);
   });
-  const [progressUpdates, setProgressUpdates] = useState({});
-  const currentUserId = "user_101";
+
+  return groupedHistory;
+};
+
+  const [dataMode, setDataMode] = useState(() => {
+    return localStorage.getItem("kpiDataMode") || "mock";
+  });
+
+  const [kpis, setKpis] = useState(mockKpis);
+  const [categories, setCategories] = useState(mockCategories);
+  const [submissions, setSubmissions] = useState(mockSubmissions);
+
+  const [selectedKpi, setSelectedKpi] = useState(null);
+  const [submissionHistory, setSubmissionHistory] = useState(() =>
+    groupSubmissionsByKpi(mockSubmissions)
+  );
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem("user");
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const currentUserId =
+    dataMode === "mock" ? "user_101" : currentUser?.id || "user_101";
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const [searchKPI, setSearchKPI] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -34,9 +71,10 @@ const StaffKPIUpdate = () => {
   );
 
   const userKpis = kpis
-  .filter(kpi => kpi.assignedUserIds.includes(currentUserId))
+  .filter(kpi => (kpi.assignedUserIds || []).includes(currentUserId))
   .map(kpi => {
-    const userData = kpi.kpiAssignments.find(
+    
+    const userData = (kpi.kpiAssignments || []).find(
       u => u.userId === currentUserId
     );
 
@@ -86,47 +124,113 @@ const StaffKPIUpdate = () => {
   
   });
   const filteredKPIs = userKpis.filter(kpi => {
-  const matchSearch =
-      searchKPI === "" ||
-      kpi.title.toLowerCase().includes(searchKPI.toLowerCase());
+    const matchSearch =
+        searchKPI === "" ||
+        kpi.title.toLowerCase().includes(searchKPI.toLowerCase());
 
-  const matchCategory =
-    filterCategory === "" ||
-    kpi.categoryName === filterCategory;
+    const matchCategory =
+      filterCategory === "" ||
+      kpi.categoryName === filterCategory;
 
-  const matchStatus =
-    filterStatus === "" ||
-    kpi.status === filterStatus;
+    const matchStatus =
+      filterStatus === "" ||
+      kpi.status === filterStatus;
 
-  return matchSearch && matchCategory && matchStatus;
-});
+    return matchSearch && matchCategory && matchStatus;
+  });
+
+  const useMockData = () => {
+    localStorage.setItem("kpiDataMode", "mock");
+    setDataMode("mock");
+
+    setKpis(mockKpis);
+    setCategories(mockCategories);
+    setSubmissions(mockSubmissions);
+    setSubmissionHistory(groupSubmissionsByKpi(mockSubmissions));
+
+    setError("");
+  };
+
+  const useRealData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      localStorage.setItem("kpiDataMode", "real");
+      setDataMode("real");
+
+      const [kpiRes, submissionRes, categoryRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/kpi`),
+        fetch(`${API_BASE_URL}/api/kpi/submissions`),
+        fetch(`${API_BASE_URL}/api/categories`)
+      ]);
+
+      if (!kpiRes.ok) throw new Error("Failed to fetch KPI data");
+      if (!submissionRes.ok) throw new Error("Failed to fetch submission data");
+      if (!categoryRes.ok) throw new Error("Failed to fetch category data");
+
+      const kpiData = await kpiRes.json();
+      const submissionData = await submissionRes.json();
+      const categoryData = await categoryRes.json();
+
+      const realKpis = kpiData.kpis || [];
+      const realSubmissions = submissionData.submissions || [];
+      const realCategories = categoryData.categories || [];
+
+      setKpis(realKpis);
+      setSubmissions(realSubmissions);
+      setCategories(realCategories);
+      setSubmissionHistory(groupSubmissionsByKpi(realSubmissions));
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to load real data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchSubmissionHistory = async () => {
+    const fetchCurrentUser = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:8006/api/kpi/submissions");
-        const result = await response.json();
+        const token = localStorage.getItem("token");
 
-        if (result.success) {
-          const groupedHistory = {};
-
-          result.submissions.forEach((submission) => {
-            if (!groupedHistory[submission.kpiId]) {
-              groupedHistory[submission.kpiId] = [];
-            }
-
-            groupedHistory[submission.kpiId].push(submission);
-          });
-
-          setSubmissionHistory(groupedHistory);
+        if (!token) {
+          return;
         }
-      } catch (error) {
-        console.error("Failed to load submission history:", error);
+
+        const res = await fetch(`${API_BASE_URL}/api/user`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch current user");
+        }
+
+        const data = await res.json();
+
+        setCurrentUser(data.user);
+        localStorage.setItem("user", JSON.stringify(data.user));
+      } catch (err) {
+        console.error(err);
       }
     };
 
-    fetchSubmissionHistory();
+    fetchCurrentUser();
   }, []);
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem("kpiDataMode") || "mock";
+
+    if (savedMode === "real") {
+      useRealData();
+    } else {
+      useMockData();
+    }
+  }, []);
+
+  
 
   console.log(categories);
 
@@ -164,17 +268,45 @@ const StaffKPIUpdate = () => {
 
   const handleSubmitUpdate = async (updateData) => {
     try {
+      if (dataMode === "mock") {
+        const newSubmission = {
+          id: `mock_${Date.now()}`,
+          kpiId: updateData.kpiId,
+          current: Number(updateData.current),
+          notes: updateData.notes || "",
+          fileNames: updateData.files?.map((file) => file.name) || [],
+          files: [],
+          submittedAt: new Date().toISOString(),
+          status: "pending"
+        };
+
+        setSubmissionHistory((prev) => {
+          const oldHistory = prev[newSubmission.kpiId] || [];
+
+          return {
+            ...prev,
+            [newSubmission.kpiId]: [...oldHistory, newSubmission]
+          };
+        });
+
+        setSubmissions((prev) => [...prev, newSubmission]);
+
+        alert("Mock progress updated successfully!");
+        setSelectedKpi(null);
+        return;
+      }
+
       const formData = new FormData();
 
       formData.append("kpiId", updateData.kpiId);
       formData.append("current", updateData.current);
       formData.append("notes", updateData.notes || "");
 
-      updateData.files.forEach((file) => {
+      updateData.files?.forEach((file) => {
         formData.append("files", file);
       });
 
-      const response = await fetch("http://127.0.0.1:8006/api/kpi/update", {
+      const response = await fetch(`${API_BASE_URL}/api/kpi/update`, {
         method: "POST",
         body: formData,
       });
@@ -190,20 +322,16 @@ const StaffKPIUpdate = () => {
       setSubmissionHistory((prev) => {
         const oldHistory = prev[newSubmission.kpiId] || [];
 
-        const updatedHistory = {
+        return {
           ...prev,
           [newSubmission.kpiId]: [...oldHistory, newSubmission],
         };
-
-        /*localStorage.setItem(
-          "kpiSubmissionHistory",
-          JSON.stringify(updatedHistory)
-        );*/
-
-        return updatedHistory;
       });
 
+      setSubmissions((prev) => [...prev, newSubmission]);
+
       alert("Progress updated successfully!");
+      setSelectedKpi(null);
     } catch (error) {
       console.error(error);
       alert("Failed to update progress. Please check backend.");
@@ -218,6 +346,46 @@ const StaffKPIUpdate = () => {
       padding: "0 20px 20px 20px",
       width: "100%"
     }}>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          alignItems: "center",
+          marginBottom: "20px"
+        }}
+      >
+        <button
+          onClick={useMockData}
+          style={{
+            padding: "10px 16px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            backgroundColor: dataMode === "mock" ? "#3b82f6" : "#e5e7eb",
+            color: dataMode === "mock" ? "#ffffff" : "#111827"
+          }}
+        >
+          Use Mock Data
+        </button>
+
+        <button
+          onClick={useRealData}
+          style={{
+            padding: "10px 16px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            backgroundColor: dataMode === "real" ? "#22c55e" : "#e5e7eb",
+            color: dataMode === "real" ? "#ffffff" : "#111827"
+          }}
+        >
+          Use Real Data
+        </button>
+
+        {loading && <span>Loading real data...</span>}
+        {error && <span style={{ color: "red" }}>{error}</span>}
+      </div>
 
       {/*content*/}
 

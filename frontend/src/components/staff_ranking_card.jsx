@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { submissions } from "../data/submissionData";
 
 function StaffRankingCard() {
+  console.log("StaffRankingCard loaded");
 
   const top3 = useMemo(() => {
   return rankUsers(users, kpis, submissions).slice(0, 3);

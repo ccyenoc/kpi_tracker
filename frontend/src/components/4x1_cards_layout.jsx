@@ -40,6 +40,8 @@ function Card({ title, value, subtitle, color }) {
 
 // this is for the dashboard top cards layout (4 x 1)
 function DashboardCards({ stats }) {
+  console.log("DashboardCards loaded");
+
   return (
     <div
       style={{
