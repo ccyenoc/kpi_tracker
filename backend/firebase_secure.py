@@ -6,16 +6,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Default values (fall back to known project values if env not set)
+# Load from environment variables (must be set in .env file)
 FIREBASE_CONFIG = {
-    "apiKey": os.getenv("FIREBASE_API_KEY", "AIzaSyAi9GPehrQWR02OOQC7xMKJggrdNaga3nc"),
-    "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", "kpitracker-8e8dc.firebaseapp.com"),
-    "databaseURL": os.getenv("FIREBASE_DATABASE_URL", "https://kpitracker-8e8dc-default-rtdb.asia-southeast1.firebasedatabase.app"),
-    "projectId": os.getenv("FIREBASE_PROJECT_ID", "kpitracker-8e8dc"),
-    "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", "kpitracker-8e8dc.firebasestorage.app"),
-    "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", "153764176296"),
-    "appId": os.getenv("FIREBASE_APP_ID", "1:153764176296:web:047841097ab10244907d9d"),
-    "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", "G-5Q5SXJS9QV")
+    "apiKey": os.getenv("FIREBASE_API_KEY"),
+    "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
+    "databaseURL": os.getenv("FIREBASE_DATABASE_URL"),
+    "projectId": os.getenv("FIREBASE_PROJECT_ID"),
+    "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
+    "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
+    "appId": os.getenv("FIREBASE_APP_ID"),
+    "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID")
 }
 
 FIREBASE_ADMIN_CONFIG = {
