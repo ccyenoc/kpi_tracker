@@ -4,6 +4,7 @@ export const pathway = {
     VerifyKPI: "/manager/verify-kpi",
     VerifyKPIDashboard: "/manager/verify-kpi-dashboard",
     CreateKPI: "/manager/create-kpi",
+    UpdateKPI: "/manager/update-kpi",
     KPIProgressPage: "/manager/kpi-progress",
 
     StaffDashboard: "/staff/dashboard",
@@ -14,4 +15,6 @@ export const pathway = {
     Login: "/signin",
     RegisterAcc: "/signup"
 } 
+
+
 

@@ -1,5 +1,5 @@
 import PageTitle from "../components/page_title"
-import { useLocation } from "react-router-dom";
+import { useLocation , NavLink} from "react-router-dom";
 import ProgressInputKPITitle from "../components/progress_input_KPI_title";
 import ProgressCategorySelection from "../components/progress_category_selection";
 import ProgressKPIPrediction from "../components/progress_prediction";
@@ -8,6 +8,7 @@ import ProgressDeadline from "../components/progress_deadline";
 import ProgressKPIAssignStaff from "../components/progress_kpi_assign_staff";
 import ProgressKPIGraph from "../components/progress_kpi_graph";
 import TopBreadcrumb from "../components/top_breadcrumb";
+import { pathway } from "../Pathway";
 
 {/*import mock data*/}
 import { categories } from "../data/categoriesData";
@@ -27,10 +28,64 @@ function KPIProgressPage() {
             marginBottom:"20px",
         }}>
 
+            <div
+              style={{
+                display: "flex",
+                justifyContent:"space-between",
+                flexDirection:"row",
+                alignItems : "center",
+                gap : "20px",
+              }}>
+
             {/*title*/}
             <PageTitle
                 title="Track KPI Progress"
                 subtitle="Track real time KPI progress and status prediction" />
+
+            <div
+              style={{
+                display:"flex",
+                gap:"10px",
+              }}>
+            {/*update button*/}
+             <NavLink 
+             to={pathway.UpdateKPI} 
+             style={{ textDecoration: "none" }}
+             state={{
+                 title: state.title,
+                 description: state.description,
+                    category: state.categoryId,
+                    target: state.target,
+                    unit: state.unit,
+                    deadline: state.deadline,
+                    team: state.team
+                }}>
+                      <button className="justify-content-center text-white border-0"
+                        style={{
+                          backgroundColor:"#2b4cb3",
+                          color:"#ffffff",
+                          fontSize:"16px",
+                          border : "none",
+                          borderRadius : "16px",
+                          padding:"10px",
+                        }}>Update KPI
+                      </button>
+            </NavLink>
+
+            {/*delete button*/}
+            <button
+            style={{
+                backgroundColor:"#ff0000",
+                color:"#ffffff",
+                fontSize:"16px",
+                border : "none",
+                borderRadius : "16px",
+                padding:"10px",
+              }}>
+                Delete
+            </button>
+            </div>
+            </div>
 
             {/*show the kpi info */}
             {/*prediction and graph */}
