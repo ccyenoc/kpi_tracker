@@ -2,6 +2,8 @@ import {LineChart,Line,XAxis,YAxis, Tooltip,CartesianGrid,Legend, ResponsiveCont
 import {useEffect , useState} from "react";
 
 function RectangleGraphCard(){
+    console.log("RectangleGraphCard loaded");
+
     {/* const [data, setData] = useState(); */}
 
      {/*useEffect( ()=> {

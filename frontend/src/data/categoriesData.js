@@ -11,7 +11,7 @@ export const categories = [
   },
    {
     id: "cat_3",
-    name: "Property Mangement",
+    name: "Property Management",
     color: "#fff200"
   },
   {
