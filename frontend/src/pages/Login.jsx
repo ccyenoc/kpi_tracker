@@ -3,7 +3,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './Login.css';
 import logo from "../assets/achievepro.png";
 
-const API_BASE_URL = 'http://localhost:8006';
+// In development, use Vite proxy; in production, use absolute URL
+const API_BASE_URL = import.meta.env.MODE === 'development' ? '' : 'http://localhost:8006';
 
 const Login = () => {
 
