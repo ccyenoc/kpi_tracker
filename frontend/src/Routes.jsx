@@ -6,6 +6,8 @@ import CreateKPI from "./pages/create-kpi";
 import VerifyKPIDashboard from "./pages/verify-kpi-dashboard";
 import KPIProgressPage from "./pages/kpi-progress";
 import ProfilePage from "./pages/ProfilePage";
+import StaffKPIUpdate from "./pages/staff-kpi-progress-update";
+import UpdateKPI from "./pages/update-kpi";
 import StaffKpiProgressUpdate from "./pages/staff-kpi-progress-update";
 
 export const routes = (role) => {
@@ -54,6 +56,12 @@ export const routes = (role) => {
           element: <ProfilePage />,
           breadcrumb: "Profile",
           parent: "/manager/dashboard",
+        },
+         {
+          path: "/manager/update-kpi",
+          element: <UpdateKPI />,
+          breadcrumb: "Update KPI",
+          parent: "/manager/kpi-management",
         },
 
         
