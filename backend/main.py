@@ -23,7 +23,7 @@ import uuid
 
 
 # Import Firebase configuration
-from firebase_secure import FIREBASE_CONFIG, FIREBASE_ADMIN_CONFIG, SERVICE_ACCOUNT_KEY_PATH, USERDATA_COLLECTION, USERAUTH_COLLECTION, USER_COUNTER_COLLECTION, USER_COUNTER_DOC, USER_ROLES, print_config_status
+from firebase_secure import FIREBASE_CONFIG, FIREBASE_ADMIN_CONFIG, SERVICE_ACCOUNT_KEY_PATH, USERDATA_COLLECTION, USERAUTH_COLLECTION, KPI_COLLECTION, USER_COUNTER_COLLECTION, USER_COUNTER_DOC, USER_ROLES, print_config_status
 
 app = FastAPI()
 
@@ -101,6 +101,35 @@ class UserResponse(BaseModel):
     user: Optional[dict] = None
     dashboard: Optional[str] = None
     requiresEmailVerification: Optional[bool] = False
+
+
+# ── KPI Pydantic models ────────────────────────────────────────────────────────
+
+class KPICreate(BaseModel):
+    """Payload for creating a new KPI (manager only)."""
+    title: str
+    description: Optional[str] = None
+    category: Optional[str] = None
+    target: Optional[float] = None          # numeric target value
+    unit: Optional[str] = None              # e.g. "%", "units", "MYR"
+    frequency: Optional[str] = None         # "daily" | "weekly" | "monthly"
+    assignedTo: Optional[str] = None        # user_id of the staff member
+    deadline: Optional[str] = None          # ISO-8601 date string
+
+
+class KPIUpdate(BaseModel):
+    """Payload for updating an existing KPI (manager only). All fields optional."""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    target: Optional[float] = None
+    unit: Optional[str] = None
+    frequency: Optional[str] = None
+    assignedTo: Optional[str] = None
+    deadline: Optional[str] = None
+    status: Optional[str] = None            # "active" | "inactive" | "completed"
+
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 USER_PROFILE_FIELDS = ("name", "email", "phone", "role", "department")
@@ -384,6 +413,35 @@ def allocate_next_user_id(users_ref) -> str:
         print(f"[allocate] exception during allocate_tx: {e}")
         traceback.print_exc()
         raise
+
+
+# ── Auth helper ───────────────────────────────────────────────────────────────
+
+def require_manager(request: Request) -> dict:
+    """Decode JWT and verify the caller is a manager. Returns the decoded token payload."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
+
+    token = auth_header.split(" ", 1)[1]
+    decoded = verify_jwt_token(token)
+    user_id = decoded.get("user_id")
+
+    if not db:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+    user_doc = db.collection(USERDATA_COLLECTION).document(user_id).get()
+    if not user_doc.exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    user_data = user_doc.to_dict() or {}
+    if user_data.get("role") != "manager":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Manager access required")
+
+    decoded["_user_data"] = user_data
+    return decoded
+
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 @app.get("/")
@@ -986,7 +1044,10 @@ def delete_account(request: Request):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Account deletion failed: {str(e)}"
         )
-    
+
+
+# ── Shared / read-only KPI endpoints (any authenticated user) ─────────────────
+
 @app.get("/api/kpi")
 def get_all_kpis():
     try:
@@ -1044,6 +1105,166 @@ def get_kpi_submissions():
             detail=f"Failed to load KPI submissions: {str(e)}"
         )
 
+"""View KPI"""
+@app.get("/api/manager/kpi")
+def manager_view_kpis(request: Request):
+    decoded = require_manager(request)
+
+    try:
+        kpi_ref = db.collection(KPI_COLLECTION)
+        query = kpi_ref
+
+        # Read optional filters from query string
+        assigned_to = request.query_params.get("assignedTo")
+        kpi_status  = request.query_params.get("status")
+
+        if assigned_to:
+            query = query.where(filter=FieldFilter("assignedTo", "==", assigned_to))
+        if kpi_status:
+            query = query.where(filter=FieldFilter("status", "==", kpi_status))
+
+        kpis = []
+        for doc in query.stream():
+            data = doc.to_dict() or {}
+            data["id"] = doc.id
+            kpis.append(data)
+
+        return {"success": True, "kpis": kpis}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load KPIs: {str(e)}"
+        )
+
+"""View KPI"""
+@app.get("/api/manager/kpi/{kpi_id}")
+def manager_view_kpi(kpi_id: str, request: Request):
+    decoded = require_manager(request)
+
+    try:
+        doc = db.collection(KPI_COLLECTION).document(kpi_id).get()
+        if not doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KPI not found")
+
+        data = doc.to_dict() or {}
+        data["id"] = doc.id
+        return {"success": True, "kpi": data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load KPI: {str(e)}"
+        )
+
+"""Set KPI"""
+@app.post("/api/manager/kpi", status_code=status.HTTP_201_CREATED)
+def manager_set_kpi(kpi_data: KPICreate, request: Request):
+    
+    decoded = require_manager(request)
+    manager_id = decoded.get("user_id")
+
+    try:
+        now = datetime.utcnow().isoformat()
+        doc_data = {
+            "title":       kpi_data.title.strip(),
+            "description": kpi_data.description or "",
+            "category":    kpi_data.category or "",
+            "target":      kpi_data.target,
+            "unit":        kpi_data.unit or "",
+            "frequency":   kpi_data.frequency or "",
+            "assignedTo":  kpi_data.assignedTo or "",
+            "deadline":    kpi_data.deadline or "",
+            "status":      "active",
+            "createdBy":   manager_id,
+            "createdAt":   now,
+            "updatedAt":   now,
+        }
+
+        new_ref = db.collection(KPI_COLLECTION).document()
+        new_ref.set(doc_data)
+
+        doc_data["id"] = new_ref.id
+        return {"success": True, "message": "KPI created successfully", "kpi": doc_data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create KPI: {str(e)}"
+        )
+
+"""Update KPI"""
+@app.put("/api/manager/kpi/{kpi_id}")
+def manager_update_kpi(kpi_id: str, kpi_data: KPIUpdate, request: Request):
+    decoded = require_manager(request)
+    manager_id = decoded.get("user_id")
+
+    try:
+        kpi_ref = db.collection(KPI_COLLECTION).document(kpi_id)
+        kpi_doc = kpi_ref.get()
+
+        if not kpi_doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KPI not found")
+
+        update_fields: dict = {}
+        for field, value in kpi_data.model_dump(exclude_unset=True).items():
+            if value is not None:
+                update_fields[field] = value
+
+        if not update_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No fields provided to update"
+            )
+
+        update_fields["updatedAt"] = datetime.utcnow().isoformat()
+        update_fields["updatedBy"] = manager_id
+
+        kpi_ref.update(update_fields)
+
+        # Return the full updated document
+        updated_doc = kpi_ref.get().to_dict() or {}
+        updated_doc["id"] = kpi_id
+        return {"success": True, "message": "KPI updated successfully", "kpi": updated_doc}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update KPI: {str(e)}"
+        )
+
+"""Delete KPI"""
+@app.delete("/api/manager/kpi/{kpi_id}")
+def manager_delete_kpi(kpi_id: str, request: Request):
+    decoded = require_manager(request)
+
+    try:
+        kpi_ref = db.collection(KPI_COLLECTION).document(kpi_id)
+        kpi_doc = kpi_ref.get()
+
+        if not kpi_doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KPI not found")
+
+        kpi_ref.delete()
+        return {"success": True, "message": f"KPI '{kpi_id}' deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete KPI: {str(e)}"
+        )
+
+
 @app.get("/api/categories")
 def get_categories():
     try:
@@ -1071,7 +1292,7 @@ def get_categories():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to load categories: {str(e)}"
         )
-    
+
 
 @app.get("/api/activity-logs")
 def get_activity_logs():
