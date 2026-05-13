@@ -22,12 +22,13 @@ import uuid
 
 
 
-# Import Firebase configuration
+# import firebase configuration
 from firebase_secure import FIREBASE_CONFIG, FIREBASE_ADMIN_CONFIG, SERVICE_ACCOUNT_KEY_PATH, USERDATA_COLLECTION, USERAUTH_COLLECTION, USER_COUNTER_COLLECTION, USER_COUNTER_DOC, USER_ROLES, print_config_status
+from manager_service import KPIAssignmentService, SubmissionVerificationService, KPIReportService, KPIPredictionService, AssignKPIRequest, VerifySubmissionRequest
 
 app = FastAPI()
 
-# Allow React (VERY IMPORTANT)
+# allow react
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -41,10 +42,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Print Firebase configuration status
+# print firebase configuration status
 print_config_status()
 
-# Initialize Firebase Admin SDK
+# initialize firebase admin SDK
 try:
     if not firebase_admin._apps:
         cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH)
@@ -59,7 +60,7 @@ except Exception as e:
     db = None
 
 
-# Pydantic models for request/response
+# models for request/response
 class UserRegistration(BaseModel):
     name: str
     email: str
@@ -140,12 +141,12 @@ def is_email_registered_case_insensitive(target_email: str) -> bool:
     normalized_target = normalize_email(target_email)
     users_ref = db.collection(USERDATA_COLLECTION)
 
-    # Fast path for already normalized records.
+    # fast path for already normalized records.
     direct_matches = list(users_ref.where(filter=FieldFilter('email', '==', normalized_target)).stream())
     if direct_matches:
         return True
 
-    # Backward-compatible scan for older mixed-case records.
+    # backward-compatible scan for older mixed-case records.
     for user_snapshot in users_ref.stream():
         user_data = user_snapshot.to_dict() or {}
         if normalize_email(user_data.get("email", "")) == normalized_target:
@@ -232,7 +233,7 @@ def clear_email_verification(email: str) -> None:
     db.collection(EMAIL_VERIFICATION_COLLECTION).document(normalized_email).delete()
 
 
-# Helper functions for password hashing and JWT
+# helper functions for password hashing and JWT
 def hash_password(password: str) -> str:
     """Hash password using bcrypt."""
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -300,7 +301,7 @@ def create_user_documents(users_ref, user_data: UserRegistration, hashed_passwor
             })
             return user_id, base_profile
         except AlreadyExists:
-            # ID was already taken; try again with the next candidate (do NOT delete existing docs)
+            # id was already taken; try again with the next candidate 
             print(f"[register] collision for {user_id} (AlreadyExists). Retrying...")
             if attempt_number >= 10:
                 raise HTTPException(
@@ -360,7 +361,7 @@ def allocate_next_user_id(users_ref) -> str:
                 traceback.print_exc()
                 next_user_number = 101
         else:
-            # Initialize counter from the highest existing user_ number
+            # initialize counter from the highest existing user_ number
             existing_numbers = []
             for user_snapshot in users_ref_inner.stream():
                 user_id = user_snapshot.id
@@ -409,7 +410,7 @@ def health_check():
 def register_user(user_data: UserRegistration):
     """Register a new user with Firestore (no Firebase Auth)"""
     try:
-        # Validate required fields (phone is optional)
+        # validate required fields (phone is optional)
         required_fields = ['name', 'email', 'password', 'role', 'department']
         for field in required_fields:
             field_value = getattr(user_data, field)
@@ -420,28 +421,28 @@ def register_user(user_data: UserRegistration):
                     detail=f"Missing required field: {field}"
                 )
 
-        # Validate role
+        # validate role
         if user_data.role not in ['staff', 'manager']:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Role must be 'staff' or 'manager'"
             )
 
-        # Normalize email for stable matching/storage.
+        # normalize email for stable matching/storage.
         user_data.email = normalize_email(user_data.email)
 
-        # Ensure email ownership is verified before allowing signup.
+        # ensure email is verified before allowing signup.
         if not email_is_verified(user_data.email):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email is not verified. Please verify your email before signing up"
             )
 
-        # Create user in Firestore with bcrypt password hash
+        # create user in firestore with bcrypt password hash
         if db:
             print(f"Using Firestore for registration: {user_data.email}")
             try:
-                # Check if user already exists in Firestore
+                # check if user already exists in firestore
                 users_ref = db.collection(USERDATA_COLLECTION)
                 if is_email_registered_case_insensitive(user_data.email):
                     raise HTTPException(
@@ -449,10 +450,10 @@ def register_user(user_data: UserRegistration):
                         detail="Email already registered"
                     )
 
-                # Hash password
+                # hash password
                 hashed_password = hash_password(user_data.password)
 
-                # Create fresh Firestore documents and never overwrite an existing user
+                # create fresh Firestore documents and never overwrite an existing user
                 try:
                     user_id, user_profile_doc = create_user_documents(users_ref, user_data, hashed_password)
                 except Exception as inner_e:
@@ -461,10 +462,10 @@ def register_user(user_data: UserRegistration):
                     raise
                 print(f"Created user in Firestore: {user_id}")
 
-                # Return user data with the generated user ID
+                # return user data with the generated user ID
                 user_response = build_public_user_document(user_id, user_profile_doc)
 
-                # Remove one-time verification record after a successful signup.
+                # remove one-time verification record after a successful signup.
                 clear_email_verification(user_data.email)
 
                 return UserResponse(
@@ -509,7 +510,7 @@ def login_user(credentials: UserLogin):
         if db:
             print(f"Using Firestore for login: {credentials.email}")
             try:
-                # Find user by email in Firestore
+                # find user by email in Firestore
                 users_ref = db.collection(USERDATA_COLLECTION)
                 users = list(users_ref.where(filter=FieldFilter('email', '==', credentials.email)).stream())
                 
@@ -523,7 +524,7 @@ def login_user(credentials: UserLogin):
                 user_id = user_doc.id
                 user_data = user_doc.to_dict() or {}
 
-                # Verify password from the dedicated auth collection
+                # verify password from the dedicated auth collection
                 password_hash = get_user_auth_hash(user_id)
                 if not verify_password(credentials.password, password_hash):
                     raise HTTPException(
@@ -531,18 +532,18 @@ def login_user(credentials: UserLogin):
                         detail="Invalid email or password"
                     )
 
-                # Create JWT token
+                # create JWT token
                 token = create_jwt_token(user_id, credentials.email)
 
-                # Determine dashboard based on role
+                # determine dashboard based on role
                 dashboard_url = "/staff/dashboard"
                 if user_data.get('role') == 'manager':
                     dashboard_url = "/manager/dashboard"
 
-                # Keep the userData document in the clean profile-only format
+                # keep the userData document in the clean profile-only format
                 save_user_profile_document(db.collection(USERDATA_COLLECTION).document(user_id), user_data)
 
-                # Return user data with the generated user ID
+                # return user data with the generated user ID
                 user_response = build_public_user_document(user_id, user_data)
 
                 return {
@@ -660,11 +661,11 @@ def debug_next_user_id():
         users_ref = db.collection(USERDATA_COLLECTION)
         counter_ref = db.collection(USER_COUNTER_COLLECTION).document(USER_COUNTER_DOC)
 
-        # Load counter doc if present
+        # load counter doc if present
         counter_snapshot = counter_ref.get()
         counter_data = counter_snapshot.to_dict() if counter_snapshot.exists else None
 
-        # Find highest existing user_ number
+        # find highest existing user_ number
         existing_numbers = []
         for user_snapshot in users_ref.stream():
             uid = user_snapshot.id
@@ -676,7 +677,7 @@ def debug_next_user_id():
 
         highest_existing = max(existing_numbers) if existing_numbers else None
 
-        # Compute candidate without modifying the counter
+        # compute candidate without modifying the counter
         if counter_data:
             try:
                 candidate_num = int(counter_data.get("nextUserNumber", 100)) + 1
@@ -714,7 +715,7 @@ def init_user_counter():
         users_ref = db.collection(USERDATA_COLLECTION)
         counter_ref = db.collection(USER_COUNTER_COLLECTION).document(USER_COUNTER_DOC)
 
-        # Compute highest existing user_ number
+        # compute highest existing user_ number
         existing_numbers = []
         for user_snapshot in users_ref.stream():
             uid = user_snapshot.id
@@ -726,7 +727,7 @@ def init_user_counter():
 
         highest_existing = max(existing_numbers) if existing_numbers else 100
 
-        # Set the counter to highest_existing so next allocation returns highest_existing + 1
+        # set the counter to highest_existing so next allocation returns highest_existing + 1
         counter_ref.set({"nextUserNumber": highest_existing})
 
         return {
@@ -859,7 +860,7 @@ def update_profile(profile_data: ProfileUpdate, request: Request):
         if not user_doc.exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        # Build update dict with only provided fields
+        # build update dict with only provided fields
         update_dict = {}
         if profile_data.name:
             update_dict["name"] = profile_data.name
@@ -868,12 +869,12 @@ def update_profile(profile_data: ProfileUpdate, request: Request):
         if profile_data.department:
             update_dict["department"] = profile_data.department
 
-        # Overwrite the document with only the approved profile fields
+        # overwrite the document with only the approved profile fields
         updated_user = user_doc.to_dict() or {}
         updated_user.update(update_dict)
         save_user_profile_document(user_ref, updated_user)
 
-        # Return updated user data
+        # return updated user data
         updated_user = user_ref.get().to_dict() or {}
         user_response = build_public_user_document(user_id, updated_user)
 
@@ -895,7 +896,7 @@ def update_profile(profile_data: ProfileUpdate, request: Request):
 def update_password(password_data: PasswordUpdate, request: Request):
     """Update user password (verify current password, update with new one)"""
     try:
-        # Validate password confirmation
+        # validate password confirmation
         if password_data.newPassword != password_data.confirmPassword:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -921,7 +922,7 @@ def update_password(password_data: PasswordUpdate, request: Request):
 
         user_data = user_doc.to_dict() or {}
 
-        # Verify current password
+        # verify current password
         password_hash = get_user_auth_hash(user_id)
         if not verify_password(password_data.currentPassword, password_hash):
             raise HTTPException(
@@ -929,7 +930,7 @@ def update_password(password_data: PasswordUpdate, request: Request):
                 detail="Current password is incorrect"
             )
 
-        # Hash new password and update the auth record only
+        # hash new password and update the auth record only
         new_password_hash = hash_password(password_data.newPassword)
         save_user_auth_document(user_id, user_data.get("email", ""), new_password_hash)
 
@@ -1100,6 +1101,168 @@ def get_activity_logs():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to load activity logs: {str(e)}"
         )
+
+
+# MANAGER MODULE ENDPOINTS 
+
+@app.post("/api/manager/kpi/assign-staff")
+def assign_kpi_to_staff(request: AssignKPIRequest, req: Request):
+    """Assign KPI to multiple staff members with individual targets"""
+    try:
+        manager_id = req.headers.get("X-User-ID", "system")
+        result = KPIAssignmentService.assign_kpi_to_staff(
+            request.kpiId,
+            request.assignments,
+            manager_id
+        )
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result["message"]
+            )
+        
+        return result
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to assign KPI to staff: {str(e)}"
+        )
+
+
+@app.get("/api/manager/kpi/{kpi_id}/assignments")
+def get_kpi_assignments(kpi_id: str):
+    """Get all staff assignments for a specific KPI"""
+    try:
+        result = KPIAssignmentService.get_kpi_assignments(kpi_id)
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result["message"]
+            )
+        
+        return result
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get KPI assignments: {str(e)}"
+        )
+
+
+@app.get("/api/manager/submissions/pending")
+def get_pending_submissions(kpi_id: Optional[str] = None):
+    """Get all pending submissions for manager verification"""
+    try:
+        result = SubmissionVerificationService.get_pending_submissions(kpi_id)
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result["message"]
+            )
+        
+        return result
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch pending submissions: {str(e)}"
+        )
+
+
+@app.patch("/api/manager/submission/{submission_id}/verify")
+def verify_submission(submission_id: str, request: VerifySubmissionRequest, req: Request):
+    """Verify (approve/reject) a staff submission"""
+    try:
+        manager_id = req.headers.get("X-User-ID", "system")
+        result = SubmissionVerificationService.verify_submission(
+            submission_id,
+            request.kpiId,
+            request.status,
+            request.comments or "",
+            manager_id
+        )
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result["message"]
+            )
+        
+        return result
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to verify submission: {str(e)}"
+        )
+
+
+@app.get("/api/manager/kpi/{kpi_id}/report")
+def get_kpi_report(kpi_id: str):
+    """Generate KPI performance report for all assigned staff"""
+    try:
+        result = KPIReportService.generate_report(kpi_id)
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result["message"]
+            )
+        
+        return result
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate report: {str(e)}"
+        )
+
+
+@app.get("/api/manager/kpi/{kpi_id}/report/export")
+def export_kpi_report(kpi_id: str):
+    """Export KPI report as CSV"""
+    try:
+        result = KPIReportService.export_report_data(kpi_id)
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result["message"]
+            )
+        
+        return result
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export report: {str(e)}"
+        )
+
+
+@app.get("/api/manager/kpi/{kpi_id}/prediction")
+def get_kpi_prediction(kpi_id: str):
+    """Get predicted KPI outcomes based on current performance"""
+    try:
+        result = KPIPredictionService.predict_kpi_outcome(kpi_id)
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result["message"]
+            )
+        
+        return result
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get KPI prediction: {str(e)}"
+        )
+
 
 if __name__ == "__main__":
     import uvicorn
