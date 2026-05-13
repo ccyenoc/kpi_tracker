@@ -1,81 +1,83 @@
-// since that we are using vite we dont need to import react anymore
+import { useEffect, useState } from "react";
 import PageTitle from "../components/page_title.jsx";
 import DashboardCards from "../components/4x1_cards_layout";
 import ExportBar from "../components/export-bar";
 import RectangleGraphCard from "../components/rectangle_graph_card.jsx";
 import StaffRankingCard from "../components/staff_ranking_card.jsx";
 import ManagerDashboardKpi from "../components/manager_dashboard_kpi.jsx";
-import Sidebar from "../components/Sidebar.jsx";
-import { getAtRiskKpis, getUnderperformKpis } from "../utils/kpiUtils.js";
-{/*mock data import*/}
-import { kpis } from "../data/kpiData";
+import { fetchManagerKPIs } from "../api/api";
+import { useAuth } from "../Auth.jsx";
 
-function ManagerDashboard(){
+function ManagerDashboard() {
+  const { user } = useAuth();
+  const [kpis, setKpis] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  console.log("Manager Dashboard loaded");
+  useEffect(() => {
+    fetchManagerKPIs()
+      .then((data) => setKpis(data.kpis || []))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
-  {/*DATA*/}
-  {/*DASHBOARD DATA*/}
   const stats = [
-  {
-    title: "Total KPIs",
-    value: kpis.length,
-    subtitle: "All defined KPIs",
-    color: "#3b82f6"
-  },
-  {
-    title: "Active KPIs",
-    value: kpis.filter(k => k.status === "in_progress").length,
-    subtitle: "Currently in progress",
-    color: "#22c55e"
-  },
-  {
-    title: "Completed",
-    value: kpis.filter(k => k.status === "completed").length,
-    subtitle: "Finished KPIs",
-    color: "#facc15"
-  },
-  {
-    title: "High Priority",
-    value: kpis.filter(k => k.priority === "high").length || 0,
-    subtitle: "Requires attention",
-    color: "#ef4444"
-  }
-];
+    {
+      title: "Total KPIs",
+      value: loading ? "—" : kpis.length,
+      subtitle: "All defined KPIs",
+      color: "#3b82f6",
+    },
+    {
+      title: "Active KPIs",
+      value: loading ? "—" : kpis.filter((k) => k.status === "active" || k.status === "in_progress").length,
+      subtitle: "Currently in progress",
+      color: "#22c55e",
+    },
+    {
+      title: "Completed",
+      value: loading ? "—" : kpis.filter((k) => k.status === "completed").length,
+      subtitle: "Finished KPIs",
+      color: "#facc15",
+    },
+    {
+      title: "High Priority",
+      value: loading ? "—" : kpis.filter((k) => k.priority === "high").length,
+      subtitle: "Requires attention",
+      color: "#ef4444",
+    },
+  ];
 
-   return (
+  return (
     <div className="d-flex">
-
-
-      <div 
-        className="d-flex flex-column" 
-        style={{
-          width: "100%",
-          backgroundColor: "#fff",
-      }}>
-      {/* welcome message */}
-      <PageTitle
-          title={"Welcome back, John!"}
-          subtitle="Here's an overview of your performance tracking dashboard" />
-
-      {/*top 4 cards*/}
-       <DashboardCards stats={stats} />
-
-      <ExportBar />
-      <RectangleGraphCard />
-
       <div
-        className="p-2 d-flex flex-row"
-        style={{
-          gap: "20px",
-          width: "100%",
+        className="d-flex flex-column"
+        style={{ width: "100%", backgroundColor: "#fff" }}
+      >
+        <PageTitle
+          title={`Welcome back, ${user?.name || "Manager"}!`}
+          subtitle="Here's an overview of your performance tracking dashboard"
+        />
 
-        }}>
-        <StaffRankingCard />
-        <ManagerDashboardKpi />
+        {error && (
+          <div style={{ color: "#d93025", padding: "10px 20px" }}>
+            Failed to load KPI data: {error}
+          </div>
+        )}
+
+        <DashboardCards stats={stats} />
+        <ExportBar />
+        <RectangleGraphCard />
+
+        <div
+          className="p-2 d-flex flex-row"
+          style={{ gap: "20px", width: "100%" }}
+        >
+          <StaffRankingCard />
+          {/* Pass live kpis down so ManagerDashboardKpi can consume them */}
+          <ManagerDashboardKpi kpis={kpis} loading={loading} />
+        </div>
       </div>
-
-    </div>
     </div>
   );
 }

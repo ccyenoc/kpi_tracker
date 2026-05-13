@@ -34,13 +34,22 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
         "https://bookish-zebra-7v5796xrxgj5cp64w-5173.app.github.dev"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Collection name constants ──────────────────────────────────────────────────
+# FIX: KPI_COLLECTION was referenced in manager endpoints but never defined,
+# causing "name 'KPI_COLLECTION' is not defined" at runtime.
+KPI_COLLECTION = "kpiData"
+# ──────────────────────────────────────────────────────────────────────────────
 
 # print firebase configuration status
 print_config_status()
@@ -102,6 +111,41 @@ class UserResponse(BaseModel):
     user: Optional[dict] = None
     dashboard: Optional[str] = None
     requiresEmailVerification: Optional[bool] = False
+
+
+# ── KPI Pydantic models ────────────────────────────────────────────────────────
+
+class KPICreate(BaseModel):
+    """Payload for creating a new KPI (manager only)."""
+    title: str
+    description: Optional[str] = None
+    category: Optional[str] = None
+    target: Optional[float] = None          # numeric target value
+    unit: Optional[str] = None              # e.g. "%", "units", "MYR"
+    frequency: Optional[str] = None         # "daily" | "weekly" | "monthly"
+    assignedTo: Optional[str] = None        # user_id of the staff member
+    deadline: Optional[str] = None          # ISO-8601 date string
+
+
+class KPIUpdate(BaseModel):
+    """Payload for updating an existing KPI (manager only). All fields optional."""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    target: Optional[float] = None
+    unit: Optional[str] = None
+    frequency: Optional[str] = None
+    assignedTo: Optional[str] = None
+    deadline: Optional[str] = None
+    status: Optional[str] = None            # "active" | "inactive" | "completed"
+
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── Submission action models ───────────────────────────────────────────────────
+class SubmissionActionRequest(BaseModel):
+    """Payload for approve/return actions from verify-kpi.jsx."""
+    note: Optional[str] = None
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 USER_PROFILE_FIELDS = ("name", "email", "phone", "role", "department")
@@ -218,6 +262,7 @@ def email_is_verified(email: str) -> bool:
 
     normalized_email = normalize_email(email)
     verification_doc = db.collection(EMAIL_VERIFICATION_COLLECTION).document(normalized_email).get()
+
     if not verification_doc.exists:
         return False
 
@@ -341,12 +386,7 @@ def get_user_auth_hash(user_id: str) -> str:
 
 
 def allocate_next_user_id(users_ref) -> str:
-    """Allocate the next user ID using a transactional counter to guarantee sequential increment.
-
-    This uses a Firestore document `systemCounters/userIdCounter` to atomically increment
-    the `nextUserNumber` value so new signups receive sequential IDs (user_101, user_102...).
-    If the counter doesn't exist yet we compute a safe starting point from existing user IDs.
-    """
+    """Allocate the next user ID using a transactional counter to guarantee sequential increment."""
     @firestore.transactional
     def allocate_tx(transaction, users_ref_inner):
         counter_ref = db.collection(USER_COUNTER_COLLECTION).document(USER_COUNTER_DOC)
@@ -361,7 +401,6 @@ def allocate_next_user_id(users_ref) -> str:
                 traceback.print_exc()
                 next_user_number = 101
         else:
-            # initialize counter from the highest existing user_ number
             existing_numbers = []
             for user_snapshot in users_ref_inner.stream():
                 user_id = user_snapshot.id
@@ -387,180 +426,96 @@ def allocate_next_user_id(users_ref) -> str:
         raise
 
 
+# ── Auth helper ───────────────────────────────────────────────────────────────
+
+def require_manager(request: Request) -> dict:
+    """Decode JWT and verify the caller is a manager. Returns the decoded token payload."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
+
+    token = auth_header.split(" ", 1)[1]
+    decoded = verify_jwt_token(token)
+    user_id = decoded.get("user_id")
+
+    if not db:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+    user_doc = db.collection(USERDATA_COLLECTION).document(user_id).get()
+    if not user_doc.exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    user_data = user_doc.to_dict() or {}
+    if user_data.get("role") != "manager":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Manager access required")
+
+    decoded["_user_data"] = user_data
+    return decoded
+
+# ──────────────────────────────────────────────────────────────────────────────
+
+
 @app.get("/")
 def root():
-    return {"message": "KPI Tracker Backend API - use /api/* endpoints", "status": "ok"}
-
-
-@app.get("/api/health")
-def health_check():
-    """Health check endpoint"""
-    firebase_status = "connected" if db is not None else "not_configured"
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "firebase_connected": db is not None,
-        "firebase_status": firebase_status,
-        "service_account_key_exists": os.path.exists(SERVICE_ACCOUNT_KEY_PATH),
-        "version": "1.0.0"
-    }
-
-
-@app.post("/api/register", response_model=UserResponse)
-def register_user(user_data: UserRegistration):
-    """Register a new user with Firestore (no Firebase Auth)"""
-    try:
-        # validate required fields (phone is optional)
-        required_fields = ['name', 'email', 'password', 'role', 'department']
-        for field in required_fields:
-            field_value = getattr(user_data, field)
-            if not field_value or (isinstance(field_value, str) and not field_value.strip()):
-                print(f"[register] Missing or empty required field: {field} = '{field_value}'")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Missing required field: {field}"
-                )
-
-        # validate role
-        if user_data.role not in ['staff', 'manager']:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Role must be 'staff' or 'manager'"
-            )
-
-        # normalize email for stable matching/storage.
-        user_data.email = normalize_email(user_data.email)
-
-        # ensure email is verified before allowing signup.
-        if not email_is_verified(user_data.email):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email is not verified. Please verify your email before signing up"
-            )
-
-        # create user in firestore with bcrypt password hash
-        if db:
-            print(f"Using Firestore for registration: {user_data.email}")
-            try:
-                # check if user already exists in firestore
-                users_ref = db.collection(USERDATA_COLLECTION)
-                if is_email_registered_case_insensitive(user_data.email):
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Email already registered"
-                    )
-
-                # hash password
-                hashed_password = hash_password(user_data.password)
-
-                # create fresh Firestore documents and never overwrite an existing user
-                try:
-                    user_id, user_profile_doc = create_user_documents(users_ref, user_data, hashed_password)
-                except Exception as inner_e:
-                    print(f"[register] exception while creating user documents: {inner_e}")
-                    traceback.print_exc()
-                    raise
-                print(f"Created user in Firestore: {user_id}")
-
-                # return user data with the generated user ID
-                user_response = build_public_user_document(user_id, user_profile_doc)
-
-                # remove one-time verification record after a successful signup.
-                clear_email_verification(user_data.email)
-
-                return UserResponse(
-                    success=True,
-                    message="Registration successful! You can now log in.",
-                    user=user_response,
-                    requiresEmailVerification=False
-                )
-
-            except HTTPException:
-                raise
-            except Exception as firebase_error:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Firebase error: {str(firebase_error)}"
-                )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Firebase/Firestore not configured. Please check your setup."
-            )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration failed: {str(e)}"
-        )
+    return {"message": "AchievePro API is running"}
 
 
 @app.post("/api/login")
-def login_user(credentials: UserLogin):
-    """Login user with role-based navigation using Firestore"""
+def login_user(credentials_data: UserLogin):
     try:
-        if not credentials.email or not credentials.password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email and password are required"
-            )
-
         if db:
-            print(f"Using Firestore for login: {credentials.email}")
+            users_ref = db.collection(USERDATA_COLLECTION)
+            normalized_email = normalize_email(credentials_data.email)
+
+            # find user by normalized email
+            user_query = list(users_ref.where(filter=FieldFilter('email', '==', normalized_email)).stream())
+
+            if not user_query:
+                # fallback: scan for mixed-case legacy records
+                for user_snapshot in users_ref.stream():
+                    user_data = user_snapshot.to_dict() or {}
+                    if normalize_email(user_data.get("email", "")) == normalized_email:
+                        user_query = [user_snapshot]
+                        break
+
+            if not user_query:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
+                )
+
+            user_doc = user_query[0]
+            user_id = user_doc.id
+            user_data = user_doc.to_dict() or {}
+
             try:
-                # find user by email in Firestore
-                users_ref = db.collection(USERDATA_COLLECTION)
-                users = list(users_ref.where(filter=FieldFilter('email', '==', credentials.email)).stream())
-                
-                if not users:
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Invalid email or password"
-                    )
-
-                user_doc = users[0]
-                user_id = user_doc.id
-                user_data = user_doc.to_dict() or {}
-
-                # verify password from the dedicated auth collection
                 password_hash = get_user_auth_hash(user_id)
-                if not verify_password(credentials.password, password_hash):
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Invalid email or password"
-                    )
-
-                # create JWT token
-                token = create_jwt_token(user_id, credentials.email)
-
-                # determine dashboard based on role
-                dashboard_url = "/staff/dashboard"
-                if user_data.get('role') == 'manager':
-                    dashboard_url = "/manager/dashboard"
-
-                # keep the userData document in the clean profile-only format
-                save_user_profile_document(db.collection(USERDATA_COLLECTION).document(user_id), user_data)
-
-                # return user data with the generated user ID
-                user_response = build_public_user_document(user_id, user_data)
-
-                return {
-                    "success": True,
-                    "message": "Login successful!",
-                    "user": user_response,
-                    "dashboard": dashboard_url,
-                    "token": token
-                }
-
             except HTTPException:
                 raise
-            except Exception as e:
+
+            if not verify_password(credentials_data.password, password_hash):
                 raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Login failed: {str(e)}"
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
                 )
+
+            token = create_jwt_token(user_id, user_data.get("email", ""))
+            dashboard_url = "/staff/dashboard"
+
+            if user_data.get('role') == 'manager':
+                dashboard_url = "/manager/dashboard"
+
+            save_user_profile_document(db.collection(USERDATA_COLLECTION).document(user_id), user_data)
+            user_response = build_public_user_document(user_id, user_data)
+
+            return {
+                "success": True,
+                "message": "Login successful!",
+                "user": user_response,
+                "dashboard": dashboard_url,
+                "token": token
+            }
+
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -585,7 +540,7 @@ def logout_user(request: Request):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
 
         token = auth_header.split(' ', 1)[1]
-        verify_jwt_token(token)  # Just verify the token is valid
+        verify_jwt_token(token)
         return {"success": True, "message": "Logged out successfully"}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Logout failed: {str(e)}")
@@ -617,9 +572,27 @@ def get_current_user(request: Request):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {str(e)}")
 
 
+@app.get("/api/manager/staff")
+def get_staff_users(request: Request):
+    """Get all users for staff assignment (manager only, requires JWT)."""
+    decoded = require_manager(request)
+    try:
+        if not db:
+            raise HTTPException(status_code=500, detail="Firebase not configured")
+        user_list = []
+        for user in db.collection(USERDATA_COLLECTION).stream():
+            user_data = user.to_dict() or {}
+            user_list.append(build_public_user_document(user.id, user_data))
+        return {"success": True, "users": user_list}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get staff: {str(e)}")
+
+
 @app.get("/api/users")
-def get_all_users():
-    """Get all users (for development/testing)"""
+def get_all_users(request: Request):
+    """Get all users (for manager staff assignment)"""
     try:
         if db:
             users_ref = db.collection(USERDATA_COLLECTION)
@@ -648,12 +621,36 @@ def get_all_users():
         }
 
 
+@app.get("/api/users/{user_id}")
+def get_user_by_id(user_id: str, request: Request):
+    """Get a single user by ID (used by verify-kpi.jsx to resolve submittedBy name)."""
+    try:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
+
+        token = auth_header.split(" ", 1)[1]
+        verify_jwt_token(token)
+
+        if not db:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+        user_doc = db.collection(USERDATA_COLLECTION).document(user_id).get()
+        if not user_doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        user_data = user_doc.to_dict() or {}
+        return {"success": True, "user": build_public_user_document(user_id, user_data)}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get user: {str(e)}")
+
+
 @app.get("/api/debug/next-user-id")
 def debug_next_user_id():
-    """Return current counter doc, highest existing user_ number, and the next candidate ID (read-only).
-
-    This endpoint is for diagnostics only and does not modify any Firestore state.
-    """
+    """Return current counter doc, highest existing user_ number, and the next candidate ID (read-only)."""
     try:
         if not db:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
@@ -661,11 +658,9 @@ def debug_next_user_id():
         users_ref = db.collection(USERDATA_COLLECTION)
         counter_ref = db.collection(USER_COUNTER_COLLECTION).document(USER_COUNTER_DOC)
 
-        # load counter doc if present
         counter_snapshot = counter_ref.get()
         counter_data = counter_snapshot.to_dict() if counter_snapshot.exists else None
 
-        # find highest existing user_ number
         existing_numbers = []
         for user_snapshot in users_ref.stream():
             uid = user_snapshot.id
@@ -677,7 +672,6 @@ def debug_next_user_id():
 
         highest_existing = max(existing_numbers) if existing_numbers else None
 
-        # compute candidate without modifying the counter
         if counter_data:
             try:
                 candidate_num = int(counter_data.get("nextUserNumber", 100)) + 1
@@ -702,12 +696,7 @@ def debug_next_user_id():
 
 @app.post("/api/debug/init-user-counter")
 def init_user_counter():
-    """Initialize or repair `systemCounters/userIdCounter` to the highest existing `user_###`.
-
-    This is a one-time administrative helper to avoid allocating IDs that collide with
-    already existing user documents. It sets `nextUserNumber` to the highest existing
-    numeric suffix (or 100 if none exist). The allocator will still increment on next use.
-    """
+    """Initialize or repair systemCounters/userIdCounter to the highest existing user_###."""
     try:
         if not db:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
@@ -715,7 +704,6 @@ def init_user_counter():
         users_ref = db.collection(USERDATA_COLLECTION)
         counter_ref = db.collection(USER_COUNTER_COLLECTION).document(USER_COUNTER_DOC)
 
-        # compute highest existing user_ number
         existing_numbers = []
         for user_snapshot in users_ref.stream():
             uid = user_snapshot.id
@@ -726,8 +714,6 @@ def init_user_counter():
                     continue
 
         highest_existing = max(existing_numbers) if existing_numbers else 100
-
-        # set the counter to highest_existing so next allocation returns highest_existing + 1
         counter_ref.set({"nextUserNumber": highest_existing})
 
         return {
@@ -860,21 +846,18 @@ def update_profile(profile_data: ProfileUpdate, request: Request):
         if not user_doc.exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        # build update dict with only provided fields
         update_dict = {}
         if profile_data.name:
             update_dict["name"] = profile_data.name
-        if profile_data.phone is not None:  # Allow empty string ""
+        if profile_data.phone is not None:
             update_dict["phone"] = profile_data.phone
         if profile_data.department:
             update_dict["department"] = profile_data.department
 
-        # overwrite the document with only the approved profile fields
         updated_user = user_doc.to_dict() or {}
         updated_user.update(update_dict)
         save_user_profile_document(user_ref, updated_user)
 
-        # return updated user data
         updated_user = user_ref.get().to_dict() or {}
         user_response = build_public_user_document(user_id, updated_user)
 
@@ -896,7 +879,6 @@ def update_profile(profile_data: ProfileUpdate, request: Request):
 def update_password(password_data: PasswordUpdate, request: Request):
     """Update user password (verify current password, update with new one)"""
     try:
-        # validate password confirmation
         if password_data.newPassword != password_data.confirmPassword:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -922,7 +904,6 @@ def update_password(password_data: PasswordUpdate, request: Request):
 
         user_data = user_doc.to_dict() or {}
 
-        # verify current password
         password_hash = get_user_auth_hash(user_id)
         if not verify_password(password_data.currentPassword, password_hash):
             raise HTTPException(
@@ -930,7 +911,6 @@ def update_password(password_data: PasswordUpdate, request: Request):
                 detail="Current password is incorrect"
             )
 
-        # hash new password and update the auth record only
         new_password_hash = hash_password(password_data.newPassword)
         save_user_auth_document(user_id, user_data.get("email", ""), new_password_hash)
 
@@ -970,7 +950,6 @@ def delete_account(request: Request):
         if not user_doc.exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        # Permanently delete the user document from Firestore
         user_ref.delete()
         if auth_ref.get().exists:
             auth_ref.delete()
@@ -987,9 +966,14 @@ def delete_account(request: Request):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Account deletion failed: {str(e)}"
         )
-    
+
+
+# ── Shared / read-only KPI endpoints (any authenticated user) ─────────────────
+
 @app.get("/api/kpi")
 def get_all_kpis():
+    # FIX: was reading from "kpis" collection — changed to KPI_COLLECTION ("kpiData")
+    # to match the Firestore collection where data actually lives.
     try:
         if not db:
             raise HTTPException(
@@ -997,7 +981,7 @@ def get_all_kpis():
                 detail="Firebase/Firestore not configured"
             )
 
-        docs = db.collection("kpis").stream()
+        docs = db.collection(KPI_COLLECTION).stream()
         kpis = []
 
         for doc in docs:
@@ -1045,6 +1029,195 @@ def get_kpi_submissions():
             detail=f"Failed to load KPI submissions: {str(e)}"
         )
 
+
+@app.get("/api/kpi/{kpi_id}")
+def get_kpi_by_id(kpi_id: str, request: Request):
+    """Get a single KPI by ID (used by verify-kpi.jsx)."""
+    try:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
+        token = auth_header.split(" ", 1)[1]
+        verify_jwt_token(token)
+
+        if not db:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Firebase not configured")
+
+        doc = db.collection(KPI_COLLECTION).document(kpi_id).get()
+        if not doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KPI not found")
+
+        data = doc.to_dict() or {}
+        data["id"] = doc.id
+        return {"success": True, "kpi": data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to load KPI: {str(e)}")
+
+
+"""View KPI"""
+@app.get("/api/manager/kpi")
+def manager_view_kpis(request: Request):
+    decoded = require_manager(request)
+
+    try:
+        kpi_ref = db.collection(KPI_COLLECTION)
+        query = kpi_ref
+
+        assigned_to = request.query_params.get("assignedTo")
+        kpi_status  = request.query_params.get("status")
+
+        if assigned_to:
+            query = query.where(filter=FieldFilter("assignedTo", "==", assigned_to))
+        if kpi_status:
+            query = query.where(filter=FieldFilter("status", "==", kpi_status))
+
+        kpis = []
+        for doc in query.stream():
+            data = doc.to_dict() or {}
+            data["id"] = doc.id
+            kpis.append(data)
+
+        return {"success": True, "kpis": kpis}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load KPIs: {str(e)}"
+        )
+
+
+"""View single KPI (manager)"""
+@app.get("/api/manager/kpi/{kpi_id}")
+def manager_view_kpi(kpi_id: str, request: Request):
+    decoded = require_manager(request)
+
+    try:
+        doc = db.collection(KPI_COLLECTION).document(kpi_id).get()
+        if not doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KPI not found")
+
+        data = doc.to_dict() or {}
+        data["id"] = doc.id
+        return {"success": True, "kpi": data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load KPI: {str(e)}"
+        )
+
+
+"""Set KPI"""
+@app.post("/api/manager/kpi", status_code=status.HTTP_201_CREATED)
+def manager_set_kpi(kpi_data: KPICreate, request: Request):
+    decoded = require_manager(request)
+    manager_id = decoded.get("user_id")
+
+    try:
+        now = datetime.utcnow().isoformat()
+        doc_data = {
+            "title":       kpi_data.title.strip(),
+            "description": kpi_data.description or "",
+            "category":    kpi_data.category or "",
+            "target":      kpi_data.target,
+            "unit":        kpi_data.unit or "",
+            "frequency":   kpi_data.frequency or "",
+            "assignedTo":  kpi_data.assignedTo or "",
+            "deadline":    kpi_data.deadline or "",
+            "status":      "active",
+            "createdBy":   manager_id,
+            "createdAt":   now,
+            "updatedAt":   now,
+        }
+
+        new_ref = db.collection(KPI_COLLECTION).document()
+        new_ref.set(doc_data)
+
+        doc_data["id"] = new_ref.id
+        return {"success": True, "message": "KPI created successfully", "kpi": doc_data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create KPI: {str(e)}"
+        )
+
+
+"""Update KPI"""
+@app.put("/api/manager/kpi/{kpi_id}")
+def manager_update_kpi(kpi_id: str, kpi_data: KPIUpdate, request: Request):
+    decoded = require_manager(request)
+    manager_id = decoded.get("user_id")
+
+    try:
+        kpi_ref = db.collection(KPI_COLLECTION).document(kpi_id)
+        kpi_doc = kpi_ref.get()
+
+        if not kpi_doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KPI not found")
+
+        update_fields: dict = {}
+        for field, value in kpi_data.model_dump(exclude_unset=True).items():
+            if value is not None:
+                update_fields[field] = value
+
+        if not update_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No fields provided to update"
+            )
+
+        update_fields["updatedAt"] = datetime.utcnow().isoformat()
+        update_fields["updatedBy"] = manager_id
+
+        kpi_ref.update(update_fields)
+
+        updated_doc = kpi_ref.get().to_dict() or {}
+        updated_doc["id"] = kpi_id
+        return {"success": True, "message": "KPI updated successfully", "kpi": updated_doc}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update KPI: {str(e)}"
+        )
+
+
+"""Delete KPI"""
+@app.delete("/api/manager/kpi/{kpi_id}")
+def manager_delete_kpi(kpi_id: str, request: Request):
+    decoded = require_manager(request)
+
+    try:
+        kpi_ref = db.collection(KPI_COLLECTION).document(kpi_id)
+        kpi_doc = kpi_ref.get()
+
+        if not kpi_doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KPI not found")
+
+        kpi_ref.delete()
+        return {"success": True, "message": f"KPI '{kpi_id}' deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete KPI: {str(e)}"
+        )
+
+
 @app.get("/api/categories")
 def get_categories():
     try:
@@ -1054,7 +1227,7 @@ def get_categories():
                 detail="Firebase/Firestore not configured"
             )
 
-        docs = db.collection("categories").stream()
+        docs = db.collection("categoriesData").stream()
         categories = []
 
         for doc in docs:
@@ -1072,7 +1245,275 @@ def get_categories():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to load categories: {str(e)}"
         )
-    
+
+
+@app.post("/api/kpi/update")
+async def staff_update_kpi_progress(
+    request: Request,
+    kpiId: str = Form(...),
+    current: float = Form(...),
+    notes: str = Form(""),
+    files: List[UploadFile] = File(default=[]),
+):
+    """Staff submits KPI progress update with optional file evidence."""
+    try:
+        # Get user from JWT
+        auth_header = request.headers.get("Authorization", "")
+        user_id = "unknown"
+        if auth_header.startswith("Bearer "):
+            try:
+                decoded = verify_jwt_token(auth_header.split(" ", 1)[1])
+                user_id = decoded.get("user_id", "unknown")
+            except Exception:
+                pass
+
+        if not db:
+            raise HTTPException(status_code=500, detail="Firebase not configured")
+
+        # Save uploaded files
+        UPLOAD_DIR = Path("uploads")
+        UPLOAD_DIR.mkdir(exist_ok=True)
+
+        saved_files = []
+        file_names = []
+        for f in files:
+            if f.filename:
+                uid_prefix = str(uuid.uuid4())
+                stored_name = f"{uid_prefix}_{f.filename}"
+                file_path = UPLOAD_DIR / stored_name
+                contents = await f.read()
+                file_path.write_bytes(contents)
+                saved_files.append({
+                    "originalName": f.filename,
+                    "storedName": stored_name,
+                    "path": str(file_path),
+                })
+                file_names.append(f.filename)
+
+        # Create submission document
+        now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        submission_data = {
+            "kpiId": kpiId,
+            "submittedBy": user_id,
+            "current": current,
+            "notes": notes,
+            "files": saved_files,
+            "fileNames": file_names,
+            "status": "pending",
+            "submittedAt": now_str,
+        }
+
+        submission_ref = db.collection("kpiSubmissions").document()
+        submission_ref.set(submission_data)
+        submission_data["id"] = submission_ref.id
+
+        return {"success": True, "submission": submission_data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to submit KPI update: {str(e)}")
+
+
+@app.get("/api/kpi/{kpi_id}/prediction")
+def get_kpi_prediction_staff(kpi_id: str):
+    """Get predicted KPI outcome — accessible by both staff and managers."""
+    try:
+        result = KPIPredictionService.predict_kpi_outcome(kpi_id)
+        if not result["success"]:
+            raise HTTPException(status_code=404, detail=result["message"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get prediction: {str(e)}")
+
+
+@app.get("/api/manager/dashboard/stats")
+def get_manager_dashboard_stats(request: Request):
+    """Return aggregated stats for the manager dashboard (KPIs, staff rankings, underperforming)."""
+    decoded = require_manager(request)
+    try:
+        if not db:
+            raise HTTPException(status_code=500, detail="Firebase not configured")
+
+        kpi_docs = list(db.collection(KPI_COLLECTION).stream())
+        kpis = []
+        for doc in kpi_docs:
+            d = doc.to_dict() or {}
+            d["id"] = doc.id
+            kpis.append(d)
+
+        submission_docs = list(db.collection("kpiSubmissions").stream())
+        submissions = [dict({"id": d.id}, **d.to_dict()) for d in submission_docs]
+
+        # Staff performance aggregation
+        staff_scores: dict = {}
+        for kpi in kpis:
+            for assignment in kpi.get("kpiAssignments", []):
+                uid = assignment.get("userId")
+                if not uid:
+                    continue
+                target = assignment.get("target", 1) or 1
+                current = assignment.get("current", 0)
+                pct = round((current / target) * 100, 1)
+                if uid not in staff_scores:
+                    # Fetch user name
+                    u_doc = db.collection(USERDATA_COLLECTION).document(uid).get()
+                    u_data = u_doc.to_dict() or {} if u_doc.exists else {}
+                    staff_scores[uid] = {
+                        "staffId": uid,
+                        "name": u_data.get("name", uid),
+                        "department": u_data.get("department", ""),
+                        "totalTarget": 0,
+                        "totalCurrent": 0,
+                        "kpiCount": 0,
+                    }
+                staff_scores[uid]["totalTarget"] += target
+                staff_scores[uid]["totalCurrent"] += current
+                staff_scores[uid]["kpiCount"] += 1
+
+        rankings = []
+        underperforming = []
+        for uid, s in staff_scores.items():
+            pct = round((s["totalCurrent"] / s["totalTarget"]) * 100, 1) if s["totalTarget"] else 0
+            entry = {**s, "achievementRate": pct}
+            rankings.append(entry)
+            if pct < 50:
+                underperforming.append(entry)
+
+        rankings.sort(key=lambda x: x["achievementRate"], reverse=True)
+
+        return {
+            "success": True,
+            "kpis": kpis,
+            "staffRankings": rankings[:10],
+            "underperformingKpis": [k for k in kpis if k.get("status") not in ("completed",) and
+                                     any((a.get("current", 0) / (a.get("target", 1) or 1)) < 0.5
+                                         for a in k.get("kpiAssignments", []))],
+            "submissions": submissions,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Dashboard stats failed: {str(e)}")
+
+
+@app.get("/api/manager/dashboard/monthly-performance")
+def get_monthly_performance(request: Request):
+    """
+    Aggregate approved KPI submissions by month to power the Monthly Performance graph.
+
+    Returns a list of objects shaped as:
+        { time: "Jan", kpi: <avg assigned target>, progress: <avg approved progress>, prediction: <projected> }
+
+    Algorithm:
+    - Load all KPI assignments to get per-user targets.
+    - Load all *approved* submissions, group by month (submittedAt[:7] → YYYY-MM).
+    - For each month: average the `current` values reported in submissions and the
+      corresponding assignment targets so the graph shows meaningful percentages.
+    - Derive a simple linear prediction for months that have no submissions yet.
+    """
+    require_manager(request)
+
+    try:
+        if not db:
+            raise HTTPException(status_code=500, detail="Firebase not configured")
+
+        MONTH_ABBR = {
+            "01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr",
+            "05": "May", "06": "Jun", "07": "Jul", "08": "Aug",
+            "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dec",
+        }
+
+        # ── 1. Load all KPIs and build a target lookup {kpi_id: {user_id: target}} ──
+        kpi_docs = list(db.collection(KPI_COLLECTION).stream())
+        kpi_target_map: dict[str, dict] = {}  # kpi_id → {userId: target}
+        for doc in kpi_docs:
+            d = doc.to_dict() or {}
+            assignments = d.get("kpiAssignments", [])
+            kpi_target_map[doc.id] = {
+                a.get("userId"): a.get("target", 0)
+                for a in assignments
+                if a.get("userId")
+            }
+
+        # ── 2. Load approved submissions ──────────────────────────────────────────
+        approved_docs = (
+            db.collection("kpiSubmissions")
+            .where(filter=FieldFilter("status", "==", "approved"))
+            .stream()
+        )
+
+        # month_data[month_key] = {"progress_sum": float, "target_sum": float, "count": int}
+        month_data: dict[str, dict] = {}
+
+        for doc in approved_docs:
+            s = doc.to_dict() or {}
+            submitted_at: str = s.get("submittedAt", "")
+            if not submitted_at or len(submitted_at) < 7:
+                continue
+
+            # submittedAt is stored as "YYYY-MM-DD HH:MM:SS" or ISO string
+            month_key = submitted_at[:7]  # "YYYY-MM"
+            kpi_id = s.get("kpiId", "")
+            user_id = s.get("submittedBy", "")
+            current = float(s.get("current", 0))
+
+            # Look up the target for this user on this KPI
+            target = float(
+                kpi_target_map.get(kpi_id, {}).get(user_id, 0)
+            )
+            if target <= 0:
+                # Fall back to KPI-level target_kpi field if stored there
+                for d2 in kpi_docs:
+                    if d2.id == kpi_id:
+                        target = float((d2.to_dict() or {}).get("target", 1) or 1)
+                        break
+
+            if month_key not in month_data:
+                month_data[month_key] = {"progress_sum": 0, "target_sum": 0, "count": 0}
+
+            month_data[month_key]["progress_sum"] += current
+            month_data[month_key]["target_sum"] += target
+            month_data[month_key]["count"] += 1
+
+        # ── 3. Build sorted result list ───────────────────────────────────────────
+        sorted_months = sorted(month_data.keys())  # chronological
+
+        result = []
+        for mk in sorted_months:
+            md = month_data[mk]
+            _, mm = mk.split("-", 1)
+            month_label = MONTH_ABBR.get(mm, mk)
+
+            target_avg = md["target_sum"] / md["count"] if md["count"] else 0
+            progress_avg = md["progress_sum"] / md["count"] if md["count"] else 0
+            # Prediction: linear extrapolation — if we maintain current rate for full period
+            progress_rate = (progress_avg / target_avg) if target_avg > 0 else 0
+            prediction = round(min(target_avg, target_avg * progress_rate * 1.05), 2)
+
+            result.append({
+                "time": month_label,
+                "kpi": round(target_avg, 2),
+                "progress": round(progress_avg, 2),
+                "prediction": prediction,
+                "month": month_label,
+            })
+
+        # If no approved submissions yet, return an empty-state placeholder so
+        # the chart renders without crashing.
+        if not result:
+            result = [{"time": "No data", "kpi": 0, "progress": 0, "prediction": 0, "month": "No data"}]
+
+        return {"success": True, "monthlyPerformance": result}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Monthly performance failed: {str(e)}")
+
 
 @app.get("/api/activity-logs")
 def get_activity_logs():
@@ -1083,7 +1524,7 @@ def get_activity_logs():
                 detail="Firebase/Firestore not configured"
             )
 
-        docs = db.collection("activityLogs").stream()
+        docs = db.collection("activityLog").stream()
         logs = []
 
         for doc in docs:
@@ -1101,6 +1542,52 @@ def get_activity_logs():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to load activity logs: {str(e)}"
         )
+
+
+# ── Submission approve/return endpoints (used by verify-kpi.jsx) ──────────────
+
+@app.post("/api/kpi/submissions/{submission_id}/approve")
+def approve_submission(submission_id: str, body: SubmissionActionRequest, request: Request):
+    """Approve a KPI submission. Wraps SubmissionVerificationService.verify_submission."""
+    decoded = require_manager(request)
+    manager_id = decoded.get("user_id")
+
+    submission_doc = db.collection("kpiSubmissions").document(submission_id).get()
+    if not submission_doc.exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+
+    kpi_id = submission_doc.to_dict().get("kpiId", "")
+    result = SubmissionVerificationService.verify_submission(
+        submission_id, kpi_id, "approved", body.note or "", manager_id
+    )
+
+    if not result["success"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result["message"])
+
+    return result
+
+
+@app.post("/api/kpi/submissions/{submission_id}/return")
+def return_submission(submission_id: str, body: SubmissionActionRequest, request: Request):
+    """Return a KPI submission for revision. Wraps SubmissionVerificationService.verify_submission."""
+    decoded = require_manager(request)
+    manager_id = decoded.get("user_id")
+
+    submission_doc = db.collection("kpiSubmissions").document(submission_id).get()
+    if not submission_doc.exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+
+    kpi_id = submission_doc.to_dict().get("kpiId", "")
+    result = SubmissionVerificationService.verify_submission(
+        submission_id, kpi_id, "rejected", body.note or "", manager_id
+    )
+
+    if not result["success"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result["message"])
+
+    return result
+
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 # MANAGER MODULE ENDPOINTS 
