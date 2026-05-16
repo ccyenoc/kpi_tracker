@@ -8,26 +8,37 @@ from services.kpi_service import get_weekly_kpi
 
 router = APIRouter()
 
-@router.get("/api/report/weekly")
+@router.get("/report/weekly")
 def weekly_report():
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
+    try:
+        buffer = io.BytesIO()
 
-    data = get_weekly_kpi()
+        p = canvas.Canvas(buffer, pagesize=letter)
 
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(200, 750, "Weekly KPI Report")
+        data = get_weekly_kpi()
 
-    p.setFont("Helvetica", 12)
-    p.drawString(50, 700, f"User: {data['user']}")
-    p.drawString(50, 680, f"KPI Score: {data['score']}")
-    p.drawString(50, 660, f"Tasks Completed: {data['tasks']}")
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(200, 750, "Weekly KPI Report")
 
-    p.save()
-    buffer.seek(0)
+        p.setFont("Helvetica", 12)
+        p.drawString(50, 700, f"User: {data.get('user', 'N/A')}")
+        p.drawString(50, 680, f"KPI Score: {data.get('score', 'N/A')}")
+        p.drawString(50, 660, f"Tasks Completed: {data.get('tasks', 'N/A')}")
 
-    return StreamingResponse(
-        buffer,
-        media_type="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=weekly_report.pdf"}
-    )
+        # 🔥 IMPORTANT
+        p.showPage()
+        p.save()
+
+        buffer.seek(0)
+
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": "attachment; filename=weekly_report.pdf"
+            }
+        )
+
+    except Exception as e:
+        print("ERROR:", e)
+        return {"error": str(e)}
