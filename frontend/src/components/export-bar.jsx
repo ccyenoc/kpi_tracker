@@ -11,6 +11,25 @@ function ExportBar() {
     color: "#1E293B",
   };
 
+  const weeklyReport = async () =>{
+    try{
+      const data = await fetch(`/api/report/weekly`);
+
+      if(!resizeBy.ok) throw new Error("Download Failed!");
+
+      const blob = await resizeBy.blob();
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download="weekly_report.pdf";
+      a.click();
+    }
+    catch(err){
+      console.log("ERROR : ",err);
+    }
+  }
+
   return (
     <div
       className="mx-3 mb-2 flex-grow-1"
@@ -41,7 +60,7 @@ function ExportBar() {
         gap: "10px"
       }}>
         <button style={buttonStyle}>Weekly Performance</button>
-        <button style={buttonStyle}>Weekly Performance</button>
+        <button style={buttonStyle}>KPI Summary</button>
       </div>
     </div>
   );
