@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # import routers
-from routes import auth_routes, user_routes, kpi_routes
+from routes import auth_routes, user_routes, kpi_routes,report_routes
 
 # create app
 app = FastAPI()
@@ -20,6 +20,7 @@ app.add_middleware(
 app.include_router(auth_routes.router, prefix="/api")
 app.include_router(user_routes.router, prefix="/api")
 app.include_router(kpi_routes.router, prefix="/api")
+app.include_router(report_routes.router, prefix="/api")
 
 
 # optional test route
