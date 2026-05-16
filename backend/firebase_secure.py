@@ -40,6 +40,8 @@ USER_ROLES = {
     "ADMIN": "admin"
 }
 
+KPI_COLLECTION = os.getenv("KPI_COLLECTION", "kpis")
+
 def validate_firebase_config():
     required = [
         "FIREBASE_API_KEY",
