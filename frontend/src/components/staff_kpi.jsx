@@ -2,7 +2,7 @@ const StaffKPI = ({ kpi, onUpdate }) => {
 
   const statusStyle = {
     completed: { color: "#22c55e", bg: "#22c55e20", label: "Completed" },
-    in_progress: { color: "#3b82f6", bg: "#3b82f620", label: "On Track" },
+    in_progress: { color: "#3b82f6", bg: "#3b82f620", label: "In Progress" },
     at_risk: { color: "#facc15", bg: "#facc1520", label: "At Risk" },
     underperformed: { color: "#ef4444", bg: "#ef444420", label: "Underperformed" },
     pending: { color: "#a855f7", bg: "#a855f720", label: "Pending" }
@@ -10,10 +10,8 @@ const StaffKPI = ({ kpi, onUpdate }) => {
 
   const current = statusStyle[kpi.status] || statusStyle.in_progress;
 
-  const [currentVal, targetVal] = kpi.progressText
-    .split(" ")[0]
-    .split("/")
-    .map(Number);
+  const currentVal = Number(kpi.current || 0);
+  const targetVal = Number(kpi.target || 0);
 
   const percentage =
     targetVal === 0 ? 0 : Math.round((currentVal / targetVal) * 100);

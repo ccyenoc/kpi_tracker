@@ -7,15 +7,17 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Node
+node_modules/
+frontend/node_modules/
+dist/
+dist-ssr/
 *.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -23,17 +25,17 @@ dist-ssr
 *.sln
 *.sw?
 
-serviceAccountKey.json
+# Python cache
+backend/__pycache__/
+__pycache__/
+*.pyc
 
 # Uploaded evidence files
 backend/uploads/
 uploads/
 
-# Backend generated files
-backend/__pycache__/
-__pycache__/
-*.pyc
-
-# Firebase secret key
+# Secret files
 backend/serviceAccountKey.json
 serviceAccountKey.json
+.env
+backend/.env

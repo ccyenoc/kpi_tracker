@@ -4,7 +4,7 @@ import PageTitle from "../components/page_title";
 import SearchFilterKPI from "../components/search_filter_kpi"
 import KPIAssignedListCard from "../components/kpi_assigned_list";
 import { NavLink } from "react-router-dom";
-import Header from "../components/header"
+import Header from "../components/header.jsx"
 import { pathway } from "../Pathway";
 {/*mock data import*/ }
 import { kpis } from "../data/kpiData";
@@ -20,7 +20,7 @@ function KPIManagement() {
       title: "Total KPIs",
       value: kpis.length,
       subtitle: "All defined KPIs",
-      color: "#3b82f6"
+      color: "#3b82f6",
     },
     {
       title: "Active KPIs",
@@ -98,6 +98,9 @@ function KPIManagement() {
             }}>+ Create KPI
           </button>
         </NavLink>
+
+
+
 
       </div>
 
