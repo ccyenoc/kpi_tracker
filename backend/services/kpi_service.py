@@ -117,3 +117,18 @@ def delete_kpi(kpi_id: str, request: Request):
     kpi_ref.delete()
 
     return {"success": True}
+
+# to generate weekly report
+def get_weekly_kpi(user_id: str):
+    # later: fetch from Firebase / DB
+    return {
+        "user": "Alice",
+        "week": "12–18 May",
+        "total_score": 82,
+        "previous_score": 77,
+        "kpis": [
+            {"name": "Sales", "target": 100, "actual": 95},
+            {"name": "Tasks", "target": 20, "actual": 25},
+            {"name": "Attendance", "target": 5, "actual": 5},
+        ]
+    }
