@@ -1,13 +1,12 @@
 import PageTitle from "../components/page_title"
 import InputKPITitle from "../components/input_KPI_title"
 import CategorySelection from "../components/category_selection"
-import { useState } from "react";
+import { useState , useEffect } from "react";
 import TargetKPISelection from "../components/target_kpi"
 import Deadline from "../components/deadline"
 import KPIAssignStaff from "../components/kpi_assign_staff"
 import TopBreadcrumb from "../components/top_breadcrumb";
 import Description from "../components/description";
-import { users } from "../data/userData";
 
 function CreateKPI(){
     const [category, setCategory] = useState("")
@@ -19,6 +18,7 @@ function CreateKPI(){
     const [deadline, setDeadline] = useState(null);
     const [searchStaff, setSearchStaff] = useState("");
     const [assignedStaff, setAssignedStaff] = useState([]);
+    const [staffList, setStaffList] = useState([]);
     const [showModal, setShowModal] = useState(false);
 
     const resetForm = () => {
@@ -41,7 +41,7 @@ function CreateKPI(){
     customer: ["CSAT", "NPS", "Response Time"]
   }
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
   if (!title.trim()) {
     setErrorMessage("KPI title is required");
     return;
@@ -79,9 +79,65 @@ function CreateKPI(){
 
   setErrorMessage("");
 
-  setShowModal(true);
-}
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/manager/kpi`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+      },
+      body: JSON.stringify({
+  title,
+  description,
+  categoryId: category,
+  categoryName: category,
 
+  target: Number(target),
+  unit,
+  frequency: "monthly",
+
+  deadline: deadline.toISOString(),
+
+  assignedUserIds: assignedStaff.map(s => s.id),
+
+  kpiAssignments: assignedStaff.map(s => ({
+    userId: s.id,
+    current: 0,
+    target: s.kpi || Number(target)
+  }))
+})
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || "Failed to create KPI");
+    }
+
+    console.log("KPI CREATED:", data);
+
+    setShowModal(true);
+  } catch (err) {
+    console.error(err);
+    setErrorMessage(err.message);
+  }
+};
+
+   useEffect(() => {
+  fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff`)
+    .then(async res => {
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text);
+      }
+      return res.json();
+    })
+    .then(data => {
+      console.log("STAFF:", data);
+      setStaffList(data);
+    })
+    .catch(err => console.log("Error fetching staff:", err));
+}, []); 
   
     return(
       <div>
@@ -157,7 +213,7 @@ function CreateKPI(){
                 <Deadline value={deadline} setValue={setDeadline} />
             </div>   
             <KPIAssignStaff 
-              staffList={users} 
+              staffList={staffList} 
               unit={unit}
               assignedStaff={assignedStaff}
               setAssignedStaff={setAssignedStaff}
