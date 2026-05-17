@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request
+from utils.security import verify_jwt_token
 from models.user_model import ProfileUpdate, PasswordUpdate
 from services.user_service import (
     get_current_user,
