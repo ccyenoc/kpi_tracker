@@ -11,9 +11,28 @@ function KPIItem({ title, subtitle, timeLeft, status }) {
     border: "#ef4444",
     badge: "#dc2626",
   },
+  completed: {
+    bg: "#dcfce7",
+    border: "#22c55e",
+    badge: "#16a34a",
+  },
+  in_progress: {
+    bg: "#dbeafe",
+    border: "#3b82f6",
+    badge: "#2563eb",
+  },
+  pending: {
+    bg: "#9d06d91c",
+    border: "#9d06d96f",
+    badge: "#9d06d9",
+  },
 };
 
-const style = styles[status];
+const style = styles[status] || {
+  bg: "#e5e7eb",
+  border: "#9ca3af",
+  badge: "#6b7280",
+};
 
 const statusLabelMap = {
   at_risk: "At Risk",
@@ -25,8 +44,11 @@ const current = parseFloat(numbers?.[0] || 0);
 const total = parseFloat(numbers?.[1] || 1);
 
 const progress = (current / total) * 100;
+console.log("STATUS:", status);
 
   return (
+  
+
     <div
       style={{
         background: style.bg,
