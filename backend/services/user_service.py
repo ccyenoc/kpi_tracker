@@ -1,6 +1,8 @@
 from fastapi import HTTPException, status
 from utils.security import verify_jwt_token, verify_password, hash_password
 from utils.user_utils import build_public_user_document
+from utils.auth_utils import save_user_auth_document
+from services.auth_service import save_user_profile_document, get_user_auth_hash
 from config.firebase_config import db
 from firebase_secure import USERDATA_COLLECTION, USERAUTH_COLLECTION
 
