@@ -80,3 +80,29 @@ def delete_account(user_id):
         auth_ref.delete()
 
     return True
+
+def get_all_staff():
+    try:
+        if not db:
+            raise Exception("Firebase not initialized")
+
+        users_ref = db.collection("userData")
+
+        staff = []
+        for doc in users_ref.stream():
+            data = doc.to_dict() or {}
+
+            if data.get("role") == "staff":
+                staff.append({
+                    "id": doc.id,
+                    "name": data.get("name", ""),
+                    "email": data.get("email", ""),
+                    "role": data.get("role", "")
+                })
+
+        print("STAFF RETURNED:", staff)  # DEBUG
+        return staff
+
+    except Exception as e:
+        print("🔥 ERROR in /staff:", e)
+        raise e

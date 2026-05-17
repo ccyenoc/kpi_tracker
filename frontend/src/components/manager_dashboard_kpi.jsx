@@ -27,7 +27,7 @@ function ManagerDashboardKpi() {
             title: kpi.title,
             subtitle: `${kpi.current} / ${kpi.target} ${kpi.unit}`,
             timeLeft: getDaysLeft(kpi.deadline),
-            status: "risk",
+            status: "at_risk",
           }))}
         />
       </div>

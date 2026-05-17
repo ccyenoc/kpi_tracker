@@ -22,6 +22,7 @@ const filteredStaff = staffList.filter(
       staff.email.toLowerCase().includes(searchStaff.toLowerCase())
     )
 );
+console.log("STAFF LIST:", staffList);
 
 
     return (
