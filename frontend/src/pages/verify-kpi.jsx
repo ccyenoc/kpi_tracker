@@ -4,7 +4,7 @@ import PageTitle from "../components/page_title";
 import DashboardCards from "../components/4x1_cards_layout";
 import KPISubmissionTable from "../components/kpi_submission_table";
 
-const API_BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:8006" : "";
+const API_BASE_URL = "";
 
 function VerifyKPIDashboard() {
   const [submissions, setSubmissions] = useState([]);

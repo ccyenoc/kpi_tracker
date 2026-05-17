@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import TopStaffCard from "./top_staff_card";
 
-const API_BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:8006" : "";
+const API_BASE_URL = "";
 
 /**
  * StaffRankingCard (Manager Module — Live Firebase Data)

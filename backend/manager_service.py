@@ -353,3 +353,179 @@ class KPIPredictionService:
 
         except Exception as e:
             return {"success": False, "message": str(e)}
+
+
+class ManagerDashboardService:
+    @staticmethod
+    def get_dashboard_stats() -> Dict:
+        """
+        Aggregates all staff KPI data and calculates rankings for the manager dashboard.
+        Returns overall stats and top staff rankings by achievement rate.
+        """
+        try:
+            db = get_db()
+            
+            # Aggregate data across all staff
+            staff_stats = {}
+            
+            # Iterate through all KPIs
+            kpi_docs = db.collection("kpiData").stream()
+            total_kpis = 0
+            active_kpis = 0
+            completed_kpis = 0
+            
+            for kpi_doc in kpi_docs:
+                total_kpis += 1
+                kpi_data = kpi_doc.to_dict() or {}
+                kpi_status = kpi_data.get("status", "pending")
+                
+                if kpi_status in ["active", "in_progress"]:
+                    active_kpis += 1
+                elif kpi_status == "completed":
+                    completed_kpis += 1
+                
+                # Process each staff assignment for this KPI
+                kpi_assignments = kpi_data.get("kpiAssignments", [])
+                for assignment in kpi_assignments:
+                    staff_id = assignment.get("userId")
+                    if not staff_id:
+                        continue
+                    
+                    # Initialize staff entry if not exists
+                    if staff_id not in staff_stats:
+                        user_doc = db.collection("userData").document(staff_id).get()
+                        user_data = user_doc.to_dict() or {}
+                        staff_stats[staff_id] = {
+                            "staffId": staff_id,
+                            "name": user_data.get("name", "Unknown"),
+                            "department": user_data.get("department", "Unknown"),
+                            "email": user_data.get("email", "Unknown"),
+                            "totalTarget": 0,
+                            "totalCurrent": 0,
+                            "kpiCount": 0,
+                            "achievementRate": 0
+                        }
+                    
+                    # Accumulate KPI data
+                    target = assignment.get("target", 0)
+                    current = assignment.get("current", 0)
+                    staff_stats[staff_id]["totalTarget"] += target
+                    staff_stats[staff_id]["totalCurrent"] += current
+                    staff_stats[staff_id]["kpiCount"] += 1
+            
+            # Calculate achievement rates and sort by performance
+            staff_rankings = []
+            for staff_id, stats in staff_stats.items():
+                if stats["totalTarget"] > 0:
+                    stats["achievementRate"] = round((stats["totalCurrent"] / stats["totalTarget"]) * 100, 2)
+                else:
+                    stats["achievementRate"] = 0
+                staff_rankings.append(stats)
+            
+            # Sort by achievement rate (descending) and take top 10
+            staff_rankings.sort(key=lambda x: x["achievementRate"], reverse=True)
+            top_rankings = staff_rankings[:10]
+            
+            return {
+                "success": True,
+                "dashboardStats": {
+                    "totalKPIs": total_kpis,
+                    "activeKPIs": active_kpis,
+                    "completedKPIs": completed_kpis,
+                    "totalStaff": len(staff_stats)
+                },
+                "staffRankings": top_rankings,
+                "generatedAt": datetime.now().isoformat()
+            }
+        
+        except Exception as e:
+            return {
+                "success": False,
+                "message": str(e),
+                "dashboardStats": {},
+                "staffRankings": []
+            }
+
+
+class KPIStatusService:
+    @staticmethod
+    def get_at_risk_kpis() -> Dict:
+        """
+        Returns KPIs where achievement rate is between 50-80% (At Risk status)
+        """
+        try:
+            db = get_db()
+            at_risk_kpis = []
+            
+            kpi_docs = db.collection("kpiData").stream()
+            for kpi_doc in kpi_docs:
+                kpi_data = kpi_doc.to_dict() or {}
+                kpi_assignments = kpi_data.get("kpiAssignments", [])
+                
+                if not kpi_assignments:
+                    continue
+                
+                # Calculate average achievement rate for this KPI
+                total_target = 0
+                total_current = 0
+                for assignment in kpi_assignments:
+                    total_target += assignment.get("target", 0)
+                    total_current += assignment.get("current", 0)
+                
+                if total_target > 0:
+                    achievement_rate = (total_current / total_target) * 100
+                    # At risk: between 50-80%
+                    if 50 <= achievement_rate < 80:
+                        kpi_data["id"] = kpi_doc.id
+                        kpi_data["achievementRate"] = round(achievement_rate, 2)
+                        kpi_data["status"] = "at_risk"
+                        at_risk_kpis.append(kpi_data)
+            
+            return {
+                "success": True,
+                "kpis": at_risk_kpis,
+                "count": len(at_risk_kpis)
+            }
+        except Exception as e:
+            return {"success": False, "message": str(e), "kpis": []}
+    
+    @staticmethod
+    def get_underperform_kpis() -> Dict:
+        """
+        Returns KPIs where achievement rate is below 50% (Off Track/Underperforming)
+        """
+        try:
+            db = get_db()
+            underperform_kpis = []
+            
+            kpi_docs = db.collection("kpiData").stream()
+            for kpi_doc in kpi_docs:
+                kpi_data = kpi_doc.to_dict() or {}
+                kpi_assignments = kpi_data.get("kpiAssignments", [])
+                
+                if not kpi_assignments:
+                    continue
+                
+                # Calculate average achievement rate for this KPI
+                total_target = 0
+                total_current = 0
+                for assignment in kpi_assignments:
+                    total_target += assignment.get("target", 0)
+                    total_current += assignment.get("current", 0)
+                
+                if total_target > 0:
+                    achievement_rate = (total_current / total_target) * 100
+                    # Underperforming: below 50%
+                    if achievement_rate < 50:
+                        kpi_data["id"] = kpi_doc.id
+                        kpi_data["achievementRate"] = round(achievement_rate, 2)
+                        kpi_data["status"] = "underperformed"
+                        underperform_kpis.append(kpi_data)
+            
+            return {
+                "success": True,
+                "kpis": underperform_kpis,
+                "count": len(underperform_kpis)
+            }
+        except Exception as e:
+            return {"success": False, "message": str(e), "kpis": []}
