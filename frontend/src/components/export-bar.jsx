@@ -14,11 +14,13 @@ function ExportBar() {
   const weeklyReport = async () => {
   try {
     const response = await fetch("/api/report/weekly");
+    
+    
 
     if (!response.ok) throw new Error("Download Failed!");
 
     const blob = await response.blob();
-
+    console.log("API DATA:", blob);
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

@@ -123,11 +123,55 @@ def delete_kpi(kpi_id: str, request: Request):
 
 # to generate weekly report
 def get_weekly_kpi():
-    # pretend fetching from DB
-    data = {
-        "user": "Alice",
-        "score": 92,
-        "tasks": 15
-    }
+    try:
+        kpi_ref = db.collection(KPI_COLLECTION)
 
-    return data
+        query = kpi_ref.where("status", "!=", "completed")
+
+        kpis = []
+        total_tasks = 0
+        total_progress = 0
+
+        for doc in query.stream():
+            data = doc.to_dict() or {}
+            data["id"] = doc.id
+
+            # calculate KPI-level progress
+            assignments = data.get("kpiAssignments", [])
+
+            kpi_total = 0
+            kpi_count = 0
+
+            for a in assignments:
+                current = a.get("current", 0)
+                target = a.get("target", 1)
+
+                if target > 0:
+                    progress = (current / target) * 100
+                    a["progress"] = round(progress, 2)
+
+                    total_progress += (current / target)
+                    total_tasks += 1
+
+                    kpi_total += progress
+                    kpi_count += 1
+
+            # average KPI progress
+            data["progress"] = round(kpi_total / kpi_count, 2) if kpi_count else 0
+
+            kpis.append(data)
+
+        avg_progress = (total_progress / total_tasks * 100) if total_tasks else 0
+
+        return {
+            "success": True,
+            "summary": {
+                "totalActiveKpis": len(kpis),
+                "totalAssignments": total_tasks,
+                "averageProgress": round(avg_progress, 2)
+            },
+            "kpis": kpis   # 🔥 FULL DATA
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
