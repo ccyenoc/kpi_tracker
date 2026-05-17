@@ -28,7 +28,7 @@ SERVICE_ACCOUNT_KEY_PATH = os.getenv("SERVICE_ACCOUNT_KEY_PATH", "serviceAccount
 
 USERDATA_COLLECTION = os.getenv("USERDATA_COLLECTION", "userData")
 USERAUTH_COLLECTION = os.getenv("USERAUTH_COLLECTION", "userAuth")
-KPI_COLLECTION = os.getenv("KPI_COLLECTION", "kpis")
+KPI_COLLECTION = os.getenv("KPI_COLLECTION", "kpiData")
 
 # Counter collection/doc used to allocate sequential user IDs (user_101, user_102...)
 USER_COUNTER_COLLECTION = os.getenv("USER_COUNTER_COLLECTION", "systemCounters")
@@ -40,7 +40,7 @@ USER_ROLES = {
     "ADMIN": "admin"
 }
 
-KPI_COLLECTION = os.getenv("KPI_COLLECTION", "kpis")
+KPI_COLLECTION = os.getenv("KPI_COLLECTION", "kpiData")
 
 def validate_firebase_config():
     required = [

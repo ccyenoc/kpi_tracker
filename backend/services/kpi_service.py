@@ -55,18 +55,21 @@ def create_kpi(kpi_data, request: Request):
     now = datetime.utcnow().isoformat()
 
     doc_data = {
-        "title": kpi_data.title.strip(),
-        "description": kpi_data.description or "",
-        "category": kpi_data.category or "",
-        "target": kpi_data.target,
-        "unit": kpi_data.unit or "",
-        "frequency": kpi_data.frequency or "",
-        "assignedTo": kpi_data.assignedTo or "",
-        "deadline": kpi_data.deadline or "",
-        "status": "active",
-        "createdBy": manager_id,
-        "createdAt": now,
-        "updatedAt": now,
+    "title": kpi_data.title.strip(),
+    "description": kpi_data.description or "",
+    "categoryId": kpi_data.categoryId or "",
+    "categoryName": kpi_data.categoryName or "",
+    "target": kpi_data.target,
+    "unit": kpi_data.unit or "",
+    "deadline": kpi_data.deadline,
+    
+    "assignedUserIds": kpi_data.assignedUserIds or [],
+    "kpiAssignments": [a.dict() for a in kpi_data.kpiAssignments] if kpi_data.kpiAssignments else [],
+
+    "status": "pending",
+    "createdBy": manager_id,
+    "createdAt": now,
+    "updatedAt": now,
     }
 
     new_ref = db.collection(KPI_COLLECTION).document()
