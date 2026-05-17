@@ -5,11 +5,13 @@ from services.kpi_service import (
     get_kpi,
     create_kpi,
     update_kpi,
-    delete_kpi
+    delete_kpi,
+    update_kpi_progress_service
 )
+from fastapi import Form, File, UploadFile
+from typing import List
 
 router = APIRouter()
-
 
 @router.get("/manager/kpi")
 def view_kpis(request: Request):
@@ -34,3 +36,13 @@ def update(kpi_id: str, kpi_data: KPIUpdate, request: Request):
 @router.delete("/manager/kpi/{kpi_id}")
 def delete(kpi_id: str, request: Request):
     return delete_kpi(kpi_id, request)
+
+@router.post("/kpi/update")
+async def update_kpi_progress(
+    kpiId: str = Form(...),
+    current: float = Form(...),
+    notes: str = Form(""),
+    files: List[UploadFile] = File(default=[]),
+    request: Request = None
+):
+    return await update_kpi_progress_service(kpiId, current, notes, files, request)

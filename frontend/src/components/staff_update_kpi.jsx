@@ -57,7 +57,7 @@ const uploadBox = {
   fontSize:"16px",
 };
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (currentValue === "") {
     alert("Please enter current value");
     return;
@@ -73,15 +73,41 @@ const handleSubmit = () => {
     return;
   }
 
-  onSubmit({
-    kpiId: kpi.id,
-    current: Number(currentValue),
-    notes: notes,
-    files: files,
-    updatedAt: "just now",
-  });
+  try {
+    const formData = new FormData();
 
-  onClose();
+    formData.append("kpiId", kpi.id);
+    formData.append("current", Number(currentValue));
+    formData.append("notes", notes);
+
+    files.forEach(file => {
+      formData.append("files", file);
+    });
+
+    const res = await fetch("http://localhost:8000/api/kpi/update", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`
+      },
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || "Submission failed");
+    }
+
+    console.log("✅ Submission success:", data);
+
+    alert("Submission successful!");
+
+    onClose();
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  }
 };
 
   return (
