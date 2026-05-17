@@ -14,35 +14,17 @@ function ExportBar() {
   const weeklyReport = async () => {
   try {
     const response = await fetch("/api/report/weekly");
+    
+    
 
     if (!response.ok) throw new Error("Download Failed!");
 
     const blob = await response.blob();
-
+    console.log("API DATA:", blob);
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "weekly_report.pdf";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } catch (err) {
-    console.log("ERROR:", err);
-  }
-};
-
-const kpiSummary = async () => {
-  try {
-    const response = await fetch("/api/report/kpi");
-
-    if (!response.ok) throw new Error("Download Failed!");
-
-    const blob = await response.blob();
-
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "kpi_summary.pdf";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -81,7 +63,7 @@ const kpiSummary = async () => {
         gap: "10px"
       }}>
         <button style={buttonStyle} onClick={weeklyReport} >Weekly Performance</button>
-        <button style={buttonStyle} onClick={kpiSummary} >KPI Summary</button>
+        <button style={buttonStyle} >Monthly Performance</button>
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 from fastapi import HTTPException, status
 from utils.security import verify_jwt_token, verify_password, hash_password
 from utils.user_utils import build_public_user_document
+from utils.auth_utils import save_user_auth_document
+from services.auth_service import save_user_profile_document, get_user_auth_hash
 from config.firebase_config import db
 from firebase_secure import USERDATA_COLLECTION, USERAUTH_COLLECTION
 
@@ -80,3 +82,29 @@ def delete_account(user_id):
         auth_ref.delete()
 
     return True
+
+def get_all_staff():
+    try:
+        if not db:
+            raise Exception("Firebase not initialized")
+
+        users_ref = db.collection("userData")
+
+        staff = []
+        for doc in users_ref.stream():
+            data = doc.to_dict() or {}
+
+            if data.get("role") == "staff":
+                staff.append({
+                    "id": doc.id,
+                    "name": data.get("name", ""),
+                    "email": data.get("email", ""),
+                    "role": data.get("role", "")
+                })
+
+        print("STAFF RETURNED:", staff)  # DEBUG
+        return staff
+
+    except Exception as e:
+        print("🔥 ERROR in /staff:", e)
+        raise e

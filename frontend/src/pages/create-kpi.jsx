@@ -1,112 +1,171 @@
-// pages/create-kpi.jsx
-import { useEffect, useState } from "react";
-import PageTitle from "../components/page_title";
-import InputKPITitle from "../components/input_KPI_title";
-import CategorySelection from "../components/category_selection";
-import TargetKPISelection from "../components/target_kpi";
-import Deadline from "../components/deadline";
-import KPIAssignStaff from "../components/kpi_assign_staff";
+import PageTitle from "../components/page_title"
+import InputKPITitle from "../components/input_KPI_title"
+import CategorySelection from "../components/category_selection"
+import { useState , useEffect } from "react";
+import TargetKPISelection from "../components/target_kpi"
+import Deadline from "../components/deadline"
+import KPIAssignStaff from "../components/kpi_assign_staff"
+import TopBreadcrumb from "../components/top_breadcrumb";
 import Description from "../components/description";
-import { createKPI, fetchAllUsers, fetchCategories } from "../api/api";
 
-function CreateKPI() {
-  const [category, setCategory] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [unit, setUnit] = useState("");
-  const [target, setTarget] = useState("");
-  const [deadline, setDeadline] = useState(null);
-  const [searchStaff, setSearchStaff] = useState("");
-  const [assignedStaff, setAssignedStaff] = useState([]);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+function CreateKPI(){
+    const [category, setCategory] = useState("")
+    const [title, setTitle] = useState("")
+    const [description, setDescription] = useState("")
+    const [unit, setUnit] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
+    const [target, setTarget] = useState("");
+    const [deadline, setDeadline] = useState(null);
+    const [searchStaff, setSearchStaff] = useState("");
+    const [assignedStaff, setAssignedStaff] = useState([]);
+    const [staffList, setStaffList] = useState([]);
+    const [showModal, setShowModal] = useState(false);
 
-  // Live data from backend
-  const [staffList, setStaffList] = useState([]);
-  const [loadingStaff, setLoadingStaff] = useState(true);
+    const resetForm = () => {
+  setTitle("");
+  setDescription("");
+  setCategory("");
+  setUnit("");
+  setTarget("");
+  setDeadline(null);
+  setSearchStaff("")
+  setAssignedStaff([]);
+  setErrorMessage("");
+};
 
-  useEffect(() => {
-    fetchAllUsers()
-      .then((data) => setStaffList(data.users || []))
-      .catch(() => setStaffList([]))
-      .finally(() => setLoadingStaff(false));
-  }, []);
-
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setCategory("");
-    setUnit("");
-    setTarget("");
-    setDeadline(null);
-    setSearchStaff("");
-    setAssignedStaff([]);
-    setErrorMessage("");
-  };
+  const KPI_TEMPLATES = {
+    sales: ["Monthly Sales Revenue", "Closed Deals", "Conversion Rate"],
+    lead: ["New Leads", "Cost per Lead", "Qualified Leads"],
+    property: ["Occupancy Rate", "Tenant Retention", "Maintenance Response Time"],
+    marketing: ["Campaign Conversion Rate", "CTR", "Traffic Growth"],
+    customer: ["CSAT", "NPS", "Response Time"]
+  }
 
   const handleConfirm = async () => {
-    if (!title.trim()) return setErrorMessage("KPI title is required");
-    if (!description.trim()) return setErrorMessage("KPI description is required");
-    if (!category) return setErrorMessage("Please select a category");
-    if (!target || Number(target) <= 0)
-      return setErrorMessage("Please enter a valid target KPI");
-    if (!unit) return setErrorMessage("Please select a unit");
-    if (!deadline) return setErrorMessage("Please select a deadline");
-    if (assignedStaff.length === 0)
-      return setErrorMessage("Please assign at least one staff");
+  if (!title.trim()) {
+    setErrorMessage("KPI title is required");
+    return;
+  }
 
-    setErrorMessage("");
-    setSubmitting(true);
+  if (!description.trim()) {
+    setErrorMessage("KPI description is required");
+    return;
+  }
 
-    try {
-      // The backend KPICreate model accepts: title, description, category,
-      // target, unit, deadline (ISO string), assignedTo (single user id).
-      // For multi-staff assignment, we create one KPI per staff or use the
-      // first assigned staff as primary (extend as needed).
-      const payload = {
-        title: title.trim(),
-        description: description.trim(),
-        category,
-        target: Number(target),
-        unit,
-        deadline: deadline ? deadline.toISOString().split("T")[0] : null,
-        assignedTo: assignedStaff[0]?.id || assignedStaff[0] || null,
-      };
+  if (!category) {
+    setErrorMessage("Please select a category");
+    return;
+  }
 
-      await createKPI(payload);
-      setShowModal(true);
-    } catch (err) {
-      setErrorMessage(err.message || "Failed to create KPI. Please try again.");
-    } finally {
-      setSubmitting(false);
+  if (!target || Number(target) <= 0) {
+    setErrorMessage("Please enter a valid target KPI");
+    return;
+  }
+
+  if (!unit) {
+    setErrorMessage("Please select a unit");
+    return;
+  }
+
+  if (!deadline) {
+    setErrorMessage("Please select a deadline");
+    return;
+  }
+
+  if (assignedStaff.length === 0) {
+    setErrorMessage("Please assign at least one staff");
+    return;
+  }
+
+  setErrorMessage("");
+
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/manager/kpi`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+      },
+      body: JSON.stringify({
+  title,
+  description,
+  categoryId: category,
+  categoryName: category,
+
+  target: Number(target),
+  unit,
+  frequency: "monthly",
+
+  deadline: deadline.toISOString(),
+
+  assignedUserIds: assignedStaff.map(s => s.id),
+
+  kpiAssignments: assignedStaff.map(s => ({
+    userId: s.id,
+    current: 0,
+    target: s.kpi || Number(target)
+  }))
+})
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || "Failed to create KPI");
     }
-  };
 
-  return (
-    <div>
-      <div
-        className="d-flex justify-content-center"
-        style={{ display: "flex", flexDirection: "column" }}
-      >
-        <PageTitle
-          title="Create KPI"
-          subtitle="Create a key performance indicator and assign to a staff"
-        />
+    console.log("KPI CREATED:", data);
 
-        {errorMessage && (
-          <div
-            style={{
-              backgroundColor: "#ffe5e5",
-              color: "#d93025",
-              padding: "10px",
-              borderRadius: "8px",
-              margin: "10px 20px",
-            }}
-          >
-            {errorMessage}
-          </div>
-        )}
+    setShowModal(true);
+  } catch (err) {
+    console.error(err);
+    setErrorMessage(err.message);
+  }
+};
+
+   useEffect(() => {
+  fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff`)
+    .then(async res => {
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text);
+      }
+      return res.json();
+    })
+    .then(data => {
+      console.log("STAFF:", data);
+      setStaffList(data);
+    })
+    .catch(err => console.log("Error fetching staff:", err));
+}, []); 
+  
+    return(
+      <div>
+          
+        <div 
+          className="d-flex justify-content-center"
+          style={{
+            display: "flex",
+            flexDirection : "column",
+          }}>
+        
+            <PageTitle 
+            title="Create KPI" 
+            subtitle="Create a key performance indicator and assign to a staff"/>
+
+            {errorMessage && (
+  <div
+    style={{
+      backgroundColor: "#ffe5e5",
+      color: "#d93025",
+      padding: "10px",
+      borderRadius: "8px",
+      margin: "10px 20px"
+    }}
+  >
+    {errorMessage}
+  </div>
+)}
 
         <div
           className="mx-3 mb-4 d-flex justify-content-center"
@@ -127,101 +186,122 @@ function CreateKPI() {
 
           <Description value={description} setValue={setDescription} />
 
-          {/* Target and deadline */}
-          <div className="d-flex" style={{ flexDirection: "row", gap: "260px" }}>
-            <TargetKPISelection
-              unit={unit}
-              setUnit={setUnit}
-              target={target}
-              setTarget={setTarget}
-            />
-            <Deadline value={deadline} setValue={setDeadline} />
-          </div>
-
-          <KPIAssignStaff
-            staffList={loadingStaff ? [] : staffList}
-            unit={unit}
-            assignedStaff={assignedStaff}
-            setAssignedStaff={setAssignedStaff}
-            searchStaff={searchStaff}
-            setSearchStaff={setSearchStaff}
-          />
-
+          {/*kpi and deadline contanier*/}
           <div
             className="d-flex"
             style={{
-              marginTop: "20px",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "50px",
-            }}
-          >
-            <button
-              onClick={handleConfirm}
-              disabled={submitting}
-              style={{
-                width: "200px",
-                backgroundColor: submitting ? "#8fa3d6" : "#2b4cb3",
-                color: "#fff",
-                padding: "10px 20px",
-                border: "none",
-                borderRadius: "10px",
-                fontSize: "14px",
-                cursor: submitting ? "not-allowed" : "pointer",
-              }}
-            >
-              {submitting ? "Creating…" : "Confirm"}
-            </button>
-          </div>
+              flexDirection: "row",
+              font: "16px",
+              gap: "260px",
+            }}>
 
-          {/* Success modal */}
-          {showModal && (
+                <TargetKPISelection 
+                  unit={unit} 
+                  setUnit={setUnit}
+                  target={target}
+                  setTarget={setTarget}
+                />
+                <Deadline value={deadline} setValue={setDeadline} />
+            </div>   
+            <KPIAssignStaff 
+              staffList={staffList} 
+              unit={unit}
+              assignedStaff={assignedStaff}
+              setAssignedStaff={setAssignedStaff}
+              searchStaff={searchStaff}
+              setSearchStaff={setSearchStaff}
+            />
+
             <div
-              style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                width: "100vw",
-                height: "100vh",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "rgba(0,0,0,0.3)",
-                zIndex: 9999,
-              }}
-            >
-              <div className="modal-dialog" style={{ justifyContent: "center", display: "flex" }}>
-                <div className="modal-content">
-                  <div className="modal-header">
-                    <h5 className="modal-title">KPI Created</h5>
-                    <button
-                      type="button"
-                      className="btn-close"
-                      onClick={() => { setShowModal(false); resetForm(); }}
-                    />
-                  </div>
-                  <div className="modal-body">
-                    <p><strong>Title:</strong> {title}</p>
-                    <p><strong>Description:</strong> {description}</p>
-                    <p><strong>Category:</strong> {category}</p>
-                    <p><strong>Target:</strong> {target} {unit}</p>
-                    <p>
-                      <strong>Deadline:</strong>{" "}
-                      {deadline ? deadline.toLocaleDateString() : "—"}
-                    </p>
-                  </div>
-                  <div className="modal-footer">
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => { setShowModal(false); resetForm(); }}
-                    >
-                      OK
-                    </button>
-                  </div>
-                </div>
+                className="d-flex"
+                style={{
+                  marginTop: "20px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",    
+                 gap: "50px",
+                }}>
+                <button
+                  onClick={handleConfirm}
+                 style={{
+                   width:"200px",      
+                   backgroundColor: "#2b4cb3",
+                   color: "#fff",
+                   padding: "10px 20px",
+                   border: "none",
+                   borderRadius: "10px",
+                   fontSize: "14px",
+                   cursor: "pointer"}}>
+                  Confirm</button>
+
+                   {showModal && (
+        <div 
+  className="modal show fade d-block"
+  tabIndex="-1"
+  style={{
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
+    zIndex: 9999
+  }}
+>
+          <div className="modal-dialog" 
+          style={{ 
+            marginTop:"15%",
+            justifyContent: "center",
+            display: "flex"
+            }}>
+            <div className="modal-content">
+
+              <div className="modal-header">
+                <h5 className="modal-title">KPI Created</h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
+                ></button>
               </div>
+
+              <div className="modal-body">
+                <p><strong>Title:</strong> {title}</p>
+                <p><strong>Description:</strong> {description}</p>
+                <p><strong>Category:</strong> {category}</p>
+                <p><strong>Target:</strong> {target} {unit}</p>
+                <p>
+                 <strong>Deadline:</strong>{" "}
+                {deadline ? deadline.toLocaleDateString() : "-"}
+                </p>
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => {
+  setShowModal(false);
+  resetForm();
+}}
+                >
+                  OK
+                </button>
+              </div>
+
             </div>
-          )}
+          </div>
+        </div>
+      )}
+
+              </div>
+
+
         </div>
       </div>
     </div>

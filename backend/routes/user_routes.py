@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Request
+from utils.security import verify_jwt_token
 from models.user_model import ProfileUpdate, PasswordUpdate
 from services.user_service import (
     get_current_user,
     get_all_users,
+    get_all_staff,
     update_profile,
     update_password,
     delete_account
@@ -71,3 +73,7 @@ def delete_user(request: Request):
         "success": True,
         "message": "Account deleted"
     }
+
+@router.get("/staff")
+def get_staff():
+    return get_all_staff()
