@@ -16,7 +16,7 @@ function ProgressCategorySelection({category}) {
 
       <h3 style={{ 
         fontSize:"14px",}}>
-        {category.name}
+        {category?.name || "No category selected"}
       </h3>
 
 

@@ -11,7 +11,7 @@ import StaffRecentActivity from '../components/staff_recent_activity';
 const StaffDashboard = () => {
 
 
-  const API_BASE_URL = import.meta.env.MODE === 'development' ? 'http://localhost:8006' : '';
+  const API_BASE_URL = '';
   
   const [dataMode, setDataMode] = useState(() => {
     return localStorage.getItem("kpiDataMode") || "mock";

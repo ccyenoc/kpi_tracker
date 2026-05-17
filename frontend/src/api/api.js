@@ -1,4 +1,4 @@
-const BASE = import.meta.env.MODE === "development" ? "http://localhost:8006" : "";
+const BASE = "";
 
 function authHeaders() {
   const token = localStorage.getItem("token");
@@ -97,3 +97,8 @@ export const fetchStaffRankings = () =>
     success: true,
     rankings: d.staffRankings || [],
   }));
+
+// ── KPI Status (at-risk and underperformed) ───────────────────────────────────
+export const fetchAtRiskKPIs = () => request("GET", "/api/kpi/at-risk");
+
+export const fetchUnderperformKPIs = () => request("GET", "/api/kpi/underperform");
