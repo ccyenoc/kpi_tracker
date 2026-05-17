@@ -8,6 +8,7 @@ from services.kpi_service import get_weekly_kpi
 
 router = APIRouter()
 
+# generation of weekly report
 @router.get("/report/weekly")
 def weekly_report():
     try:
@@ -122,6 +123,7 @@ def weekly_report():
         print("ERROR:", e)
         return {"error": str(e)}
     
+# generation of monthly report
 @router.get("/report/monthly")
 def monthly_report():
     try:
