@@ -11,6 +11,7 @@ from models.auth_model import EmailVerificationRequest, EmailCodeVerificationReq
 from email.message import EmailMessage
 import re, traceback, secrets, time , os , hashlib, smtplib
 
+
 from dotenv import load_dotenv
 
 VERIFICATION_CODE_TTL_SECONDS = int(

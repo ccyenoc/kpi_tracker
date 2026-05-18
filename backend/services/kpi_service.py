@@ -1,10 +1,24 @@
 from fastapi import HTTPException, status, Request
 from google.cloud.firestore import FieldFilter
 from datetime import datetime
-
+from email.message import EmailMessage
 from config.firebase_config import db
 from firebase_secure import KPI_COLLECTION
 from utils.auth_utils import require_manager
+from typing import List
+from fastapi import UploadFile
+from pathlib import Path
+import uuid
+from utils.auth_utils import require_user
+
+import os , smtplib , threading
+
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() in ("1", "true", "yes", "on")
 
 
 def get_kpis(request: Request):
@@ -76,8 +90,39 @@ def create_kpi(kpi_data, request: Request):
     new_ref.set(doc_data)
 
     doc_data["id"] = new_ref.id
+    
+
+    for user_id in kpi_data.assignedUserIds:
+        user = get_user_info(user_id)
+
+        print("👤 User:", user)
+
+        if user:
+         send_kpi_assignment_email(
+            to_email=user["email"],
+            staff_name=user["name"],
+            kpi_title=kpi_data.title,
+            deadline=kpi_data.deadline
+        )
 
     return {"success": True, "kpi": doc_data}
+
+def get_user_info(user_id):
+    try:
+        doc = db.collection("userData").document(user_id).get()
+
+        if doc.exists:
+            data = doc.to_dict()
+            return {
+                "name": data.get("name"),
+                "email": data.get("email")
+            }
+
+        return None
+
+    except Exception as e:
+        print("USER FETCH ERROR:", e)
+        return None
 
 
 def update_kpi(kpi_id: str, kpi_data, request: Request):
@@ -239,26 +284,182 @@ def get_monthly_kpi():
         raise HTTPException(status_code=500, detail=str(e))
     
 def send_kpi_assignment_email(to_email, staff_name, kpi_title, deadline):
+    if not SMTP_HOST or not SMTP_USER or not SMTP_PASSWORD or not SMTP_FROM:
+        raise HTTPException(
+            status_code=500,
+            detail="SMTP not configured properly"
+        )
+
     msg = EmailMessage()
     msg["Subject"] = f"New KPI Assigned: {kpi_title}"
-    msg["From"] = os.getenv("SMTP_FROM")
+    msg["From"] = SMTP_FROM
     msg["To"] = to_email
 
-    msg.set_content(f"""
-Hi {staff_name},
+    msg.set_content(
+        f"Hi {staff_name},\n\n"
+        f"You have been assigned a new KPI:\n\n"
+        f"Title: {kpi_title}\n"
+        f"Deadline: {deadline}\n\n"
+        f"Please log in to view details.\n\n"
+        f"Best regards,\nKPI System"
+    )
 
-You have been assigned a new KPI:
+    try:
+        print("📩 Connecting to SMTP...")
 
-Title: {kpi_title}
-Deadline: {deadline}
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+            if SMTP_USE_TLS:
+                server.starttls()
 
-Please log in to the system to view details.
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
 
-Best regards,
-KPI System
-""")
+        print("✅ Email sent to", to_email)
 
-    with smtplib.SMTP(os.getenv("SMTP_HOST"), int(os.getenv("SMTP_PORT"))) as server:
-        server.starttls()
-        server.login(os.getenv("SMTP_USER"), os.getenv("SMTP_PASSWORD"))
-        server.send_message(msg)
+    except Exception as e:
+        print("❌ EMAIL ERROR:", e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to send KPI email: {str(e)}"
+        )
+    
+#for the staff submission
+def get_kpi_by_id(kpi_id):
+    doc = db.collection(KPI_COLLECTION).document(kpi_id).get()
+    if doc.exists:
+        return doc.to_dict()
+    return None
+
+async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadFile], request: Request):
+    try:
+        # 🔥 get staff from token
+        decoded = require_user(request)
+        staff_id = decoded.get("user_id")
+
+        staff = get_user_info(staff_id)
+
+        # 🔥 upload files
+        upload_dir = "uploads"
+        os.makedirs(upload_dir, exist_ok=True)
+
+        saved_files = []
+
+        for file in files:
+            if not file.filename:
+                continue
+
+            original_name = Path(file.filename).name
+            stored_name = f"{uuid.uuid4()}_{original_name}"
+            file_path = os.path.join(upload_dir, stored_name)
+
+            content = await file.read()
+
+            with open(file_path, "wb") as f:
+                f.write(content)
+
+            saved_files.append({
+                "originalName": original_name,
+                "storedName": stored_name,
+                "path": file_path.replace("\\", "/")
+            })
+
+        # 🔥 create submission
+        submission_id = str(int(datetime.now().timestamp() * 1000))
+
+        new_submission = {
+            "id": submission_id,
+            "kpiId": kpiId,
+            "current": current,
+            "notes": notes,
+            "files": saved_files,
+            "submittedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "status": "pending",
+            "submittedBy": staff_id
+        }
+
+        db.collection("kpiSubmissions").document(submission_id).set(new_submission)
+        print("🔥 Received KPI ID:", kpiId)
+        print("🔥 KPI doc exists:", get_kpi_by_id(kpiId))
+
+        # 🔥 GET KPI → manager
+        ###################### HARDCODE KPIID FOR EMAIL SENDING TESTING#########################
+        kpi = get_kpi_by_id("9UWLxM7bmLImC3wreUUK")
+
+        if kpi:
+            manager_id = kpi.get("createdBy")
+            manager = get_user_info(manager_id)
+
+            print("👤 Staff:", staff)
+            print("👤 Manager:", manager)
+
+            # 📩 email manager
+            if manager:
+                send_email(
+                    manager["email"],
+                    "New KPI Submission",
+                    f"""
+                        Hi {manager['name']},
+
+                        A new KPI submission has been made.
+
+                        KPI: {kpi.get('title')}
+                        Submitted by: {staff['name'] if staff else 'Staff'}
+                        Current Value: {current}
+
+                        Please review it.
+
+                        KPI System
+                    """
+                )
+
+            # 📩 email staff (confirmation)
+            if staff:
+                send_email(
+                    staff["email"],
+                    "Submission Successful",
+                    f"""
+                    Hi {staff['name']},
+
+                    Your KPI submission has been recorded.
+
+                    KPI: {kpi.get('title')}
+                    Current Value: {current}
+
+                    Thank you.
+
+                    KPI System
+                    """
+                )
+
+        return {
+            "success": True,
+            "message": "Submission saved",
+            "submission": new_submission
+        }
+
+    except Exception as e:
+        print("🔥 ERROR:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+def send_email(to_email, subject, content):
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = SMTP_FROM
+    msg["To"] = to_email
+    msg.set_content(content)
+
+    try:
+        print("📩 Connecting to SMTP...")
+
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+            if SMTP_USE_TLS:
+                server.starttls()
+
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+
+        print("✅ Email sent to", to_email)
+
+    except Exception as e:
+        print("❌ EMAIL ERROR:", e)
+
