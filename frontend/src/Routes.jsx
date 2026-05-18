@@ -1,14 +1,14 @@
-import ManagerDashboard from "./pages/manager-dashboard";
-import StaffDashboard from "./pages/staff-dashboard";
-import KpiManagement from "./pages/kpi-management";
-import VerifyKPI from "./pages/verify-kpi";
-import CreateKPI from "./pages/create-kpi";
-import VerifyKPIDashboard from "./pages/verify-kpi-dashboard";
-import KPIProgressPage from "./pages/kpi-progress";
-import ProfilePage from "./pages/ProfilePage";
-import StaffKPIUpdate from "./pages/staff-kpi-progress-update";
-import UpdateKPI from "./pages/update-kpi";
-import StaffKpiProgressUpdate from "./pages/staff-kpi-progress-update";
+import ManagerDashboard from "./pages/manager/manager-dashboard";
+import StaffDashboard from "./pages/staff/staff-dashboard";
+import KpiManagement from "./pages/manager/kpi-management";
+import VerifyKPI from "./pages/manager/kpi_verification/verify-kpi";
+import CreateKPI from "./pages/manager/kpi_management/create-kpi";
+import VerifyKPIDashboard from "./pages/manager/verify-kpi-dashboard";
+import KPIProgressPage from "./pages/manager/kpi_management/kpi-progress";
+import ProfilePage from "./pages/common/ProfilePage";
+import StaffKPIUpdate from "./pages/staff/staff-kpi-progress-update";
+import UpdateKPI from "./pages/manager/kpi_management/update-kpi";
+import StaffKpiProgressUpdate from "./pages/staff/staff-kpi-progress-update";
 
 export const routes = (role) => {
   const normalizedRole = role?.toLowerCase();

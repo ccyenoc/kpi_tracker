@@ -1,3 +1,4 @@
+//TODO: Change kpis to actual data from backend and put fetching logic here
 export const kpis = [
   {
     id: "kpi_1",
