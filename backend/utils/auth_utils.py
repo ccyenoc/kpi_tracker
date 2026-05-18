@@ -127,3 +127,23 @@ def require_manager(request: Request):
         raise HTTPException(status_code=403, detail="Manager access required")
 
     return decoded
+
+def require_user(request: Request):
+    auth_header = request.headers.get("Authorization")
+
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing Authorization header"
+        )
+
+    token = auth_header.split(" ", 1)[1]
+    decoded = verify_jwt_token(token)
+
+    user_id = decoded.get("user_id")
+
+    user_doc = db.collection(USERDATA_COLLECTION).document(user_id).get()
+    if not user_doc.exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return decoded
