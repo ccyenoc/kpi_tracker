@@ -1,7 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { kpis as mockKpis } from "../../data/kpiData";
-import { activityLogs as mockActivityLogs } from "../../data/activityLog";
-import { submissions as mockSubmissions } from "../../data/submissionData";
 import { useNavigate } from "react-router-dom";
 import DashboardCards from "../../components/common/4x1_cards_layout";
 import StaffMonthlyPerformanceGraph from '../../components/staff/kpi_dashboard/staff_monthly_performance_graph';
@@ -15,18 +12,16 @@ const StaffDashboard = () => {
   // In development, use Vite proxy; in production, use absolute URL
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8006';
   
-  const [dataMode, setDataMode] = useState(() => {
-    return localStorage.getItem("kpiDataMode") || "mock";
-  });
-
-  const [kpis, setKpis] = useState(mockKpis);
-  const [submissions, setSubmissions] = useState(mockSubmissions);
-  const [activityLogs, setActivityLogs] = useState(mockActivityLogs);
+  const [kpis, setKpis] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
+  //TODO: use useAuth instead of fetching user from localStorage again
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem("user");
@@ -36,237 +31,386 @@ const StaffDashboard = () => {
     }
   });
 
-  const currentUserId =
-    dataMode === "mock" ? "user_101" : currentUser?.id || "user_101";
+  const currentUserId = currentUser?.id || currentUser?.user_id || "";
 
   const goUpdate = (kpiId) => {
     navigate(`/staff/kpi/${kpiId}`);
   };
 
-  const useMockData = () => {
-    localStorage.setItem("kpiDataMode", "mock");
-    setDataMode("mock");
-    setKpis(mockKpis);
-    setSubmissions(mockSubmissions);
-    setActivityLogs(mockActivityLogs);
-    setError("");
+  const normalizeSubmissions = (submissionList = []) => {
+    return submissionList.map((submission) => {
+      const fileNames =
+        submission.fileNames ||
+        submission.files?.map((file) => file.originalName || file.name || file.storedName) ||
+        [];
+
+      return {
+        ...submission,
+        fileNames,
+        files: submission.files || [],
+      };
+    });
   };
 
   //TODO: add api url to backend and functions
   //TODO: move fetching logic to kpiData.jsx
-  const useRealData = async () => {
+  const loadDashboardData = async (silent = false) => {
     try {
-      setLoading(true);
-      setError("");
-      localStorage.setItem("kpiDataMode", "real");
-      setDataMode("real");
+      if (!silent) {
+        setLoading(true);
+      }
 
-      const [kpiRes, submissionRes, activityRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/kpi`),
-        fetch(`${API_BASE_URL}/api/kpi/submissions`),
-        fetch(`${API_BASE_URL}/api/activity-logs`)
+      setError("");
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("Please login first before loading dashboard data");
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+      const savedUser = localStorage.getItem("user");
+
+      const [kpiRes, submissionRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/staff/kpi`, {
+          method: "GET",
+          headers,
+        }),
+        fetch(`${API_BASE_URL}/api/staff/kpi/submissions`, {
+          method: "GET",
+          headers,
+        }),
       ]);
 
-      if (!kpiRes.ok) throw new Error("Failed to fetch KPI data");
-      if (!submissionRes.ok) throw new Error("Failed to fetch submission data");
-      if (!activityRes.ok) throw new Error("Failed to fetch activity logs");
+      if (!kpiRes.ok) {
+        const errText = await kpiRes.text();
+        console.error("KPI API error:", kpiRes.status, errText);
+        throw new Error(`Failed to fetch KPI data. Status: ${kpiRes.status}`);
+      }
 
-      const kpiData = await kpiRes.json();
-      const submissionData = await submissionRes.json();
-      const activityData = await activityRes.json();
+      if (!submissionRes.ok) {
+        const errText = await submissionRes.text();
+        console.error("Submission API error:", submissionRes.status, errText);
+        throw new Error(`Failed to fetch submission data. Status: ${submissionRes.status}`);
+      }
 
-      setKpis(kpiData.kpis || []);
-      setSubmissions(submissionData.submissions || []);
-      setActivityLogs(activityData.activityLogs || []);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to load real data");
-    } finally {
-      setLoading(false);
-    }
-  };
+     const kpiData = await kpiRes.json();
+    const submissionData = await submissionRes.json();
 
-  //TODO: use useAuth instead of fetching user from localStorage again
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const token = localStorage.getItem("token");
+    const realKpis = Array.isArray(kpiData)
+      ? kpiData
+      : kpiData.kpis || kpiData.data || [];
 
-        if (!token) {
-          return;
-        }
+    const realSubmissionsRaw = Array.isArray(submissionData)
+      ? submissionData
+      : submissionData.submissions || submissionData.data || [];
 
-        const res = await fetch(`${API_BASE_URL}/api/user`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+    const realSubmissions = normalizeSubmissions(realSubmissionsRaw);
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch current user");
-        }
+    setKpis(realKpis);
+    setSubmissions(realSubmissions);
 
-        const data = await res.json();
-        setCurrentUser(data.user);
+      setActivityLogs([]);
       } catch (err) {
-        console.error(err);
+        console.error("Dashboard load error:", err);
+        setError(err.message || "Failed to load dashboard data");
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchCurrentUser();
-  }, []);
-    
-  const userKpis = kpis
-  .filter(kpi => kpi.assignedUserIds.includes(currentUserId))
-  .map(kpi => {
-    const userData = kpi.kpiAssignments.find(
-      u => u.userId === currentUserId
+   useEffect(() => {
+      loadDashboardData(false);
+    }, []);
+  
+
+    const submissionMap = submissions.reduce((map, submission) => {
+      const key = submission.kpiId;
+      if (!key) return map;
+
+      if (!map[key]) {
+        map[key] = [];
+      }
+
+      map[key].push(submission);
+      return map;
+    }, {});
+      
+    const userKpis = kpis
+    .filter(kpi => {
+      const assignedUserIds = kpi.assignedUserIds || [];
+      const kpiAssignments = kpi.kpiAssignments || [];
+      const assignedUsers = kpi.assignedUsers || [];
+
+      return (
+        assignedUserIds.includes(currentUserId) ||
+        assignedUsers.includes(currentUserId) ||
+        kpi.assignedTo === currentUserId ||
+        kpi.staffId === currentUserId ||
+        kpi.assignedStaffId === currentUserId ||
+        kpiAssignments.some(u => u.userId === currentUserId)
+      );
+    })
+    .map(kpi => {
+      const userData = (kpi.kpiAssignments || []).find(
+        u => u.userId === currentUserId
+      );
+
+      const history = submissionMap[kpi.id] || [];
+
+      const approvedHistory = history.filter(
+        item => item.status === "approved"
+      );
+
+      const latestApprovedUpdate = approvedHistory[approvedHistory.length - 1];
+
+      const currentValue =
+        latestApprovedUpdate?.current ??
+        userData?.current ??
+        kpi.current ??
+        0;
+
+      const targetValue =
+        userData?.target ??
+        kpi.target ??
+        0;
+
+      const progress =
+        targetValue > 0
+          ? Math.min(100, Math.round((Number(currentValue) / Number(targetValue)) * 100))
+          : 0;
+
+      return {
+        ...kpi,
+        current: currentValue,
+        target: targetValue,
+        progress,
+        progressText: `${currentValue} / ${targetValue} ${kpi.unit || ""}`,
+        deadlineText: kpi.deadline
+          ? `${Math.ceil(
+              (new Date(kpi.deadline) - new Date()) / (1000 * 60 * 60 * 24)
+            )} days left`
+          : "No deadline"
+      };
+    });
+
+    const kpiTitleMap = Object.fromEntries(
+      userKpis.map((kpi) => [
+        String(kpi.id),
+        kpi.title || kpi.name || kpi.kpiName || "KPI Activity"
+      ])
     );
 
-    return {
-      ...kpi,
-      progressText: `${userData?.current || 0} / ${userData?.target || 0} ${kpi.unit}`,
-      deadlineText: `${Math.ceil(
-        (new Date(kpi.deadline) - new Date()) / (1000 * 60 * 60 * 24)
-      )} days left`
+    const userActivities = submissions
+      .filter((submission) => {
+        return userKpis.some(
+          (kpi) => String(kpi.id) === String(submission.kpiId)
+        );
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.submittedAt || a.createdAt || a.updatedAt || 0);
+        const dateB = new Date(b.submittedAt || b.createdAt || b.updatedAt || 0);
+        return dateB - dateA;
+      })
+      .slice(0, 5)
+      .map((submission) => {
+        const kpiTitle =
+          kpiTitleMap[String(submission.kpiId)] || "KPI Progress Update";
+
+        const submittedDate =
+          submission.submittedAt || submission.createdAt || submission.updatedAt;
+
+        return {
+          id: submission.id || `${submission.kpiId}-${submittedDate}`,
+          userId: currentUserId,
+          title: `Update - ${kpiTitle}`,
+          description: "Performance update recorded",
+          status: submission.status || "pending",
+
+          // keep raw date, do not use toLocaleString here
+          time: submittedDate,
+          submittedAt: submittedDate,
+          createdAt: submittedDate,
+
+          // optional icon info
+          icon: "📈",
+          iconBg: "#dbeafe"
+        };
+  });
+    const [selectedMonth, setSelectedMonth] = useState(
+      new Date().toLocaleString("default", { month: "short" })
+    );
+
+    const getWeeksInMonth = (month) => {
+    const year = new Date().getFullYear();
+    const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+
+    const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+    const totalWeeks = Math.ceil(lastDay / 7);
+
+    return Array.from({ length: totalWeeks }, (_, i) => `Week ${i + 1}`);
+  };
+
+
+    const getWeekOfMonth = (date) => {
+      const day = date.getDate();
+      return Math.ceil(day / 7);
     };
+
+  const dashboardKpis = userKpis;
+  const totalAssignedKpi = dashboardKpis.length;
+
+  const weeklyMap = {};
+
+  userKpis.forEach(kpi => {
+    const history = submissionMap[kpi.id] || [];
+
+    const sortedHistory = [...history].sort(
+      (a, b) => new Date(a.submittedAt) - new Date(b.submittedAt)
+    );
+
+    const approvedHistory = sortedHistory.filter(
+      item => item.status === "approved"
+    );
+
+    const latestSubmission =
+      approvedHistory[approvedHistory.length - 1] ||
+      sortedHistory[sortedHistory.length - 1];
+
+    if (!latestSubmission) return;
+
+    const date = new Date(latestSubmission.submittedAt);
+    const month = date.toLocaleString("default", { month: "short" });
+    const week = getWeekOfMonth(date);
+
+    const key = `${month}-W${week}`;
+
+    if (!weeklyMap[key]) {
+      weeklyMap[key] = {
+        name: "Average KPI Progress",
+        month,
+        time: `Week ${week}`,
+        kpi: 100,
+        progress: 0,
+        prediction: 0,
+        totalProgressPercent: 0,
+      };
+    }
+
+    const targetVal = Number(kpi.target || 0);
+    const currentVal = Number(kpi.current || 0);
+
+    const progressPercent =
+      targetVal > 0
+        ? Math.min(100, Math.round((currentVal / targetVal) * 100))
+        : 0;
+
+    weeklyMap[key].totalProgressPercent += progressPercent;
   });
 
-  const userActivities = activityLogs
-  .filter(activity => activity.userId === currentUserId)
-  .map(activity => {
+  Object.values(weeklyMap).forEach((item) => {
+    item.kpi = 100;
 
-    return {
-      ...activity,
-      title: activity.meta.kpiTitle 
-    };
+    item.progress =
+      totalAssignedKpi > 0
+        ? Math.round(item.totalProgressPercent / totalAssignedKpi)
+        : 0;
+
+    item.prediction = Math.min(100, item.progress + 5);
   });
+  let graphData;
 
-  const [selectedMonth, setSelectedMonth] = useState(
-  new Date().toLocaleString("default", { month: "short" })
-);
+  if (selectedMonth === "All") {
+    graphData = Object.values(weeklyMap);
+  } else {
+    const weeks = getWeeksInMonth(selectedMonth);
 
-  const getWeeksInMonth = (month) => {
-  const year = new Date().getFullYear();
-  const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+    graphData = weeks.map((weekLabel, index) => {
+      const weekNumber = index + 1;
+      const key = `${selectedMonth}-W${weekNumber}`;
+      const matched = weeklyMap[key];
 
-  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
-  const totalWeeks = Math.ceil(lastDay / 7);
-
-  return Array.from({ length: totalWeeks }, (_, i) => `Week ${i + 1}`);
-};
-
-  const submissionMap = Object.fromEntries(
-  submissions.map(s => [s.kpiId, s])
-);
-
-  const getWeekOfMonth = (date) => {
-  const day = date.getDate();
-  return Math.ceil(day / 7);
-};
-
-const weeklyMap = {};
-
-userKpis.forEach(kpi => {
-  const submission = submissionMap[kpi.id];
-  if (!submission) return;
-
-  const date = new Date(submission.submittedAt);
-  const month = date.toLocaleString("default", { month: "short" });
-  const week = getWeekOfMonth(date);
-
-  const key = `${month}-W${week}`;
-
-  if (!weeklyMap[key]) {
-    weeklyMap[key] = {
-      name: kpi.title,
-      month,
-      time: `Week ${week}`,
-      kpi: 0,
-      progress: 0,
-      prediction: 0
-    };
+      return matched || {
+        name: "Average KPI Progress",
+        month: selectedMonth,
+        time: weekLabel,
+        kpi: 100,
+        progress: 0,
+        prediction: 0
+      };
+    });
   }
 
+    {/*DASHBOARD DATA*/}
+    const totalPercentage = dashboardKpis.reduce((sum, kpi) => {
+      const current = Number(kpi.current || 0);
+      const target = Number(kpi.target || 0);
 
-  const userData = kpi.kpiAssignments.find(u => u.userId === currentUserId);
-  const targetVal = userData?.target || 0;
-  const currentVal = userData?.current || 0;
+      const percentage = target > 0
+        ? Math.min(100, Math.round((current / target) * 100))
+        : 0;
 
-  weeklyMap[key].kpi += targetVal;
-  weeklyMap[key].progress += currentVal;
-  weeklyMap[key].prediction += currentVal + 5;
-});
+      return sum + percentage;
+    }, 0);
 
-let graphData;
+    const completionRate = totalAssignedKpi > 0
+      ? Math.round(totalPercentage / totalAssignedKpi)
+      : 0;
 
-if (selectedMonth === "All") {
-  graphData = Object.values(weeklyMap);
-} else {
-  const weeks = getWeeksInMonth(selectedMonth);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  graphData = weeks.map((weekLabel, index) => {
-    const weekNumber = index + 1;
-    const key = `${selectedMonth}-W${weekNumber}`;
-    const matched = weeklyMap[key];
+    const upcoming = dashboardKpis.filter(k => {
+      if (!k.deadline) return false;
 
-    return matched || {
-      name: "",
-      month: selectedMonth,
-      time: weekLabel,
-      kpi: 0,
-      progress: 0,
-      prediction: 0
-    };
-  });
-}
+      const deadline = new Date(k.deadline);
+      deadline.setHours(0, 0, 0, 0);
 
-  {/*DASHBOARD DATA*/}
-  const total = kpis.length;
-  const completed = kpis.filter(k => k.status === "completed").length;
-  const completionRate = total === 0
-  ? 0
-  : Math.round((completed / total) * 100);
+      const diffDays = (deadline - today) / (1000 * 60 * 60 * 24);
 
-  const today = new Date();
+      return (
+        k.status !== "completed" &&
+        k.progress < 100 &&
+        diffDays >= 0 &&
+        diffDays <= 7
+      );
+    });
 
-  const upcoming = kpis.filter(k => {
-  const deadline = new Date(k.deadline);
-  const diffDays = (deadline - today) / (1000 * 60 * 60 * 24);
+    const highPriority = dashboardKpis.filter(
+      k => (k.priority || "").toLowerCase() === "high"
+    ).length;
 
-  return (
-    k.status !== "completed" &&
-    diffDays >= 0 &&
-    diffDays <= 7
-  );
-});
-
-  const stats = [
-  {
-    title: "Total KPIs",
-    value: kpis.length,
-    subtitle: "All defined KPIs",
-    color: "#3b82f6"
-  },
-  {
-    title: "Completion Rate",
-    value: `${completionRate}%`,
-    subtitle: `${completed} of ${total} completed`,
-    color: "#22c55e"
-  },
-  {
-    title: "Upcoming Deadlines",
-    value: upcoming.length,
-    subtitle: "Due in next 7 days",
-    color: "#facc15"
-  },
-  {
-    title: "High Priority",
-    value: kpis.filter(k => k.priority === "high").length || 0,
-    subtitle: "Requires attention",
-    color: "#ef4444"
-  }
-];
+    const stats = [
+      {
+        title: "Total KPIs",
+        value: totalAssignedKpi,
+        subtitle: "Assigned KPIs",
+        color: "#3b82f6"
+      },
+      {
+        title: "Completion Rate",
+        value: `${completionRate}%`,
+        subtitle: `Average progress of ${totalAssignedKpi} KPIs`,
+        color: "#22c55e"
+      },
+      {
+        title: "Upcoming Deadlines",
+        value: upcoming.length,
+        subtitle: "Due in next 7 days",
+        color: "#facc15"
+      },
+      {
+        title: "High Priority",
+        value: highPriority,
+        subtitle: "Requires attention",
+        color: "#ef4444"
+      }
+    ];  
 
    return (
     <div style={{ backgroundColor: "#ffffff", minHeight: "100vh", width: "100%" }}>
@@ -287,42 +431,15 @@ if (selectedMonth === "All") {
           }}
         >
           <h2 style={{ margin: 0 }}>
-            Welcome back, {dataMode === "mock" ? "John" : currentUser?.name || "Staff"}!
+            Welcome back, {currentUser?.name || "Staff"}!
           </h2>
         </div>
 
-        <div style={{ padding: "0 20px 20px 20px", display: "flex", gap: "10px", alignItems: "center" }}>
-          <button
-            onClick={useMockData}
-            style={{
-              padding: "10px 16px",
-              borderRadius: "8px",
-              border: "none",
-              cursor: "pointer",
-              backgroundColor: dataMode === "mock" ? "#3b82f6" : "#e5e7eb",
-              color: dataMode === "mock" ? "#ffffff" : "#111827"
-            }}
-          >
-            Use Mock Data
-          </button>
-
-          <button
-            onClick={useRealData}
-            style={{
-              padding: "10px 16px",
-              borderRadius: "8px",
-              border: "none",
-              cursor: "pointer",
-              backgroundColor: dataMode === "real" ? "#22c55e" : "#e5e7eb",
-              color: dataMode === "real" ? "#ffffff" : "#111827"
-            }}
-          >
-            Use Real Data
-          </button>
-
-          {loading && <span>Loading real data...</span>}
+        <div style={{ padding: "0 20px 20px 20px" }}>
+          {loading && <span>Loading dashboard data...</span>}
           {error && <span style={{ color: "red" }}>{error}</span>}
         </div>
+
 
         {/*top 4 cards*/}
         <div style={{ position: "relative" }}>
