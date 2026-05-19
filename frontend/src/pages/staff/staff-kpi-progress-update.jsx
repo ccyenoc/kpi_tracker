@@ -354,12 +354,6 @@ const StaffKPIUpdate = () => {
         throw new Error("Please login first before updating KPI progress");
       }
 
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        throw new Error("Please login first before updating KPI progress");
-      }
-
       const response = await fetch(`${API_BASE_URL}/api/kpi/update`, {
         method: "POST",
         headers: {
