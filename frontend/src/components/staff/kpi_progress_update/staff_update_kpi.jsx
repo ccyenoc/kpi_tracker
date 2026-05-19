@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { kpiService } from "../../../services/kpiService";
 
 const UpdateKpiModal = ({ kpi, onClose, onSubmit, history = []}) => {
   const [currentValue, setCurrentValue] = useState("");
@@ -84,29 +85,17 @@ const handleSubmit = async () => {
       formData.append("files", file);
     });
 
-    //TODO: move API call to separate file
-    const res = await fetch("http://localhost:8000/api/kpi/update", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`
-      },
-      body: formData
-    });
+    const data = await kpiService.staffUpdateKPI(formData);
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.detail || "Submission failed");
-    }
-
-    console.log("✅ Submission success:", data);
-
+    //TODO: change to modal alert
     alert("Submission successful!");
 
     onClose();
 
   } catch (err) {
-    console.error(err);
+    console.error("Error submitting KPI update:", err);
+
+    //TODO: change to modal alert
     alert(err.message);
   }
 };

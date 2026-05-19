@@ -1,3 +1,5 @@
+import { kpiService } from "../../../services/kpiService";
+
 function ExportBar() {
   console.log("ExportBar loaded");
 
@@ -12,27 +14,24 @@ function ExportBar() {
   };
 
   const weeklyReport = async () => {
-  //TODO: move API call to separate file
-  try {
-    const response = await fetch("/api/report/weekly");
-    
-    
+    try {
+      const response = await kpiService.getWeeklyKPIReport();
 
-    if (!response.ok) throw new Error("Download Failed!");
+      if (!response.ok) throw new Error("Download Failed!");
 
-    const blob = await response.blob();
-    console.log("API DATA:", blob);
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "weekly_report.pdf";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } catch (err) {
-    console.log("ERROR:", err);
-  }
-};
+      const blob = await response.blob();
+      console.log("API DATA:", blob);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "weekly_report.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      console.log("ERROR:", err);
+    }
+  };
 
   return (
     <div

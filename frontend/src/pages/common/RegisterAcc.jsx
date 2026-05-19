@@ -85,28 +85,15 @@ const RegisterAcc = () => {
         }
 
         setIsSendingCode(true);
-        //TODO: move API calls to a separate file
+        
         try {
-            const response = await fetch(`${API_BASE_URL}/api/verify-email`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                const message = data.detail || data.message || 'Failed to send verification code';
-                setErrorMessage(message);
-                setShowErrorModal(true);
-                return;
-            }
+            const data = await authService.sendVerificationCode(email);
 
             setVerificationStatus('Verification code sent. Please check your email.');
             setIsEmailVerified(false);
         } catch (error) {
             console.error('Verification email error:', error);
-            setErrorMessage('Failed to send verification code. Please try again.');
+            setErrorMessage(error.message || 'Failed to send verification code. Please try again.');
             setShowErrorModal(true);
         } finally {
             setIsSendingCode(false);
@@ -132,28 +119,15 @@ const RegisterAcc = () => {
         }
 
         setIsVerifyingCode(true);
-        //TODO: move API calls to a separate file
+        
         try {
-            const response = await fetch(`${API_BASE_URL}/api/verify-code`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, code })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                const message = data.detail || data.message || 'Failed to verify code';
-                setErrorMessage(message);
-                setShowErrorModal(true);
-                return;
-            }
+            const data = await authService.verifyCode(email, code);
 
             setIsEmailVerified(true);
             setVerificationStatus('Email verified successfully. You can continue signup.');
         } catch (error) {
             console.error('Verify code error:', error);
-            setErrorMessage('Failed to verify code. Please try again.');
+            setErrorMessage(error.message || 'Failed to verify code. Please try again.');
             setShowErrorModal(true);
         } finally {
             setIsVerifyingCode(false);
@@ -233,38 +207,18 @@ const RegisterAcc = () => {
             department: formData.department
         };
 
-        //TODO: move registration API call to a Auth
         try {
-            const response = await fetch(`${API_BASE_URL}/api/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            const data = await authService.register(payload);
 
-            const data = await response.json();
-
-            if (data.success) {
                 setSuccessMessage("Account created successfully! You can now log in.");
                 setShowSuccessModal(true);
                 setTimeout(() => {
                     window.location.href = '/signin';
                 }, 2000);
-            } else {
-                // Email already exists
-                if (
-                    data.detail &&
-                    data.detail.toLowerCase().includes("email")
-                ) {
-                    setErrorMessage("Email already registered");
-                } else {
-                    setErrorMessage(`Registration failed: ${data.detail || 'Please try again'}`);
-                }
-                setShowErrorModal(true);
-            }
 
         } catch (error) {
-            console.error("Registration error:", error);
-            setErrorMessage("Registration failed. Please check your connection.");
+            console.error("Registration failed: ", error);
+            setErrorMessage(error.message || "Registration failed. Please check your connection.");
             setShowErrorModal(true);
         }
     };

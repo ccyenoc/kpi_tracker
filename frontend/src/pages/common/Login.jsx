@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Login.css';
 import logo from "../../assets/achievepro.png";
+import { authService } from '../../services/authService';
 
 // In development, use Vite proxy; in production, use absolute URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8006';
@@ -39,50 +40,17 @@ const Login = () => {
             return;
         }
 
-        //TODO: move fetching to auth
         try {
-            const response = await fetch(`${API_BASE_URL}/api/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(credentials)
-            });
+            const data = await authService.login(credentials);
 
-            const data = await response.json();
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
 
-            if (data.success) {
-                // Save login info
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-
-                window.location.href = data.dashboard;
-
-            } else {
-                // Valid email + wrong password
-                if (
-                    data.detail &&
-                    data.detail.toLowerCase().includes("authentication")
-                ) {
-                    setErrorMessage("Authentication record not found");
-                }
-
-                // Email not exist
-                else if (
-                    data.detail &&
-                    data.detail.toLowerCase().includes("invalid")
-                ) {
-                    setErrorMessage("Invalid email or password");
-                }
-
-                else {
-                    setErrorMessage("Invalid email or password");
-                }
-            }
+            window.location.href = data.dashboard;
 
         } catch (error) {
             console.error('Login error:', error);
-            setErrorMessage("Authentication record not found");
+            setErrorMessage(error.message || "Authentication record not found");
         }
     };
 

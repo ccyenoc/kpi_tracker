@@ -21,18 +21,19 @@ function Sidebar() {
         staff: "Staff",
     };
 
-    //TODO: move logout logic to auth, backend no /api/logout route yet
     const handleLogout = async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (token) {
-                await fetch('/api/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-            }
+            // No need to call API for logout since we're using token-based auth
+            // Backend also no /api/logout url, so we just clear localStorage and redirect
+            // const token = localStorage.getItem('token');
+            // if (token) {
+            //     await fetch('/api/logout', {
+            //         method: 'POST',
+            //         headers: {
+            //             'Authorization': `Bearer ${token}`
+            //         }
+            //     });
+            // }
             // Clear localStorage and redirect to login
             localStorage.removeItem('token');
             localStorage.removeItem('user');

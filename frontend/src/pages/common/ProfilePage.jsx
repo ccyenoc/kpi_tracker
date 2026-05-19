@@ -4,6 +4,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './ProfilePage.css';
 import PageTitle from '../../components/common/page_title';
 import { useAuth } from '../../Auth';
+import { userService } from '../../services/userService';
 
 const ProfilePage = () => {
     const { user } = useAuth();
@@ -14,11 +15,11 @@ const ProfilePage = () => {
     const [phone, setPhone] = useState('');
     const [activeTab, setActiveTab] = useState('profile');
     const [showConfirm, setShowConfirm] = useState(false);
-    
+
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    
+
     const [successMsg, setSuccessMsg] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [loading, setLoading] = useState(false);
@@ -43,7 +44,6 @@ const ProfilePage = () => {
         }
     }, [user]);
 
-    //TODO: move API call to separate file
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
         setSuccessMsg('');
@@ -51,36 +51,25 @@ const ProfilePage = () => {
         setLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
-            if (!token) throw new Error('Not authenticated');
+            const profileData = {
+                name: fullName,
+                phone: phone,
+                department: department
+            };
+            const data = await userService.updateProfile(profileData);
 
-            const response = await fetch('/api/profile', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ name: fullName, phone: phone, department: department })
-            });
+            localStorage.setItem('user', JSON.stringify(data.user));
+            setSuccessMsg('Profile updated successfully!');
+            setTimeout(() => setSuccessMsg(''), 3000);
 
-            const data = await response.json();
-
-            if (data.success) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setSuccessMsg('Profile updated successfully!');
-                setTimeout(() => setSuccessMsg(''), 3000);
-            } else {
-                setErrorMsg(data.detail || 'Failed to update profile');
-            }
         } catch (error) {
             console.error('Profile update error:', error);
-            setErrorMsg('Failed to update profile. Please try again.');
+            setErrorMsg(error.message || 'Failed to update profile. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
-    //TODO: move API call to separate file
     const handleUpdatePassword = async (e) => {
         e.preventDefault();
         setSuccessMsg('');
@@ -99,36 +88,22 @@ const ProfilePage = () => {
         setLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
-            if (!token) throw new Error('Not authenticated');
+            const passwordData = {
+                current_password: currentPassword,
+                new_password: newPassword,
+                confirm_password: confirmPassword
+            };
+            const data = await userService.updatePassword(passwordData);
 
-            const response = await fetch('/api/password', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    currentPassword: currentPassword,
-                    newPassword: newPassword,
-                    confirmPassword: confirmPassword
-                })
-            });
+            setSuccessMsg('Password updated successfully!');
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+            setTimeout(() => setSuccessMsg(''), 3000);
 
-            const data = await response.json();
-
-            if (data.success) {
-                setSuccessMsg('Password updated successfully!');
-                setCurrentPassword('');
-                setNewPassword('');
-                setConfirmPassword('');
-                setTimeout(() => setSuccessMsg(''), 3000);
-            } else {
-                setErrorMsg(data.detail || 'Failed to update password');
-            }
         } catch (error) {
             console.error('Password update error:', error);
-            setErrorMsg('Failed to update password. Please try again.');
+            setErrorMsg(error.message || 'Failed to update password. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -139,32 +114,20 @@ const ProfilePage = () => {
         setShowConfirm(true);
     };
 
-    //TODO: move API call to separate file
     const confirmDeleteAccount = async () => {
         setShowConfirm(false);
         setLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
-            if (!token) throw new Error('Not authenticated');
+            const data = await userService.deleteAccount();
 
-            const response = await fetch('/api/profile', {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/signin';
 
-            const data = await response.json();
-
-            if (data.success) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/signin';
-            } else {
-                setErrorMsg(data.detail || 'Failed to delete account');
-            }
         } catch (error) {
             console.error('Account deletion error:', error);
-            setErrorMsg('Failed to delete account. Please try again.');
+            setErrorMsg(error.message || 'Failed to delete account. Please try again.');
         } finally {
             setLoading(false);
         }

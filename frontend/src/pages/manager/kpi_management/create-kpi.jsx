@@ -6,6 +6,8 @@ import TargetKPISelection from "../../../components/manager/common/target_kpi"
 import Deadline from "../../../components/manager/common/deadline"
 import KPIAssignStaff from "../../../components/manager/common/kpi_assign_staff"
 import Description from "../../../components/manager/common/description";
+import { userService } from "../../../services/userService";
+import { kpiService } from "../../../services/kpiService";
 
 function CreateKPI() {
   const [category, setCategory] = useState("")
@@ -81,42 +83,25 @@ function CreateKPI() {
 
     setErrorMessage("");
 
-    // TODO: Move to kpiData.js and import from there
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/api/manager/kpi`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          categoryId: category,
-          categoryName: category,
-
-          target: Number(target),
-          unit,
-          frequency: "monthly",
-
-          deadline: deadline.toISOString(),
-
-          assignedUserIds: assignedStaff.map(s => s.id),
-
-          kpiAssignments: assignedStaff.map(s => ({
-            userId: s.id,
-            current: 0,
-            target: s.kpi || Number(target)
-          }))
-        })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || "Failed to create KPI");
-      }
+      const createFormData = {
+        title: title,
+        description: description,
+        categoryId: category,
+        categoryName: category,
+        target: Number(target),
+        unit: unit,
+        frequency: "monthly",
+        deadline: deadline.toISOString(),
+        assignedUserIds: assignedStaff.map(s => s.id),
+        kpiAssignments: assignedStaff.map(s => ({
+          userId: s.id,
+          current: 0,
+          target: s.kpi || Number(target)
+        }))
+      };
+      const data = await kpiService.createKPI(createFormData);
 
       console.log("KPI CREATED:", data);
 
@@ -129,9 +114,8 @@ function CreateKPI() {
     }
   };
 
-  // TODO: Move to staffData.js and import from there
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/staff`)
+    userService.getAllStaff()
       .then(async res => {
         if (!res.ok) {
           const text = await res.text();

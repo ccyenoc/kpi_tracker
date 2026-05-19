@@ -52,6 +52,7 @@ const StaffDashboard = () => {
     setError("");
   };
 
+  //TODO: add api url to backend and functions
   //TODO: move fetching logic to kpiData.jsx
   const useRealData = async () => {
     try {
@@ -276,7 +277,7 @@ if (selectedMonth === "All") {
           flexDirection: "column",
         }}
       >
-        {/* welcome message */}
+        {/* TODO: Change to use PageTitle Component */}
         <div 
           style={{ 
             padding: "20px",
