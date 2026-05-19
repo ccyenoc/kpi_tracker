@@ -21,7 +21,7 @@ function CreateKPI() {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8006';
 
   const resetForm = () => {
     setTitle("");
@@ -84,7 +84,7 @@ function CreateKPI() {
     // TODO: Move to kpiData.js and import from there
     try {
       setLoading(true);
-      const res = await fetch(`${VITE_API_BASE_URL}/api/manager/kpi`, {
+      const res = await fetch(`${API_BASE_URL}/api/manager/kpi`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -131,7 +131,7 @@ function CreateKPI() {
 
   // TODO: Move to staffData.js and import from there
   useEffect(() => {
-    fetch(`${VITE_API_BASE_URL}/api/staff`)
+    fetch(`${API_BASE_URL}/api/staff`)
       .then(async res => {
         if (!res.ok) {
           const text = await res.text();

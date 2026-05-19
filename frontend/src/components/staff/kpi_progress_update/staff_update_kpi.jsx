@@ -84,6 +84,7 @@ const handleSubmit = async () => {
       formData.append("files", file);
     });
 
+    //TODO: move API call to separate file
     const res = await fetch("http://localhost:8000/api/kpi/update", {
       method: "POST",
       headers: {

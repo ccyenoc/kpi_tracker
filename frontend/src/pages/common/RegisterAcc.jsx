@@ -5,7 +5,7 @@ import './RegisterAcc.css';
 import logo from "../../assets/achievepro.png";
 
 // In development, use Vite proxy; in production, use absolute URL
-const API_BASE_URL = import.meta.env.MODE === 'development' ? '' : 'http://localhost:8006';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8006';
 
 const RegisterAcc = () => {
     const [formData, setFormData] = useState({
@@ -85,6 +85,7 @@ const RegisterAcc = () => {
         }
 
         setIsSendingCode(true);
+        //TODO: move API calls to a separate file
         try {
             const response = await fetch(`${API_BASE_URL}/api/verify-email`, {
                 method: 'POST',
@@ -131,6 +132,7 @@ const RegisterAcc = () => {
         }
 
         setIsVerifyingCode(true);
+        //TODO: move API calls to a separate file
         try {
             const response = await fetch(`${API_BASE_URL}/api/verify-code`, {
                 method: 'POST',
@@ -231,6 +233,7 @@ const RegisterAcc = () => {
             department: formData.department
         };
 
+        //TODO: move registration API call to a Auth
         try {
             const response = await fetch(`${API_BASE_URL}/api/register`, {
                 method: 'POST',

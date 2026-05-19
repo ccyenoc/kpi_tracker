@@ -13,7 +13,7 @@ const StaffDashboard = () => {
   {/*DATA*/}
   {/*MOCK USER*/}
   // In development, use Vite proxy; in production, use absolute URL
-  const API_BASE_URL = import.meta.env.MODE === 'development' ? '' : 'http://127.0.0.1:8006';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8006';
   
   const [dataMode, setDataMode] = useState(() => {
     return localStorage.getItem("kpiDataMode") || "mock";
@@ -52,6 +52,7 @@ const StaffDashboard = () => {
     setError("");
   };
 
+  //TODO: move fetching logic to kpiData.jsx
   const useRealData = async () => {
     try {
       setLoading(true);
@@ -84,6 +85,7 @@ const StaffDashboard = () => {
     }
   };
 
+  //TODO: use useAuth instead of fetching user from localStorage again
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {

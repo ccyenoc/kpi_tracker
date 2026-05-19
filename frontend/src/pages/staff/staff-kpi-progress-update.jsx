@@ -15,7 +15,7 @@ const StaffKPIUpdate = () => {
   const { kpiId } = useParams();
   
   // In development, use Vite proxy; in production, use absolute URL
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8006';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8006';
 
 const groupSubmissionsByKpi = (submissionList = []) => {
   const groupedHistory = {};
@@ -44,6 +44,7 @@ const groupSubmissionsByKpi = (submissionList = []) => {
     groupSubmissionsByKpi(mockSubmissions)
   );
 
+  //TODO: change to use useAuth
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem("user");
@@ -152,6 +153,7 @@ const groupSubmissionsByKpi = (submissionList = []) => {
     setError("");
   };
 
+  //TODO: move fetching logic to kpiData.jsx
   const useRealData = async () => {
     try {
       setLoading(true);
@@ -190,6 +192,7 @@ const groupSubmissionsByKpi = (submissionList = []) => {
     }
   };
 
+  //TODO: use useAuth instead of fetching user from localStorage again
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
@@ -307,6 +310,7 @@ const groupSubmissionsByKpi = (submissionList = []) => {
         formData.append("files", file);
       });
 
+      //TODO: move fetching logic to kpiData.jsx
       const response = await fetch(`${API_BASE_URL}/api/kpi/update`, {
         method: "POST",
         body: formData,

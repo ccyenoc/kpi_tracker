@@ -4,7 +4,7 @@ import './Login.css';
 import logo from "../../assets/achievepro.png";
 
 // In development, use Vite proxy; in production, use absolute URL
-const API_BASE_URL = import.meta.env.MODE === 'development' ? '' : 'http://localhost:8006';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8006';
 
 const Login = () => {
 
@@ -39,6 +39,7 @@ const Login = () => {
             return;
         }
 
+        //TODO: move fetching to auth
         try {
             const response = await fetch(`${API_BASE_URL}/api/login`, {
                 method: 'POST',

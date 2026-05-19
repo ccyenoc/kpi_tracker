@@ -43,6 +43,7 @@ const ProfilePage = () => {
         }
     }, [user]);
 
+    //TODO: move API call to separate file
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
         setSuccessMsg('');
@@ -79,6 +80,7 @@ const ProfilePage = () => {
         }
     };
 
+    //TODO: move API call to separate file
     const handleUpdatePassword = async (e) => {
         e.preventDefault();
         setSuccessMsg('');
@@ -137,6 +139,7 @@ const ProfilePage = () => {
         setShowConfirm(true);
     };
 
+    //TODO: move API call to separate file
     const confirmDeleteAccount = async () => {
         setShowConfirm(false);
         setLoading(true);

@@ -12,6 +12,7 @@ function ExportBar() {
   };
 
   const weeklyReport = async () => {
+  //TODO: move API call to separate file
   try {
     const response = await fetch("/api/report/weekly");
     
