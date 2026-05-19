@@ -17,17 +17,17 @@ label {
     text-align: left;
 }
 
-.input-full-name, .input-email, .form-select, .form-control {
+.input-full-name, .input-phone, .form-select, .form-control {
     outline: none;
     border: none;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 2px solid #ddd;
     border-radius: 0 ;
     padding: 8px 0 ;
     width: 100%;
     background: transparent;
 }
 
-.input-full-name:focus, .form-select:focus, .input-email:focus, .form-control:focus {
+.input-full-name:focus, .input-phone:focus, .form-select:focus, .form-control:focus {
     outline: none;
     border-bottom: 2px solid #2c3e9a;
     box-shadow: none;
@@ -120,7 +120,7 @@ input {
 .input-underline {
     width: 100%;
     border: none;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 2px solid #dee2e6;
     padding: 8px;
     margin-bottom: 1.5rem;
     outline: none;

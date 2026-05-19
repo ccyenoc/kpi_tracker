@@ -185,15 +185,15 @@ const ProfilePage = () => {
                         </div>
                         <div className="email">
                             <label className="email-label" style={{ fontSize: "16px" }}>Email</label>
-                            <input type="email" className="input-email" value={email} disabled />
+                            <input type="email" className="form-control border-0 bg-transparent shadow-none" value={email} disabled />
                         </div>
                         <div className="role">
-                            <label className="role-label">Role</label>
+                            <label className="role-label" style={{ fontSize: "16px"}}>Role</label>
                             <input type="text" className="form-control border-0 bg-transparent shadow-none" value={role} disabled style={{ fontSize: "16px" }} />
                         </div>
                         <div className="department">
                             <label className="department-label" style={{ fontSize: "16px" }}>Department</label>
-                            <select className="form-select border-0 bg-transparent shadow-none" value={department} onChange={(e) => setDepartment(e.target.value)} style={{ fontSize: "16px" }}>
+                            <select className="form-select border-0 border-bottom bg-transparent shadow-none" value={department} onChange={(e) => setDepartment(e.target.value)} style={{ fontSize: "16px" }}>
                                 <option value="">Select Department</option>
                                 <option value="hr">HR</option>
                                 <option value="it">IT</option>
@@ -203,7 +203,7 @@ const ProfilePage = () => {
                         </div>
                         <div className="phone">
                             <label className="phone-label" style={{ fontSize: "16px" }}>Phone</label>
-                            <input type="tel" className="form-control border-0 bg-transparent shadow-none" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ fontSize: "16px" }} />
+                            <input type="tel" className="input-phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ fontSize: "16px" }} />
                         </div>
                         <button className="btn-update-profile" type="submit" disabled={loading}>
                             {loading ? 'Updating...' : 'Update Profile'}
