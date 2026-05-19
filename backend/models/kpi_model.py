@@ -4,8 +4,8 @@ from typing import Optional, List
 
 class KPIAssignment(BaseModel):
     userId: str
-    current: int
-    target: int
+    current: float = 0
+    target: float
 
 
 class KPICreate(BaseModel):
