@@ -3,6 +3,8 @@ from models.kpi_model import KPICreate, KPIUpdate
 from services.kpi_service import (
     get_kpis,
     get_kpi,
+    get_staff_kpis,
+    get_staff_kpi_submissions,
     create_kpi,
     update_kpi,
     delete_kpi,
@@ -37,6 +39,10 @@ def update(kpi_id: str, kpi_data: KPIUpdate, request: Request):
 def delete(kpi_id: str, request: Request):
     return delete_kpi(kpi_id, request)
 
+@router.get("/staff/kpi")
+def view_staff_kpis(request: Request):
+    return get_staff_kpis(request)
+
 @router.post("/kpi/update")
 async def update_kpi_progress(
     kpiId: str = Form(...),
@@ -46,3 +52,7 @@ async def update_kpi_progress(
     request: Request = None
 ):
     return await update_kpi_progress_service(kpiId, current, notes, files, request)
+
+@router.get("/staff/kpi/submissions")
+def view_staff_kpi_submissions(request: Request):
+    return get_staff_kpi_submissions(request)
