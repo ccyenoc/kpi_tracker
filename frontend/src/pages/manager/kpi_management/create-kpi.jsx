@@ -116,18 +116,13 @@ function CreateKPI() {
 
   useEffect(() => {
     userService.getAllStaff()
-      .then(async res => {
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text);
-        }
-        return res.json();
-      })
       .then(data => {
         console.log("STAFF:", data);
         setStaffList(data);
-      })
-      .catch(err => console.log("Error fetching staff:", err));
+    })
+    .catch(err => {
+        console.error("Error fetching staff:", err.message); 
+    });
   }, []);
 
   return (

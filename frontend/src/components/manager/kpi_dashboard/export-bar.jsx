@@ -15,12 +15,9 @@ function ExportBar() {
 
   const weeklyReport = async () => {
     try {
-      const response = await kpiService.getWeeklyKPIReport();
-
-      if (!response.ok) throw new Error("Download Failed!");
-
-      const blob = await response.blob();
+      const blob = await kpiService.getWeeklyKPIReport();
       console.log("API DATA:", blob);
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -28,6 +25,8 @@ function ExportBar() {
       document.body.appendChild(a);
       a.click();
       a.remove();
+
+      window.URL.revokeObjectURL(url); // clean up the URL object
     } catch (err) {
       console.log("ERROR:", err);
     }

@@ -37,7 +37,7 @@ export const authService = {
         const data = await response.json();
 
         if(!data.success) {
-            const errorMsg = `${data.detail || 'Please try again'}`;
+            let errorMsg = `${data.detail || 'Please try again'}`;
             if (data.detail && data.detail.toLowerCase().includes("email")) {
                 errorMsg = "Email already registered.";
             }

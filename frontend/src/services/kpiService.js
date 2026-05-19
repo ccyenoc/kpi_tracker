@@ -46,6 +46,16 @@ export const kpiService = {
     },
 
     getWeeklyKPIReport: async () => {
-        return await fetch(`${API_BASE_URL}/api/report/weekly`);
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/api/report/weekly`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Download Failed!');
+        }
+
+        return await response.blob();
     }
 };

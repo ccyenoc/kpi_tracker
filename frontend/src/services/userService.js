@@ -66,6 +66,15 @@ export const userService = {
     },
 
     getAllStaff: async () => {
-        return await fetch(`${API_BASE_URL}/api/staff`);
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/api/staff`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.detail || 'Failed to fetch staff list');
+        
+        return data;
     }
 };
