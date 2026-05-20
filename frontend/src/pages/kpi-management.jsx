@@ -82,7 +82,8 @@ function KPIManagement() {
     const matchCategory =
       filterCategory === "" ||
       kpi.categoryId === filterCategory ||
-      kpi.category === filterCategory;
+      kpi.category === filterCategory ||
+      kpi.categoryName === filterCategory;
 
     const matchStatus =
       filterStatus === "" || kpi.status === filterStatus;
@@ -147,8 +148,9 @@ function KPIManagement() {
             setFilterCategory={setFilterCategory}
             filterStatus={filterStatus}
             setFilterStatus={setFilterStatus}
+            users={users}
           />
-          <KPIAssignedListCard data={filteredKPIs} />
+          <KPIAssignedListCard data={filteredKPIs} users={users} />
         </>
       )}
     </div>

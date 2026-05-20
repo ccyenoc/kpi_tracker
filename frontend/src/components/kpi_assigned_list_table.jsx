@@ -3,11 +3,42 @@ import KPIProgressPage from "../pages/kpi-progress";
 import { STATUS_CONFIG } from "../config/statusConfig";
 import { pathway } from "../Pathway";
 {/*import mock data*/ }
-import { users } from "../data/userData";
+import { users as mockUsers } from "../data/userData";
 import { categories } from "../data/categoriesData";
 
-function KPIAssignedListTable({ data }) {
+function KPIAssignedListTable({ data, users = [] }) {
   const navigate = useNavigate();
+  
+  // Use passed users, fall back to mock if needed
+  const usersList = users && users.length > 0 ? users : mockUsers;
+
+  // Color mapping for categories based on their names
+  const categoryColorMap = {
+    "sales": "#639fff",
+    "lead": "#7ef203",
+    "property": "#fff200",
+    "marketing": "#df93ff",
+    "customer": "#ff67e386",
+    "Sales Performance": "#639fff",
+    "Lead Generation": "#7ef203",
+    "Property Management": "#fff200",
+    "Marketing Performance": "#df93ff",
+    "Customer Experience": "#ff67e386",
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "No deadline";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", { 
+        year: "numeric", 
+        month: "short", 
+        day: "numeric" 
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
 
   const headerStyle = {
     display: "flex",
@@ -68,7 +99,16 @@ function KPIAssignedListTable({ data }) {
       {data.map((item, index) => {
         const config = STATUS_CONFIG[item.status];
 
-        const category = categories.find(c => c.id === item.categoryId);
+        // Use categoryName from backend, with fallback logic
+        const categoryName = item.categoryName || 
+          (categories.find(c => c.id === item.categoryId)?.name) || 
+          "Unknown";
+        
+        // Get color from the mapping, with fallback
+        const categoryColor = categoryColorMap[categoryName] || 
+          categoryColorMap[item.categoryId] ||
+          categories.find(c => c.name === categoryName || c.id === item.categoryId)?.color || 
+          "#e5e7eb";
 
         return (
           <div
@@ -105,9 +145,17 @@ function KPIAssignedListTable({ data }) {
               style={{
                 flex: 2
               }}>{
-                item.assignedUserIds
-                  .map(id => users.find(u => u.id === id)?.name)
-                  .join(", ")
+                (item.assignedUserIds && item.assignedUserIds.length > 0)
+                  ? item.assignedUserIds
+                      .map(id => usersList.find(u => u.id === id)?.name || `User ${id}`)
+                      .filter(name => name)
+                      .join(", ")
+                  : (item.kpiAssignments && item.kpiAssignments.length > 0)
+                  ? item.kpiAssignments
+                      .map(assign => usersList.find(u => u.id === assign.userId)?.name || `User ${assign.userId}`)
+                      .filter(name => name)
+                      .join(", ")
+                  : "Unassigned"
               }</div>
 
             {/* Category */}
@@ -117,20 +165,20 @@ function KPIAssignedListTable({ data }) {
               }}>
               <span
                 style={{
-                  background: category?.color || "#e5e7eb",
+                  background: categoryColor,
                   padding: "4px 10px",
                   borderRadius: "10px",
                   fontSize: "12px"
                 }}
               >
-                {category?.name || "Unknown"}
+                {categoryName}
               </span>
             </div>
 
             <div
               style={{
                 flex: 1
-              }}>{item.deadline}</div>
+              }}>{formatDate(item.deadline)}</div>
 
             {/* Status */}
             <div

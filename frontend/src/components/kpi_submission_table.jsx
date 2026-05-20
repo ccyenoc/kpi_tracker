@@ -1,12 +1,22 @@
 import {useNavigate} from "react-router-dom"
+import { useState } from "react";
 import { pathway } from "../Pathway";
 {/*import data*/}
-import { users } from "../data/userData";
-import { kpis } from "../data/kpiData";
-import { categories } from "../data/categoriesData";
+import { users as mockUsers } from "../data/userData";
+import { kpis as mockKpis } from "../data/kpiData";
+import { categories as mockCategories } from "../data/categoriesData";
 
-function KPISubmissionTable({submissions}) {
+function KPISubmissionTable({submissions, users = [], kpis = [], categories = [], onSubmissionUpdated = null}) {
   const navigate = useNavigate();
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [comments, setComments] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Use passed data, fallback to mock data
+  const usersList = users && users.length > 0 ? users : mockUsers;
+  const kpisList = kpis && kpis.length > 0 ? kpis : mockKpis;
+  const categoriesList = categories && categories.length > 0 ? categories : mockCategories;
 
   const headerStyle = {
     display: "flex",
@@ -31,6 +41,9 @@ function KPISubmissionTable({submissions}) {
       Completed: "#bbf7d0",
       Pending: "#fde68a",
       Rejected: "#fecaca",
+      approved: "#bbf7d0",
+      pending: "#fde68a",
+      rejected: "#fecaca",
     };
 
     return {
@@ -41,16 +54,70 @@ function KPISubmissionTable({submissions}) {
     };
   };
 
+  const handleApprove = async (submission) => {
+    setSelectedSubmission(submission);
+    setComments("");
+    setShowModal(true);
+  };
+
+  const handleReject = async (submission) => {
+    setSelectedSubmission(submission);
+    setComments("");
+    setShowModal(true);
+  };
+
+  const submitVerification = async (status) => {
+    if (!selectedSubmission) return;
+    
+    setIsProcessing(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/kpi/verify-submission", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          submissionId: selectedSubmission.id,
+          kpiId: selectedSubmission.kpiId,
+          status: status,
+          comments: comments,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`Submission ${status} successfully!`);
+        setShowModal(false);
+        setSelectedSubmission(null);
+        setComments("");
+        // Callback to refresh submissions list
+        if (onSubmissionUpdated) {
+          onSubmissionUpdated();
+        }
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (err) {
+      console.error("Error verifying submission:", err);
+      alert("Failed to verify submission");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const userMap = Object.fromEntries(
-    users.map(u => [u.id, u])
+    usersList.map(u => [u.id, u])
   );
 
   const kpiMap = Object.fromEntries(
-    kpis.map(k => [k.id, k])
+    kpisList.map(k => [k.id, k])
   );
 
   const categoryMap = Object.fromEntries(
-    categories.map(c => [c.id, c])
+    categoriesList.map(c => [c.id, c])
   );
 
   return (
@@ -70,29 +137,29 @@ function KPISubmissionTable({submissions}) {
         <div style={{ flex: 1.2 }}>Submitted</div>
         <div style={{ flex: 1.5 }}>Evidence</div>
         <div style={{ flex: 1.2 }}>Status</div>
+        <div style={{ flex: 1.5 }}>Actions</div>
       </div>
 
       <div>
-        {submissions.map(item => {
-          const user = userMap[item.userId];
-          const kpi = kpiMap[item.kpiId];
+        {submissions && submissions.length > 0 ? submissions.map((item, idx) => {
+          // Backend sends "submittedBy" not "userId"
+          const userId = item.userId || item.submittedBy;
+          const user = userMap[userId] || { name: `User ${userId}`, email: "" };
+          const kpi = kpiMap[item.kpiId] || { title: `KPI ${item.kpiId}`, description: "", categoryId: "", target: 0 };
+          const category = categoryMap[kpi?.categoryId] || { name: "Unknown" };
 
-          // FIX 1: Skip rows where user or kpi lookup fails — prevents crash on
-          // undefined access (e.g. kpi.categoryId throws if kpi is undefined)
-          if (!user || !kpi) return null;
-
-          // FIX 2: Use optional chaining on kpi.categoryId just in case
-          const category = categoryMap[kpi?.categoryId];
-
-          // FIX 3: Guard against missing target to avoid NaN in progress bar
-          const progressPercent = kpi.target
-            ? Math.min((item.current / item.target) * 100, 100)
+          // Always show the row - use available data with fallbacks
+          // item.current is from submission, kpi.target is from KPI data
+          const target = item.target || kpi.target || 100;
+          const current = item.current || 0;
+          const progressPercent = target
+            ? Math.min((current / target) * 100, 100)
             : 0;
 
           return (
             <div 
               style={rowStyle}
-              key={item.id}
+              key={`${item.id}-${idx}`}
               onClick={() => navigate(pathway.VerifyKPI, { state: item })}>
 
               {/* Staff */}
@@ -159,14 +226,35 @@ function KPISubmissionTable({submissions}) {
 
               {/* Evidence */}
               <div style={{ flex: 1.5 }}>
-                <div style={{ 
-                  fontWeight: "500",
-                  maxWidth: "100px",
-                  minWidth: 0,
-                  whiteSpace: "normal",
-                  wordBreak: "break-word",
-                  overflowWrap: "break-word"
-                }}>{item.evidence}</div>
+                {item.files && item.files.length > 0 ? (
+                  <div>
+                    {item.files.map((file, idx) => (
+                      <div key={idx}>
+                        <a 
+                          href={`/api/kpi/evidence/${file.storedName}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: "#3b82f6",
+                            textDecoration: "underline",
+                            cursor: "pointer",
+                            fontSize: "13px",
+                            display: "block",
+                            maxWidth: "100px",
+                            whiteSpace: "normal",
+                            wordBreak: "break-word",
+                            overflowWrap: "break-word"
+                          }}
+                          title={`View ${file.originalName}`}
+                        >
+                          📎 {file.originalName}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color: "#999", fontSize: "13px" }}>No files</div>
+                )}
               </div>
 
               {/* Status */}
@@ -174,10 +262,176 @@ function KPISubmissionTable({submissions}) {
                 <span style={statusStyle(item.status)}>{item.status}</span>
               </div>
 
+              {/* Actions */}
+              <div style={{ flex: 1.5, display: "flex", gap: "5px" }}>
+                {item.status === "pending" || item.status === "Pending" ? (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApprove(item);
+                      }}
+                      style={{
+                        padding: "5px 10px",
+                        background: "#22c55e",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: "500",
+                      }}
+                    >
+                      ✓ Approve
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReject(item);
+                      }}
+                      style={{
+                        padding: "5px 10px",
+                        background: "#ef4444",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: "500",
+                      }}
+                    >
+                      ✕ Reject
+                    </button>
+                  </>
+                ) : (
+                  <span style={{ color: "#999", fontSize: "12px" }}>
+                    {item.status === "approved" ? "✓ Approved" : "✕ Rejected"}
+                  </span>
+                )}
+              </div>
+
             </div>
           );
-        })}
+        })
+        : (
+          <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+            No submissions available
+          </div>
+        )}
       </div>
+
+      {/* Verification Modal */}
+      {showModal && selectedSubmission && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+        }}>
+          <div style={{
+            backgroundColor: "white",
+            borderRadius: "12px",
+            padding: "30px",
+            maxWidth: "500px",
+            width: "90%",
+            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: "20px" }}>Verify Submission</h2>
+            
+            <div style={{ marginBottom: "20px", backgroundColor: "#f3f4f6", padding: "15px", borderRadius: "8px" }}>
+              <p style={{ margin: "5px 0" }}><strong>KPI:</strong> {kpiMap[selectedSubmission.kpiId]?.title || "Unknown"}</p>
+              <p style={{ margin: "5px 0" }}><strong>Staff:</strong> {userMap[selectedSubmission.userId || selectedSubmission.submittedBy]?.name || "Unknown"}</p>
+              <p style={{ margin: "5px 0" }}><strong>Current Value:</strong> {selectedSubmission.current}</p>
+              <p style={{ margin: "5px 0" }}><strong>Notes:</strong> {selectedSubmission.notes || "None"}</p>
+            </div>
+
+            <div style={{ marginBottom: "20px" }}>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+                Comments (optional):
+              </label>
+              <textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                placeholder="Add any comments about this submission..."
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontFamily: "inherit",
+                  minHeight: "80px",
+                  resize: "vertical",
+                }}
+              />
+            </div>
+
+            <div style={{
+              display: "flex",
+              gap: "10px",
+              justifyContent: "flex-end",
+            }}>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setSelectedSubmission(null);
+                }}
+                disabled={isProcessing}
+                style={{
+                  padding: "10px 20px",
+                  background: "#e5e7eb",
+                  color: "#374151",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "500",
+                  opacity: isProcessing ? 0.5 : 1,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => submitVerification("rejected")}
+                disabled={isProcessing}
+                style={{
+                  padding: "10px 20px",
+                  background: "#ef4444",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "500",
+                  opacity: isProcessing ? 0.5 : 1,
+                }}
+              >
+                {isProcessing ? "Processing..." : "✕ Reject"}
+              </button>
+              <button
+                onClick={() => submitVerification("approved")}
+                disabled={isProcessing}
+                style={{
+                  padding: "10px 20px",
+                  background: "#22c55e",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "500",
+                  opacity: isProcessing ? 0.5 : 1,
+                }}
+              >
+                {isProcessing ? "Processing..." : "✓ Approve"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

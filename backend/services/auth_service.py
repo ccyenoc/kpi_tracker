@@ -316,3 +316,27 @@ def verify_email_code_service(verification_data: EmailCodeVerificationRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
+
+
+def get_current_user_from_request(request):
+    """Extract user information from JWT token in Authorization header."""
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return None
+        
+        token = auth_header[7:]  # Remove "Bearer " prefix
+        
+        # Import verify_jwt_token from utils
+        from utils.security import verify_jwt_token
+        
+        user_data = verify_jwt_token(token)
+        if user_data:
+            return {
+                "id": user_data.get("user_id"),
+                "email": user_data.get("email")
+            }
+        return None
+    except Exception as e:
+        print(f"Error extracting user from request: {e}")
+        return None

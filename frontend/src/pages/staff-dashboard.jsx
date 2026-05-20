@@ -20,6 +20,7 @@ const StaffDashboard = () => {
   const [kpis, setKpis] = useState(mockKpis);
   const [submissions, setSubmissions] = useState(mockSubmissions);
   const [activityLogs, setActivityLogs] = useState(mockActivityLogs);
+  const [graphData, setGraphData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -48,6 +49,7 @@ const StaffDashboard = () => {
     setSubmissions(mockSubmissions);
     setActivityLogs(mockActivityLogs);
     setError("");
+    setGraphData([]); // Will be recalculated with graphData logic below
   };
 
   const useRealData = async () => {
@@ -57,23 +59,33 @@ const StaffDashboard = () => {
       localStorage.setItem("kpiDataMode", "real");
       setDataMode("real");
 
-      const [kpiRes, submissionRes, activityRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/kpi`),
+      const [kpiRes, submissionRes, activityRes, performanceRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/staff/kpis`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        }),
         fetch(`${API_BASE_URL}/api/kpi/submissions`),
-        fetch(`${API_BASE_URL}/api/activity-logs`)
+        fetch(`${API_BASE_URL}/api/activity-logs`),
+        fetch(`${API_BASE_URL}/api/staff/monthly-performance`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        })
       ]);
 
       if (!kpiRes.ok) throw new Error("Failed to fetch KPI data");
       if (!submissionRes.ok) throw new Error("Failed to fetch submission data");
-      if (!activityRes.ok) throw new Error("Failed to fetch activity logs");
 
       const kpiData = await kpiRes.json();
-      const submissionData = await submissionRes.json();
-      const activityData = await activityRes.json();
+      const submissionData = submissionRes.ok ? await submissionRes.json() : { submissions: [] };
+      const activityData = activityRes.ok ? await activityRes.json() : { activityLogs: [] };
+      const performanceData = performanceRes.ok ? await performanceRes.json() : { data: [] };
 
       setKpis(kpiData.kpis || []);
       setSubmissions(submissionData.submissions || []);
       setActivityLogs(activityData.activityLogs || []);
+      
+      // Update graph data with real monthly performance
+      if (performanceData.data && performanceData.data.length > 0) {
+        setGraphData(performanceData.data);
+      }
     } catch (err) {
       console.error(err);
       setError(err.message || "Failed to load real data");
@@ -110,9 +122,96 @@ const StaffDashboard = () => {
 
     fetchCurrentUser();
   }, []);
+
+  // Calculate graphData for mock mode
+  useEffect(() => {
+    if (dataMode === "real") {
+      // Real data comes from API in useRealData
+      return;
+    }
+
+    // Calculate graphData from mock data
+    const getWeeksInMonth = (month) => {
+      const year = new Date().getFullYear();
+      const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+      const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+      const totalWeeks = Math.ceil(lastDay / 7);
+      return Array.from({ length: totalWeeks }, (_, i) => `Week ${i + 1}`);
+    };
+
+    const getWeekOfMonth = (date) => {
+      const day = date.getDate();
+      return Math.ceil(day / 7);
+    };
+
+    const submissionMap = Object.fromEntries(
+      submissions.map(s => [s.kpiId, s])
+    );
+
+    const userKpisLocal = kpis
+      .filter(kpi => kpi.assignedUserIds.includes(currentUserId))
+      .map(kpi => {
+        const userData = kpi.kpiAssignments.find(u => u.userId === currentUserId);
+        return { ...kpi, userData };
+      });
+
+    const weeklyMap = {};
+
+    userKpisLocal.forEach(kpi => {
+      const submission = submissionMap[kpi.id];
+      if (!submission) return;
+
+      const date = new Date(submission.submittedAt);
+      const month = date.toLocaleString("default", { month: "short" });
+      const week = getWeekOfMonth(date);
+      const key = `${month}-W${week}`;
+
+      if (!weeklyMap[key]) {
+        weeklyMap[key] = {
+          name: kpi.title,
+          month,
+          time: `Week ${week}`,
+          kpi: 0,
+          progress: 0,
+          prediction: 0
+        };
+      }
+
+      const targetVal = kpi.userData?.target || 0;
+      const currentVal = kpi.userData?.current || 0;
+
+      weeklyMap[key].kpi += targetVal;
+      weeklyMap[key].progress += currentVal;
+      weeklyMap[key].prediction += currentVal + 5;
+    });
+
+    let calculatedGraphData;
+
+    if (selectedMonth === "All") {
+      calculatedGraphData = Object.values(weeklyMap);
+    } else {
+      const weeks = getWeeksInMonth(selectedMonth);
+      calculatedGraphData = weeks.map((weekLabel, index) => {
+        const weekNumber = index + 1;
+        const key = `${selectedMonth}-W${weekNumber}`;
+        const matched = weeklyMap[key];
+
+        return matched || {
+          name: "",
+          month: selectedMonth,
+          time: weekLabel,
+          kpi: 0,
+          progress: 0,
+          prediction: 0
+        };
+      });
+    }
+
+    setGraphData(calculatedGraphData);
+  }, [kpis, submissions, selectedMonth, currentUserId, dataMode]);
     
   const userKpis = kpis
-  .filter(kpi => kpi.assignedUserIds.includes(currentUserId))
+  .filter(kpi => kpi.assignedUserIds && kpi.assignedUserIds.includes(currentUserId))
   .map(kpi => {
     const userData = kpi.kpiAssignments.find(
       u => u.userId === currentUserId
@@ -140,81 +239,6 @@ const StaffDashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(
   new Date().toLocaleString("default", { month: "short" })
 );
-
-  const getWeeksInMonth = (month) => {
-  const year = new Date().getFullYear();
-  const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
-
-  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
-  const totalWeeks = Math.ceil(lastDay / 7);
-
-  return Array.from({ length: totalWeeks }, (_, i) => `Week ${i + 1}`);
-};
-
-  const submissionMap = Object.fromEntries(
-  submissions.map(s => [s.kpiId, s])
-);
-
-  const getWeekOfMonth = (date) => {
-  const day = date.getDate();
-  return Math.ceil(day / 7);
-};
-
-const weeklyMap = {};
-
-userKpis.forEach(kpi => {
-  const submission = submissionMap[kpi.id];
-  if (!submission) return;
-
-  const date = new Date(submission.submittedAt);
-  const month = date.toLocaleString("default", { month: "short" });
-  const week = getWeekOfMonth(date);
-
-  const key = `${month}-W${week}`;
-
-  if (!weeklyMap[key]) {
-    weeklyMap[key] = {
-      name: kpi.title,
-      month,
-      time: `Week ${week}`,
-      kpi: 0,
-      progress: 0,
-      prediction: 0
-    };
-  }
-
-
-  const userData = kpi.kpiAssignments.find(u => u.userId === currentUserId);
-  const targetVal = userData?.target || 0;
-  const currentVal = userData?.current || 0;
-
-  weeklyMap[key].kpi += targetVal;
-  weeklyMap[key].progress += currentVal;
-  weeklyMap[key].prediction += currentVal + 5;
-});
-
-let graphData;
-
-if (selectedMonth === "All") {
-  graphData = Object.values(weeklyMap);
-} else {
-  const weeks = getWeeksInMonth(selectedMonth);
-
-  graphData = weeks.map((weekLabel, index) => {
-    const weekNumber = index + 1;
-    const key = `${selectedMonth}-W${weekNumber}`;
-    const matched = weeklyMap[key];
-
-    return matched || {
-      name: "",
-      month: selectedMonth,
-      time: weekLabel,
-      kpi: 0,
-      progress: 0,
-      prediction: 0
-    };
-  });
-}
 
   {/*DASHBOARD DATA*/}
   const total = kpis.length;

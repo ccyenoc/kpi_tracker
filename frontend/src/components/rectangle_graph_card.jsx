@@ -4,20 +4,48 @@ import {useEffect , useState} from "react";
 function RectangleGraphCard(){
     console.log("RectangleGraphCard loaded");
 
-    {/* const [data, setData] = useState(); */}
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-     {/*useEffect( ()=> {
-        fetch("https://localhost:8000/api/data")
-        .then(res => res.json())
-        .then(data => setData(data))
-    },[] ); */}
-
-     const data = [
-    { time: "Week 1", kpi: 65, progress: 60, prediction: 68 },
-    { time: "Week 2", kpi: 72, progress: 70, prediction: 75 },
-    { time: "Week 3", kpi: 78, progress: 76, prediction: 80 },
-    { time: "Week 4", kpi: 85, progress: 82, prediction: 88 }
-  ];
+    useEffect(() => {
+      const token = localStorage.getItem("token");
+      
+      // Fetch real KPI performance data from backend
+      fetch("/api/manager/dashboard/stats", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.kpiTrends) {
+          // Format backend data for the chart
+          setData(data.kpiTrends.map(item => ({
+            time: item.month || item.week || item.time,
+            kpi: item.kpi || item.target || 0,
+            progress: item.progress || item.current || 0,
+            prediction: item.prediction || item.predictedProgress || 0
+          })));
+        } else {
+          // Fallback data if endpoint doesn't return trends
+          setData([
+            { time: "Week 1", kpi: 65, progress: 60, prediction: 68 },
+            { time: "Week 2", kpi: 72, progress: 70, prediction: 75 },
+            { time: "Week 3", kpi: 78, progress: 76, prediction: 80 },
+            { time: "Week 4", kpi: 85, progress: 82, prediction: 88 }
+          ]);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch graph data:", err);
+        // Show fallback data on error
+        setData([
+          { time: "Week 1", kpi: 65, progress: 60, prediction: 68 },
+          { time: "Week 2", kpi: 72, progress: 70, prediction: 75 },
+          { time: "Week 3", kpi: 78, progress: 76, prediction: 80 },
+          { time: "Week 4", kpi: 85, progress: 82, prediction: 88 }
+        ]);
+      })
+      .finally(() => setLoading(false));
+    }, []);
 
 
     return(

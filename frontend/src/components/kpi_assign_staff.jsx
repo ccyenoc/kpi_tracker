@@ -3,6 +3,7 @@ import { useState } from "react";
 function KPIAssignStaff({ staffList, unit, assignedStaff, setAssignedStaff , searchStaff, setSearchStaff }){
 
     const [kpiValue, setKpiValue] = useState(100)
+    const [showDropdown, setShowDropdown] = useState(false)
 
     const gridStyle = {
   display: "grid",
@@ -18,6 +19,7 @@ const filteredStaff = staffList.filter(
   (staff) =>
     staff.role === "staff" &&
     (
+      searchStaff === "" ||
       staff.name.toLowerCase().includes(searchStaff.toLowerCase()) ||
       staff.email.toLowerCase().includes(searchStaff.toLowerCase())
     )
@@ -48,7 +50,9 @@ console.log("STAFF LIST:", staffList);
               type ="text"
               value={searchStaff}
               onChange={(e) => setSearchStaff(e.target.value)}
-              placeholder="  Search Staff... "
+              onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              placeholder="  Search Staff... (click to see all)"
               style={{
                 textAlign:"start",
                 fontSize:"14px",
@@ -58,7 +62,7 @@ console.log("STAFF LIST:", staffList);
                 outline: "none", }}
             />
 
-            {searchStaff && (
+            {showDropdown && filteredStaff.length > 0 && (
   <div
     style={{
       border: "1px solid #eee",
@@ -66,26 +70,30 @@ console.log("STAFF LIST:", staffList);
       marginTop: "5px",
       background: "#fff",
       position: "relative",
-      zIndex: 10
+      zIndex: 10,
+      maxHeight: "300px",
+      overflowY: "auto"
     }}
   >
     {filteredStaff.map((staff) => (
       <div
         key={staff.id}
         style={{
-          padding: "8px",
+          padding: "10px",
           cursor: "pointer",
           borderBottom: "1px solid #eee"
         }}
-        onClick={() => {
-  if (!assignedStaff.find(s => s.id === staff.id)) {
-    setAssignedStaff([
-      ...assignedStaff,
-      { ...staff, kpi: 0 }
-    ]);
-  }
-  setSearchStaff("");
-}}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          if (!assignedStaff.find(s => s.id === staff.id)) {
+            setAssignedStaff([
+              ...assignedStaff,
+              { ...staff, kpi: 0 }
+            ]);
+          }
+          setSearchStaff("");
+          setShowDropdown(false);
+        }}
       >
         {staff.name} ({staff.email})
       </div>
