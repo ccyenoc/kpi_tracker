@@ -3,7 +3,6 @@ import StaffDashboard from "./pages/staff-dashboard";
 import KpiManagement from "./pages/kpi-management";
 import VerifyKPI from "./pages/verify-kpi";
 import CreateKPI from "./pages/create-kpi";
-import VerifyKPIDashboard from "./pages/verify-kpi-dashboard";
 import KPIProgressPage from "./pages/kpi-progress";
 import ProfilePage from "./pages/ProfilePage";
 import StaffKPIUpdate from "./pages/staff-kpi-progress-update";
@@ -40,16 +39,10 @@ export const routes = (role) => {
           parent: "/manager/kpi-management",
         },
         {
-          path: "/manager/verify-kpi-dashboard",
-          element: <VerifyKPIDashboard />,
-          breadcrumb: "Verify KPI Dashboard",
-          parent: "/manager/dashboard",
-        },
-        {
           path: "/manager/verify-kpi",
           element: <VerifyKPI />,
           breadcrumb: "Verify KPI",
-          parent: "/manager/verify-kpi-dashboard",
+          parent: "/manager/dashboard",
         },
         {
           path: "/profile",

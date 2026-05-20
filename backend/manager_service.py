@@ -129,7 +129,6 @@ class KPIAssignmentService:
 class SubmissionVerificationService:
     @staticmethod
     def get_all_submissions(kpi_id: Optional[str] = None) -> Dict:
-        """Get ALL submissions (pending, approved, rejected)"""
         try:
             db = get_db()
             query = db.collection("kpiSubmissions")
@@ -195,31 +194,57 @@ class SubmissionVerificationService:
 
             submission_data = submission_doc.to_dict()
             submitted_by = submission_data.get("submittedBy")
+            submission_current = submission_data.get("current", 0)
 
+            # Update submission status
             submission_ref.update({
                 "status": status,
                 "approvedBy": manager_id,
                 "comments": comments,
-                "verifiedAt": datetime.now()
+                "verifiedAt": datetime.now().isoformat()
             })
 
+            # If approved, update the KPI assignment with submission data
             if status == "approved":
                 kpi_ref = db.collection("kpiData").document(kpi_id)
                 kpi_doc = kpi_ref.get()
-                
-                # Only update KPI if it exists
+
                 if kpi_doc.exists:
                     kpi_data = kpi_doc.to_dict() or {}
-
                     kpi_assignments = kpi_data.get("kpiAssignments", [])
+
+                    # Update assignment for the staff member who submitted
+                    updated = False
                     for assignment in kpi_assignments:
                         if assignment.get("userId") == submitted_by:
-                            assignment["current"] = submission_data.get("current", assignment.get("current"))
-                            assignment["lastUpdated"] = datetime.now()
+                            assignment["current"] = submission_current
+                            assignment["lastUpdated"] = datetime.now().isoformat()
+                            updated = True
+                            break
+                    
+                    # Check if all assigned staff have approved submissions
+                    all_submissions = list(db.collection("kpiSubmissions")
+                        .where("kpiId", "==", kpi_id)
+                        .stream())
+                    assigned_staff = set(a.get("userId") for a in kpi_assignments)
+                    approved_staff = set()
+                    
+                    for sub_doc in all_submissions:
+                        sub_data = sub_doc.to_dict()
+                        sub_status = sub_data.get("status")
+                        sub_submitted_by = sub_data.get("submittedBy")
 
+                        if sub_doc.id == submission_id or sub_status == "approved":
+                            approved_staff.add(sub_submitted_by)
+
+                    # Mark KPI as completed if all assigned staff have approved
+                    all_approved = assigned_staff.issubset(approved_staff) if assigned_staff else False
+                    new_status = "completed" if all_approved else "active"
+                    
                     kpi_ref.update({
                         "kpiAssignments": kpi_assignments,
-                        "updatedAt": datetime.now()
+                        "status": new_status,
+                        "updatedAt": datetime.now().isoformat()
                     })
 
             return {
@@ -388,17 +413,11 @@ class KPIPredictionService:
 class ManagerDashboardService:
     @staticmethod
     def get_dashboard_stats() -> Dict:
-        """
-        Aggregates all staff KPI data and calculates rankings for the manager dashboard.
-        Returns overall stats and top staff rankings by achievement rate.
-        """
         try:
             db = get_db()
-            
-            # Aggregate data across all staff
             staff_stats = {}
-            
-            # Iterate through all KPIs
+
+            # Aggregate stats for each staff member across all their KPIs
             kpi_docs = db.collection("kpiData").stream()
             total_kpis = 0
             active_kpis = 0
@@ -420,7 +439,7 @@ class ManagerDashboardService:
                     staff_id = assignment.get("userId")
                     if not staff_id:
                         continue
-                    
+
                     # Initialize staff entry if not exists
                     if staff_id not in staff_stats:
                         user_doc = db.collection("userData").document(staff_id).get()
@@ -435,15 +454,15 @@ class ManagerDashboardService:
                             "kpiCount": 0,
                             "achievementRate": 0
                         }
-                    
-                    # Accumulate KPI data
+
+                    # Accumulate KPI metrics
                     target = assignment.get("target", 0)
                     current = assignment.get("current", 0)
                     staff_stats[staff_id]["totalTarget"] += target
                     staff_stats[staff_id]["totalCurrent"] += current
                     staff_stats[staff_id]["kpiCount"] += 1
-            
-            # Calculate achievement rates and sort by performance
+
+            # Calculate achievement rates
             staff_rankings = []
             for staff_id, stats in staff_stats.items():
                 if stats["totalTarget"] > 0:
@@ -451,8 +470,8 @@ class ManagerDashboardService:
                 else:
                     stats["achievementRate"] = 0
                 staff_rankings.append(stats)
-            
-            # Sort by achievement rate (descending) and take top 10
+
+            # Get top performers
             staff_rankings.sort(key=lambda x: x["achievementRate"], reverse=True)
             top_rankings = staff_rankings[:10]
             
@@ -480,9 +499,6 @@ class ManagerDashboardService:
 class KPIStatusService:
     @staticmethod
     def get_at_risk_kpis() -> Dict:
-        """
-        Returns KPIs where achievement rate is between 50-80% (At Risk status)
-        """
         try:
             db = get_db()
             at_risk_kpis = []
@@ -490,6 +506,11 @@ class KPIStatusService:
             kpi_docs = db.collection("kpiData").stream()
             for kpi_doc in kpi_docs:
                 kpi_data = kpi_doc.to_dict() or {}
+                
+                # Skip if already completed
+                if kpi_data.get("status") == "completed":
+                    continue
+                
                 kpi_assignments = kpi_data.get("kpiAssignments", [])
                 
                 if not kpi_assignments:
@@ -521,9 +542,6 @@ class KPIStatusService:
     
     @staticmethod
     def get_underperform_kpis() -> Dict:
-        """
-        Returns KPIs where achievement rate is below 50% (Off Track/Underperforming)
-        """
         try:
             db = get_db()
             underperform_kpis = []
@@ -531,6 +549,11 @@ class KPIStatusService:
             kpi_docs = db.collection("kpiData").stream()
             for kpi_doc in kpi_docs:
                 kpi_data = kpi_doc.to_dict() or {}
+                
+                # Skip if already completed
+                if kpi_data.get("status") == "completed":
+                    continue
+                
                 kpi_assignments = kpi_data.get("kpiAssignments", [])
                 
                 if not kpi_assignments:

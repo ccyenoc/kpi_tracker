@@ -106,7 +106,7 @@ function Sidebar(){
                         </li>
 
                         <li>
-                            <NavLink to={pathway.VerifyKPIDashboard} style={({ isActive }) =>
+                            <NavLink to={pathway.VerifyKPI} style={({ isActive }) =>
     isActive
       ? {
           background: "linear-gradient(135deg, #3b82f6, #60a5fa)",

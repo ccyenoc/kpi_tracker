@@ -1,4 +1,3 @@
-// pages/kpi-management.jsx
 import { useEffect, useState } from "react";
 import DashboardCards from "../components/4x1_cards_layout";
 import PageTitle from "../components/page_title";
@@ -11,6 +10,7 @@ import { fetchManagerKPIs, fetchAllUsers, fetchCategories } from "../api/api";
 function KPIManagement() {
   const [kpis, setKpis] = useState([]);
   const [users, setUsers] = useState([]);
+  const [underperform, setUnderperform] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -21,10 +21,19 @@ function KPIManagement() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchManagerKPIs(), fetchAllUsers()])
-      .then(([kpiData, userData]) => {
+    const token = localStorage.getItem("token");
+    
+    Promise.all([
+      fetchManagerKPIs(), 
+      fetchAllUsers(),
+      fetch("/api/kpi/underperform", {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(res => res.json())
+    ])
+      .then(([kpiData, userData, underperformData]) => {
         setKpis(kpiData.kpis || []);
         setUsers(userData.users || []);
+        setUnderperform(underperformData.kpis || []);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -44,15 +53,15 @@ function KPIManagement() {
       color: "#22c55e",
     },
     {
-      title: "Pending Verification",
-      value: kpis.filter((k) => k.status === "pending").length,
-      subtitle: "Pending for approval",
+      title: "Assigned to Staff",
+      value: kpis.filter((k) => k.assignedUserIds && k.assignedUserIds.length > 0).length,
+      subtitle: "KPIs assigned",
       color: "#facc15",
     },
     {
-      title: "High Priority",
-      value: kpis.filter((k) => k.priority === "high").length,
-      subtitle: "Requires attention",
+      title: "Requires Attention",
+      value: underperform.length,
+      subtitle: "Underperforming",
       color: "#ef4444",
     },
   ];

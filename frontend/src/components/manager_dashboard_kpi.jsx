@@ -24,7 +24,6 @@ function ManagerDashboardKpi({ kpis = [] }) {
       setUnderperformData(underperformRes.kpis || []);
     })
     .catch((err) => {
-      console.error("Failed to fetch KPI status data:", err);
       // Fallback to computing from passed kpis if API fails
       if (kpis.length > 0) {
         setAtRiskData(getAtRiskKpis(kpis));
@@ -46,7 +45,7 @@ function ManagerDashboardKpi({ kpis = [] }) {
         height: "100%",
       }}
     >
-     {/* AT RISK */}
+
       <div style={{ flex: 1, display: "flex" }}>
         <KpiCard
           title="At Risk KPIs"
@@ -61,7 +60,7 @@ function ManagerDashboardKpi({ kpis = [] }) {
         />
       </div>
 
-      {/* UNDERPERFORM */}
+
       <div style={{ flex: 1, display: "flex" }}>
         <KpiCard
           title="Underperform"
