@@ -1,4 +1,3 @@
-// pages/verify-kpi.jsx
 import { useEffect, useState } from "react";
 import PageTitle from "../components/page_title";
 import DashboardCards from "../components/4x1_cards_layout";
@@ -25,31 +24,18 @@ function VerifyKPI() {
 
     setLoading(true);
 
-    // Fetch all data in parallel
     Promise.all([
       fetch(`${API_BASE_URL}/api/kpi/submissions`, {
         headers: { Authorization: `Bearer ${token}` },
-      }).then(res => {
-        console.log("Submissions response:", res.status);
-        return res;
       }),
       fetch(`${API_BASE_URL}/api/users`, {
         headers: { Authorization: `Bearer ${token}` },
-      }).then(res => {
-        console.log("Users response:", res.status);
-        return res;
       }),
       fetch(`${API_BASE_URL}/api/manager/kpis`, {
         headers: { Authorization: `Bearer ${token}` },
-      }).then(res => {
-        console.log("KPIs response:", res.status);
-        return res;
       }),
       fetch(`${API_BASE_URL}/api/categories`, {
         headers: { Authorization: `Bearer ${token}` },
-      }).then(res => {
-        console.log("Categories response:", res.status);
-        return res;
       }),
     ])
       .then(async ([submissionsRes, usersRes, kpisRes, categoriesRes]) => {
@@ -62,12 +48,6 @@ function VerifyKPI() {
         const kpisData = await kpisRes.json();
         const categoriesData = categoriesRes.ok ? await categoriesRes.json() : { categories: [] };
 
-        console.log("Submissions data:", submissionsData);
-        console.log("Submissions count:", submissionsData.submissions?.length || 0);
-        console.log("Users data:", usersData);
-        console.log("KPIs data:", kpisData);
-
-        // Deduplicate submissions by ID
         const uniqueSubmissions = [];
         const seenIds = new Set();
         
@@ -78,14 +58,12 @@ function VerifyKPI() {
           }
         }
 
-        console.log("Final submissions after dedup:", uniqueSubmissions);
         setSubmissions(uniqueSubmissions);
         setUsers(usersData.users || []);
         setKpis(kpisData.kpis || []);
         setCategories(categoriesData.categories || []);
       })
       .catch((err) => {
-        console.error("Error fetching submissions:", err);
         setError(err.message);
       })
       .finally(() => setLoading(false));

@@ -232,22 +232,15 @@ def download_evidence(file_name: str):
             return {"success": False, "message": "Invalid file name"}
         
         full_path = os.path.join("uploads", file_name)
-        
-        print(f"🔍 Attempting to download file: {full_path}")
-        print(f"📁 File exists: {os.path.exists(full_path)}")
-        
+
         if not os.path.exists(full_path):
-            print(f"❌ File not found: {full_path}")
             return {"success": False, "message": "File not found"}
-        
-        print(f"✅ Serving file: {full_path}")
+
         return FileResponse(full_path, media_type="application/octet-stream")
     except Exception as e:
-        print(f"❌ Error serving file: {e}")
         return {"success": False, "message": str(e)}
 
 
-# List available evidence files (for debugging)
 @router.get("/kpi/evidence-list")
 def list_evidence_files():
     try:
@@ -280,9 +273,7 @@ async def verify_submission(request: Request):
         kpi_id = body.get("kpiId")
         status = body.get("status")  # "approved" or "rejected"
         comments = body.get("comments", "")
-        
-        print(f"📋 Verify submission request: submissionId={submission_id}, kpiId={kpi_id}, status={status}")
-        
+
         if not all([submission_id, kpi_id, status]):
             return {"success": False, "message": "Missing required fields"}
         
@@ -293,13 +284,9 @@ async def verify_submission(request: Request):
         result = SubmissionVerificationService.verify_submission(
             submission_id, kpi_id, status, comments, manager_id
         )
-        
-        print(f"✅ Submission verified: {submission_id} -> {status}, result: {result}")
+
         return result
     except Exception as e:
-        print(f"❌ Error verifying submission: {e}")
-        import traceback
-        traceback.print_exc()
         return {"success": False, "message": str(e)}
 
 

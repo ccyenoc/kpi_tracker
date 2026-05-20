@@ -1,7 +1,6 @@
 import {useNavigate} from "react-router-dom"
 import { useState } from "react";
 import { pathway } from "../Pathway";
-{/*import data*/}
 import { users as mockUsers } from "../data/userData";
 import { kpis as mockKpis } from "../data/kpiData";
 import { categories as mockCategories } from "../data/categoriesData";
@@ -101,7 +100,6 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
         alert(`Error: ${data.message}`);
       }
     } catch (err) {
-      console.error("Error verifying submission:", err);
       alert("Failed to verify submission");
     } finally {
       setIsProcessing(false);
@@ -128,7 +126,6 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
         borderRadius:"12px" }}>
       
-      {/* Header */}
       <div style={headerStyle}>
         <div style={{ flex: 1.2, maxWidth: "100px", minWidth: 0 }}>Staff</div>
         <div style={{ flex: 2.5 }}>KPI Title</div>
@@ -162,7 +159,6 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
               key={`${item.id}-${idx}`}
               onClick={() => navigate(pathway.VerifyKPI, { state: item })}>
 
-              {/* Staff */}
               <div style={{ 
                 flex: 1.2,
                 maxWidth: "100px",
@@ -175,7 +171,6 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
                 <div style={{ fontSize: "13px", color: "#6b7280" }}>{user.email}</div>
               </div>
 
-              {/* KPI Title */}
               <div style={{ flex: 2.5 }}>
                 <div style={{ 
                   fontWeight: "500",
@@ -196,7 +191,6 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
                 }}>{kpi.description}</div>
               </div>
 
-              {/* Progress */}
               <div style={{ flex: 3, display: "flex", alignItems: "center" }}>
                 <div style={{
                   width: "100%",
@@ -214,17 +208,14 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
                 </div>
               </div>
 
-              {/* Category */}
               <div style={{ flex: 1.5 }}>
                 <div style={{ fontWeight: "500" }}>{category?.name}</div>
               </div>
 
-              {/* Submitted date */}
               <div style={{ flex: 1.2 }}>
                 <div style={{ fontWeight: "500" }}>{item.submittedAt}</div>
               </div>
 
-              {/* Evidence */}
               <div style={{ flex: 1.5 }}>
                 {item.files && item.files.length > 0 ? (
                   <div>
@@ -257,12 +248,10 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
                 )}
               </div>
 
-              {/* Status */}
               <div style={{ flex: 1.2 }}>
                 <span style={statusStyle(item.status)}>{item.status}</span>
               </div>
 
-              {/* Actions */}
               <div style={{ flex: 1.5, display: "flex", gap: "5px" }}>
                 {item.status === "pending" || item.status === "Pending" ? (
                   <>
@@ -320,7 +309,6 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
         )}
       </div>
 
-      {/* Verification Modal */}
       {showModal && selectedSubmission && (
         <div style={{
           position: "fixed",

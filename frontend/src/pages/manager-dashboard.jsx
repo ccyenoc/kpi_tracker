@@ -14,12 +14,33 @@ function ManagerDashboard() {
   const { user } = useAuth();
 
   const [kpis, setKpis] = useState([]);
+  const [atRisk, setAtRisk] = useState([]);
+  const [underperform, setUnderperform] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchManagerKPIs()
-      .then((data) => setKpis(data.kpis || []))
+    const token = localStorage.getItem("token");
+    
+    Promise.all([
+      fetchManagerKPIs(),
+      fetch(`${API_BASE}/kpi/at-risk`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(res => res.json()),
+      fetch(`${API_BASE}/kpi/underperform`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(res => res.json()),
+      fetch(`${API_BASE}/kpi/submissions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(res => res.json())
+    ])
+      .then(([kpiData, atRiskData, underperformData, submissionData]) => {
+        setKpis(kpiData.kpis || []);
+        setAtRisk(atRiskData.kpis || []);
+        setUnderperform(underperformData.kpis || []);
+        setSubmissions(submissionData.submissions || []);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -59,7 +80,7 @@ function ManagerDashboard() {
       window.URL.revokeObjectURL(url);
 
     } catch (err) {
-      console.error("Report download failed:", err);
+      // Handle download errors silently
     }
   };
 
@@ -76,9 +97,7 @@ function ManagerDashboard() {
         loading
           ? "—"
           : kpis.filter(
-              (k) =>
-                k.status === "active" ||
-                k.status === "in_progress"
+              (k) => k.status === "active"
             ).length,
       subtitle: "Currently in progress",
       color: "#22c55e",
@@ -88,21 +107,14 @@ function ManagerDashboard() {
       value:
         loading
           ? "—"
-          : kpis.filter(
-              (k) => k.status === "completed"
-            ).length,
+          : kpis.filter((k) => k.status === "completed").length,
       subtitle: "Finished KPIs",
       color: "#facc15",
     },
     {
-      title: "High Priority",
-      value:
-        loading
-          ? "—"
-          : kpis.filter(
-              (k) => k.priority === "high"
-            ).length,
-      subtitle: "Requires attention",
+      title: "Requires Attention",
+      value: loading ? "—" : underperform.length,
+      subtitle: "Underperforming KPIs",
       color: "#ef4444",
     },
   ];
