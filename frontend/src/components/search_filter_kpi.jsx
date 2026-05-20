@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 
-function SearchFilterKPI({ searchKPI, setSearchKPI, searchStaff, setSearchStaff, filterCategory, setFilterCategory, filterStatus, setFilterStatus }) {
+function SearchFilterKPI({ searchKPI, setSearchKPI, searchStaff, setSearchStaff, filterCategory, setFilterCategory, filterStatus, setFilterStatus, users = [] }) {
+  const [showStaffDropdown, setShowStaffDropdown] = useState(false);
+  const staffList = users.filter(u => u.role === "staff" || !u.role);
+  const filteredStaff = staffList.filter(
+    (staff) =>
+      searchStaff === "" ||
+      staff.name.toLowerCase().includes(searchStaff.toLowerCase()) ||
+      staff.email.toLowerCase().includes(searchStaff.toLowerCase())
+  );
   console.log("SearchFilterKPI loaded");
 
   const title = {
@@ -70,15 +78,62 @@ function SearchFilterKPI({ searchKPI, setSearchKPI, searchStaff, setSearchStaff,
           style={{
             flexDirection: "column",
             textAlign: "left",
+            position: "relative"
           }}>
           <p style={title}>Search Staff</p>
           <input
             type="text"
-            placeholder="  Search Staff..."
+            placeholder="  Search Staff... (click to see all)"
             value={searchStaff}
             onChange={(e) => setSearchStaff(e.target.value)}
+            onFocus={() => setShowStaffDropdown(true)}
+            onBlur={() => setTimeout(() => setShowStaffDropdown(false), 200)}
             style={fieldStyle}
           />
+          {showStaffDropdown && filteredStaff.length > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: "0",
+                right: "0",
+                border: "1px solid #eee",
+                borderRadius: "10px",
+                marginTop: "5px",
+                background: "#fff",
+                zIndex: 1000,
+                maxHeight: "300px",
+                overflowY: "auto",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              }}
+            >
+              {filteredStaff.map((staff) => (
+                <div
+                  key={staff.id}
+                  style={{
+                    padding: "10px 12px",
+                    cursor: "pointer",
+                    borderBottom: "1px solid #eee",
+                    fontSize: "14px",
+                    transition: "background-color 0.2s"
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setSearchStaff(staff.name);
+                    setShowStaffDropdown(false);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#f3f4f6";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                >
+                  {staff.name} ({staff.email})
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div
@@ -100,11 +155,11 @@ function SearchFilterKPI({ searchKPI, setSearchKPI, searchStaff, setSearchStaff,
             onChange={(e) => setFilterCategory(e.target.value)}
           >
             <option value="">All Categories</option>
-            <option value="cat_1">Sales Performance</option>
-            <option value="cat_2">Lead Generation</option>
-            <option value="cat_3">Property Management</option>
-            <option value="cat_4">Marketing Performance</option>
-            <option value="cat_5">Customer Experience</option>
+            <option value="sales">Sales Performance</option>
+            <option value="lead">Lead Generation</option>
+            <option value="property">Property Management</option>
+            <option value="marketing">Marketing Performance</option>
+            <option value="customer">Customer Experience</option>
           </select>
         </div>
 
@@ -126,9 +181,12 @@ function SearchFilterKPI({ searchKPI, setSearchKPI, searchStaff, setSearchStaff,
             onChange={(e) => setFilterStatus(e.target.value)}
           >
             <option value="">All Status</option>
+            <option value="pending">Pending</option>
             <option value="in_progress">In Progress</option>
+            <option value="active">Active</option>
             <option value="completed">Completed</option>
             <option value="at_risk">At Risk</option>
+            <option value="underperformed">Underperformed</option>
           </select>
         </div>
       </div>

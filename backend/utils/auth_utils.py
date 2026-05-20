@@ -113,7 +113,14 @@ def require_manager(request: Request):
         )
 
     token = auth_header.split(" ", 1)[1]
-    decoded = verify_jwt_token(token)
+    
+    try:
+        decoded = verify_jwt_token(token)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
 
     user_id = decoded.get("user_id")
 
@@ -138,7 +145,14 @@ def require_user(request: Request):
         )
 
     token = auth_header.split(" ", 1)[1]
-    decoded = verify_jwt_token(token)
+    
+    try:
+        decoded = verify_jwt_token(token)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
 
     user_id = decoded.get("user_id")
 

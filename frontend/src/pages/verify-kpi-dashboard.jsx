@@ -1,4 +1,4 @@
-import { user, useState } from "react";
+  import { useState } from "react";
   import ManagerSidebar from"../components/Sidebar";
   import PageTitle from "../components/page_title";
   import DashboardCards from "../components/4x1_cards_layout";

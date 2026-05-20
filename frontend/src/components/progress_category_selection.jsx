@@ -1,4 +1,5 @@
 function ProgressCategorySelection({category}) {
+  const displayName = category?.name || category?.categoryName || "No category selected";
   console.log("State Category", category);
   return (
     <div
@@ -16,7 +17,7 @@ function ProgressCategorySelection({category}) {
 
       <h3 style={{ 
         fontSize:"14px",}}>
-        {category.name}
+        {displayName}
       </h3>
 
 
