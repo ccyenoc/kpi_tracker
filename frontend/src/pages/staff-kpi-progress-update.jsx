@@ -1,14 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import DashboardCards from "../components/4x1_cards_layout";
-import { Target, CheckCircle, TrendingUp, AlertCircle, Clock } from "lucide-react";
 import StaffOverallProgress from "../components/staff_overall_progress";
 import StaffSearchFilterKPI from "../components/staff_search_filter_kpi"
 import StaffKPI from "../components/staff_kpi";
 import UpdateKpiModal from "../components/staff_update_kpi"
-{/*mock data*/}
-import { kpis as mockKpis } from "../data/kpiData";
-import { categories as mockCategories } from "../data/categoriesData";
-import { submissions as mockSubmissions } from "../data/submissionData";
 import { useParams } from "react-router-dom";
 
 const StaffKPIUpdate = () => {
@@ -17,32 +12,43 @@ const StaffKPIUpdate = () => {
   // Use Vite proxy in development; in production, use relative URLs
   const API_BASE_URL = '';
 
-const groupSubmissionsByKpi = (submissionList = []) => {
-  const groupedHistory = {};
+  const groupSubmissionsByKpi = (submissionList = []) => {
+    const groupedHistory = {};
 
-  submissionList.forEach((submission) => {
-    if (!groupedHistory[submission.kpiId]) {
-      groupedHistory[submission.kpiId] = [];
-    }
+    submissionList.forEach((submission) => {
+      if (!groupedHistory[submission.kpiId]) {
+        groupedHistory[submission.kpiId] = [];
+      }
 
-    groupedHistory[submission.kpiId].push(submission);
-  });
+      groupedHistory[submission.kpiId].push(submission);
+    });
 
-  return groupedHistory;
-};
+    return groupedHistory;
+  };
 
-  const [dataMode, setDataMode] = useState(() => {
-    return localStorage.getItem("kpiDataMode") || "mock";
-  });
+  const normalizeSubmissions = (submissionList = []) => {
+    return submissionList.map((submission) => {
+      const fileNames =
+        submission.fileNames ||
+        submission.files?.map((file) => file.originalName || file.name || file.storedName) ||
+        [];
 
-  const [kpis, setKpis] = useState(mockKpis);
-  const [categories, setCategories] = useState(mockCategories);
-  const [submissions, setSubmissions] = useState(mockSubmissions);
+      return {
+        ...submission,
+        fileNames,
+        files: submission.files || [],
+      };
+    });
+  };
+
+
+
+  const [kpis, setKpis] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
 
   const [selectedKpi, setSelectedKpi] = useState(null);
-  const [submissionHistory, setSubmissionHistory] = useState(() =>
-    groupSubmissionsByKpi(mockSubmissions)
-  );
+  const [submissionHistory, setSubmissionHistory] = useState({});
 
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -53,9 +59,7 @@ const groupSubmissionsByKpi = (submissionList = []) => {
     }
   });
 
-  const currentUserId =
-    dataMode === "mock" ? "user_101" : currentUser?.id || "user_101";
-
+  const currentUserId = String(currentUser?.id || currentUser?.user_id || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -63,187 +67,251 @@ const groupSubmissionsByKpi = (submissionList = []) => {
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  const categoryMap = Object.fromEntries(
-    categories.map(c => [c.id, c])
-    );
+  const normalizeText = (value) =>
+    String(value || "").trim().toLowerCase();
 
-  const submissionMap = Object.fromEntries(
-  submissions.map(s => [s.kpiId, s])
+  const normalizeStatus = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+
+  const categoryMap = Object.fromEntries(
+    categories.map((c) => [c.id, c])
   );
 
+  // group submissions by KPI instead of keeping only one
+  const submissionMap = submissions.reduce((map, submission) => {
+    const key = submission.kpiId;
+    if (!key) return map;
+
+    if (!map[key]) {
+      map[key] = [];
+    }
+
+    map[key].push(submission);
+    return map;
+  }, {});
+
+  const CATEGORY_NAME_MAP = {
+    sales: "Sales Performance",
+    lead: "Lead Generation",
+    property: "Property Management",
+    marketing: "Marketing Performance",
+    customer: "Customer Experience",
+  };
+
+  const getCategoryName = (kpi) => {
+    return (
+      kpi.categoryName ||
+      kpi.category ||
+      CATEGORY_NAME_MAP[kpi.categoryId] ||
+      CATEGORY_NAME_MAP[kpi.category] ||
+      CATEGORY_NAME_MAP[kpi.type] ||
+      "General"
+    );
+  };
+
   const userKpis = kpis
-  .filter(kpi => (kpi.assignedUserIds || []).includes(currentUserId))
-  .map(kpi => {
-    
+  .filter((kpi) => {
+    const assignedUserIds = (kpi.assignedUserIds || []).map(String);
+    const assignedUsers = (kpi.assignedUsers || []).map(String);
+    const kpiAssignments = kpi.kpiAssignments || [];
+
+    return (
+      assignedUserIds.includes(currentUserId) ||
+      assignedUsers.includes(currentUserId) ||
+      String(kpi.assignedTo || "") === currentUserId ||
+      String(kpi.staffId || "") === currentUserId ||
+      String(kpi.assignedStaffId || "") === currentUserId ||
+      kpiAssignments.some((u) => String(u.userId || "") === currentUserId)
+    );
+  })
+  .map((kpi) => {
     const userData = (kpi.kpiAssignments || []).find(
-      u => u.userId === currentUserId
+      (u) => String(u.userId || "") === currentUserId
     );
 
     const category = categoryMap[kpi.categoryId];
-    const submission = submissionMap[kpi.id];
+    const categoryName = getCategoryName(kpi);
 
-    const history = submissionHistory[kpi.id] || [];
-    const latestUpdate = history[history.length - 1];
+    const history = submissionHistory[kpi.id] || submissionMap[kpi.id] || [];
 
-    const currentValue = latestUpdate?.current ?? userData?.current ?? 0;
-    const targetValue = userData?.target || 0;
+    const sortedHistory = [...history].sort(
+      (a, b) => new Date(a.submittedAt) - new Date(b.submittedAt)
+    );
 
-    const evidenceCount =
-      history.reduce((total, item) => {
-        return total + (item.fileNames?.length || 0);
-      }, 0);
+    const latestUpdate = sortedHistory[sortedHistory.length - 1];
 
-    const newStatus = kpi.status;
+    const approvedHistory = sortedHistory.filter(
+      (item) => normalizeStatus(item.status) === "approved"
+    );
+
+    const latestApprovedUpdate = approvedHistory[approvedHistory.length - 1];
+
+    const currentValue =
+      latestApprovedUpdate?.current ??
+      userData?.current ??
+      kpi.current ??
+      0;
+
+    const targetValue =
+      userData?.target ??
+      kpi.target ??
+      0;
+
+    const evidenceCount = sortedHistory.reduce((total, item) => {
+      return total + (item.fileNames?.length || item.files?.length || 0);
+    }, 0);
+
+    const title = kpi.title || kpi.name || kpi.kpiName || "Untitled KPI";
 
     return {
       ...kpi,
-
-      // progress
+      title,
       current: currentValue,
       target: targetValue,
-
-      progressText: `${currentValue} / ${targetValue} ${kpi.unit}`,
-
-      deadlineText: `${Math.ceil(
-        (new Date(kpi.deadline) - new Date()) / (1000 * 60 * 60 * 24)
-      )} days left`,
-
-      categoryName: category?.name || "General",
-      categoryColor: category?.color || "#e5e7eb",
-
-    
-      status: latestUpdate ? newStatus : kpi.status,
-
-      evidenceCount: evidenceCount,
+      progressText: `${currentValue} / ${targetValue} ${kpi.unit || ""}`,
+      deadlineText: kpi.deadline
+        ? `${Math.ceil(
+            (new Date(kpi.deadline) - new Date()) / (1000 * 60 * 60 * 24)
+          )} days left`
+        : "No deadline",
+      categoryId: kpi.categoryId || category?.id || "",
+      categoryName,
+      categoryColor: category?.color || kpi.categoryColor || "#e5e7eb",
+      status: normalizeStatus(kpi.status || latestUpdate?.status || "pending"),
+      evidenceCount,
       evidence: `${evidenceCount} file${evidenceCount === 1 ? "" : "s"}`,
-
-      updatedAt: latestUpdate?.submittedAt || submission?.submittedAt || null,
+      updatedAt: latestUpdate?.submittedAt || kpi.updatedAt || null,
       notes: latestUpdate?.notes || "",
-      submissionHistory: history
+      submissionHistory: sortedHistory,
     };
-
-  
   });
-  const filteredKPIs = userKpis.filter(kpi => {
-    const matchSearch =
-        searchKPI === "" ||
-        kpi.title.toLowerCase().includes(searchKPI.toLowerCase());
 
+  const filteredKPIs = userKpis.filter((kpi) => {
+    const searchValue = normalizeText(searchKPI);
+
+    const matchSearch =
+      searchValue === "" ||
+      normalizeText(kpi.title).includes(searchValue) ||
+      normalizeText(kpi.description).includes(searchValue) ||
+      normalizeText(kpi.categoryName).includes(searchValue);
+
+    const selectedCategory = normalizeText(filterCategory);
+    
     const matchCategory =
-      filterCategory === "" ||
-      kpi.categoryName === filterCategory;
+      selectedCategory === "" ||
+      selectedCategory === "all" ||
+      selectedCategory === "all categories" ||
+      normalizeText(kpi.categoryName) === selectedCategory ||
+      normalizeText(CATEGORY_NAME_MAP[kpi.categoryId]) === selectedCategory ||
+      normalizeText(CATEGORY_NAME_MAP[kpi.category]) === selectedCategory ||
+      normalizeText(kpi.categoryId) === selectedCategory ||
+      normalizeText(kpi.category) === selectedCategory;
+
+    const selectedStatus = normalizeStatus(filterStatus);
 
     const matchStatus =
-      filterStatus === "" ||
-      kpi.status === filterStatus;
+      selectedStatus === "" ||
+      selectedStatus === "all" ||
+      selectedStatus === "all_status" ||
+      normalizeStatus(kpi.status) === selectedStatus;
 
     return matchSearch && matchCategory && matchStatus;
   });
 
-  const useMockData = () => {
-    localStorage.setItem("kpiDataMode", "mock");
-    setDataMode("mock");
-
-    setKpis(mockKpis);
-    setCategories(mockCategories);
-    setSubmissions(mockSubmissions);
-    setSubmissionHistory(groupSubmissionsByKpi(mockSubmissions));
-
-    setError("");
-  };
-
-  const useRealData = async () => {
+  const loadRealData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
+
       setError("");
 
-      localStorage.setItem("kpiDataMode", "real");
-      setDataMode("real");
+      const token = localStorage.getItem("token");
 
-      const [kpiRes, submissionRes, categoryRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/kpi`),
-        fetch(`${API_BASE_URL}/api/kpi/submissions`),
-        fetch(`${API_BASE_URL}/api/categories`)
+      if (!token) {
+        throw new Error("Please login first before loading KPI data");
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+
+      const savedUser = localStorage.getItem("user");
+
+      const [kpiRes, submissionRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/staff/kpi`, {
+          method: "GET",
+          headers,
+        }),
+        fetch(`${API_BASE_URL}/api/staff/kpi/submissions`, {
+          method: "GET",
+          headers,
+        }),
       ]);
 
-      if (!kpiRes.ok) throw new Error("Failed to fetch KPI data");
-      if (!submissionRes.ok) throw new Error("Failed to fetch submission data");
-      if (!categoryRes.ok) throw new Error("Failed to fetch category data");
+      if (!kpiRes.ok) {
+        const errText = await kpiRes.text();
+        console.error("KPI API error:", kpiRes.status, errText);
+        throw new Error(`Failed to fetch KPI data. Status: ${kpiRes.status}`);
+      }
+
+      if (!submissionRes.ok) {
+        const errText = await submissionRes.text();
+        console.error("Submission API error:", submissionRes.status, errText);
+        throw new Error(`Failed to fetch submission data. Status: ${submissionRes.status}`);
+      }
 
       const kpiData = await kpiRes.json();
       const submissionData = await submissionRes.json();
-      const categoryData = await categoryRes.json();
 
-      const realKpis = kpiData.kpis || [];
-      const realSubmissions = submissionData.submissions || [];
-      const realCategories = categoryData.categories || [];
+      const realKpis = Array.isArray(kpiData)
+      ? kpiData
+      : kpiData.kpis || kpiData.data || [];
 
       setKpis(realKpis);
+
+      console.log("Current user:", currentUser);
+      console.log("Current user id:", currentUserId);
+      console.log("Real KPIs:", realKpis);
+
+      const realSubmissionsRaw = Array.isArray(submissionData)
+        ? submissionData
+        : submissionData.submissions || submissionData.data || [];
+
+      const realSubmissions = normalizeSubmissions(realSubmissionsRaw);
+
       setSubmissions(realSubmissions);
-      setCategories(realCategories);
       setSubmissionHistory(groupSubmissionsByKpi(realSubmissions));
+
+      setCategories([]);
+
     } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to load real data");
+      setError(err.message || "Failed to load database data");
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          return;
-        }
-
-        const res = await fetch(`${API_BASE_URL}/api/user`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch current user");
-        }
-
-        const data = await res.json();
-
-        setCurrentUser(data.user);
-        localStorage.setItem("user", JSON.stringify(data.user));
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchCurrentUser();
+    loadRealData(false);
   }, []);
-
-  useEffect(() => {
-    const savedMode = localStorage.getItem("kpiDataMode") || "mock";
-
-    if (savedMode === "real") {
-      useRealData();
-    } else {
-      useMockData();
-    }
-  }, []);
-
-  
 
   console.log(categories);
 
-
-
-
-
+  const dashboardKpis = userKpis;
+  const totalAssignedKpi = dashboardKpis.length;
 
    const stats = [
     {
       title: "Total KPIs",
-      value: kpis.length,
+      value: totalAssignedKpi,
       subtitle: "All defined KPIs",
       color: "#3b82f6"
     },
@@ -269,34 +337,6 @@ const groupSubmissionsByKpi = (submissionList = []) => {
 
   const handleSubmitUpdate = async (updateData) => {
     try {
-      if (dataMode === "mock") {
-        const newSubmission = {
-          id: `mock_${Date.now()}`,
-          kpiId: updateData.kpiId,
-          current: Number(updateData.current),
-          notes: updateData.notes || "",
-          fileNames: updateData.files?.map((file) => file.name) || [],
-          files: [],
-          submittedAt: new Date().toISOString(),
-          status: "pending"
-        };
-
-        setSubmissionHistory((prev) => {
-          const oldHistory = prev[newSubmission.kpiId] || [];
-
-          return {
-            ...prev,
-            [newSubmission.kpiId]: [...oldHistory, newSubmission]
-          };
-        });
-
-        setSubmissions((prev) => [...prev, newSubmission]);
-
-        alert("Mock progress updated successfully!");
-        setSelectedKpi(null);
-        return;
-      }
-
       const formData = new FormData();
 
       formData.append("kpiId", updateData.kpiId);
@@ -307,8 +347,17 @@ const groupSubmissionsByKpi = (submissionList = []) => {
         formData.append("files", file);
       });
 
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("Please login first before updating KPI progress");
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/kpi/update`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 
@@ -318,7 +367,7 @@ const groupSubmissionsByKpi = (submissionList = []) => {
       }
 
       const result = await response.json();
-      const newSubmission = result.submission;
+      const newSubmission = normalizeSubmissions([result.submission])[0];
 
       setSubmissionHistory((prev) => {
         const oldHistory = prev[newSubmission.kpiId] || [];
@@ -333,9 +382,12 @@ const groupSubmissionsByKpi = (submissionList = []) => {
 
       alert("Progress updated successfully!");
       setSelectedKpi(null);
+
+      // reload latest database data after submission
+      loadRealData(true);
     } catch (error) {
       console.error(error);
-      alert("Failed to update progress. Please check backend.");
+      alert(error.message || "Failed to update progress. Please check backend.");
     }
   };
 
@@ -348,43 +400,8 @@ const groupSubmissionsByKpi = (submissionList = []) => {
       width: "100%"
     }}>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          alignItems: "center",
-          marginBottom: "20px"
-        }}
-      >
-        <button
-          onClick={useMockData}
-          style={{
-            padding: "10px 16px",
-            borderRadius: "8px",
-            border: "none",
-            cursor: "pointer",
-            backgroundColor: dataMode === "mock" ? "#3b82f6" : "#e5e7eb",
-            color: dataMode === "mock" ? "#ffffff" : "#111827"
-          }}
-        >
-          Use Mock Data
-        </button>
-
-        <button
-          onClick={useRealData}
-          style={{
-            padding: "10px 16px",
-            borderRadius: "8px",
-            border: "none",
-            cursor: "pointer",
-            backgroundColor: dataMode === "real" ? "#22c55e" : "#e5e7eb",
-            color: dataMode === "real" ? "#ffffff" : "#111827"
-          }}
-        >
-          Use Real Data
-        </button>
-
-        {loading && <span>Loading real data...</span>}
+      <div style={{ marginBottom: "20px" }}>
+        {loading && <span>Loading KPI data...</span>}
         {error && <span style={{ color: "red" }}>{error}</span>}
       </div>
 
