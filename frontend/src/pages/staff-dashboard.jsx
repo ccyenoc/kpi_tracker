@@ -143,80 +143,77 @@ const StaffDashboard = () => {
   new Date().toLocaleString("default", { month: "short" })
 );
 
-  const getWeeksInMonth = (month) => {
-  const year = new Date().getFullYear();
-  const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
-
-  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
-  const totalWeeks = Math.ceil(lastDay / 7);
-
-  return Array.from({ length: totalWeeks }, (_, i) => `Week ${i + 1}`);
-};
-
-  const submissionMap = Object.fromEntries(
-  submissions.map(s => [s.kpiId, s])
+const submissionMap = Object.fromEntries(
+  submissions.map((s) => [s.kpiId, s])
 );
 
-  const getWeekOfMonth = (date) => {
-  const day = date.getDate();
-  return Math.ceil(day / 7);
-};
+const graphData = userKpis
+  .map((kpi) => {
 
-const weeklyMap = {};
+    const submission =
+      submissionMap[kpi.id];
 
-userKpis.forEach(kpi => {
-  const submission = submissionMap[kpi.id];
-  if (!submission) return;
+    if (!submission) {
+      return null;
+    }
 
-  const date = new Date(submission.submittedAt);
-  const month = date.toLocaleString("default", { month: "short" });
-  const week = getWeekOfMonth(date);
+    const date =
+      new Date(submission.submittedAt);
 
-  const key = `${month}-W${week}`;
+    const month =
+      date.toLocaleString(
+        "default",
+        {
+          month: "short"
+        }
+      );
 
-  if (!weeklyMap[key]) {
-    weeklyMap[key] = {
+    const userData =
+      kpi.kpiAssignments.find(
+        (u) =>
+          u.userId === currentUserId
+      );
+
+    const target =
+      userData?.target || 0;
+
+    const progress =
+      userData?.current || 0;
+
+    return {
+      id: kpi.id,
+
       name: kpi.title,
+
       month,
-      time: `Week ${week}`,
-      kpi: 0,
-      progress: 0,
-      prediction: 0
+
+      time:
+        date.toLocaleDateString(),
+
+      kpi: target,
+
+      progress,
+
+      prediction:
+target === 0
+? 0
+: Math.round(
+(
+progress /
+target
+) * 100
+)
     };
-  }
 
+  })
 
-  const userData = kpi.kpiAssignments.find(u => u.userId === currentUserId);
-  const targetVal = userData?.target || 0;
-  const currentVal = userData?.current || 0;
+  .filter(Boolean)
 
-  weeklyMap[key].kpi += targetVal;
-  weeklyMap[key].progress += currentVal;
-  weeklyMap[key].prediction += currentVal + 5;
-});
-
-let graphData;
-
-if (selectedMonth === "All") {
-  graphData = Object.values(weeklyMap);
-} else {
-  const weeks = getWeeksInMonth(selectedMonth);
-
-  graphData = weeks.map((weekLabel, index) => {
-    const weekNumber = index + 1;
-    const key = `${selectedMonth}-W${weekNumber}`;
-    const matched = weeklyMap[key];
-
-    return matched || {
-      name: "",
-      month: selectedMonth,
-      time: weekLabel,
-      kpi: 0,
-      progress: 0,
-      prediction: 0
-    };
-  });
-}
+  .filter(
+    (item) =>
+      selectedMonth === "All" ||
+      item.month === selectedMonth
+  );
 
   {/*DASHBOARD DATA*/}
   const total = kpis.length;
