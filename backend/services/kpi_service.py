@@ -46,6 +46,42 @@ def get_kpis(request: Request):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+def get_staff_kpis(request: Request):
+    decoded = require_user(request)
+
+    staff_id = (
+        decoded.get("user_id")
+        or decoded.get("id")
+        or decoded.get("uid")
+        or decoded.get("sub")
+    )
+
+    if not staff_id:
+        raise HTTPException(status_code=401, detail="Invalid token: missing user id")
+
+    try:
+        kpi_ref = db.collection(KPI_COLLECTION)
+
+        query = kpi_ref.where(
+            filter=FieldFilter("assignedUserIds", "array_contains", staff_id)
+        )
+
+        kpis = []
+
+        for doc in query.stream():
+            data = doc.to_dict() or {}
+            data["id"] = doc.id
+            kpis.append(data)
+
+        return {
+            "success": True,
+            "kpis": kpis
+        }
+
+    except Exception as e:
+        print("GET STAFF KPI ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def get_kpi(kpi_id: str, request: Request):
@@ -165,6 +201,8 @@ def delete_kpi(kpi_id: str, request: Request):
     kpi_ref.delete()
 
     return {"success": True}
+
+
 
 # to generate weekly report
 def get_weekly_kpi():
@@ -463,3 +501,32 @@ def send_email(to_email, subject, content):
     except Exception as e:
         print("❌ EMAIL ERROR:", e)
 
+def get_staff_kpi_submissions(request: Request):
+    decoded = require_user(request)
+    staff_id = decoded.get("user_id")
+
+    try:
+        submissions_ref = db.collection("kpiSubmissions")
+        query = submissions_ref.where(
+            filter=FieldFilter("submittedBy", "==", staff_id)
+        )
+
+        submissions = []
+
+        for doc in query.stream():
+            data = doc.to_dict() or {}
+            data["id"] = doc.id
+            submissions.append(data)
+
+        submissions.sort(
+            key=lambda x: x.get("submittedAt", ""),
+            reverse=False
+        )
+
+        return {
+            "success": True,
+            "submissions": submissions
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

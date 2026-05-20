@@ -3,6 +3,8 @@ from models.kpi_model import KPICreate, KPIUpdate
 from services.kpi_service import (
     get_kpis,
     get_kpi,
+    get_staff_kpis,
+    get_staff_kpi_submissions,
     create_kpi,
     update_kpi,
     delete_kpi,
@@ -205,6 +207,10 @@ def get_staff_monthly_performance(request: Request):
         return {"success": False, "message": str(e)}
 
 
+@router.get("/staff/kpi")
+def view_staff_kpis(request: Request):
+    return get_staff_kpis(request)
+
 @router.post("/kpi/update")
 async def update_kpi_progress(
     kpiId: str = Form(...),
@@ -295,3 +301,8 @@ async def verify_submission(request: Request):
         import traceback
         traceback.print_exc()
         return {"success": False, "message": str(e)}
+
+
+@router.get("/staff/kpi/submissions")
+def view_staff_kpi_submissions(request: Request):
+    return get_staff_kpi_submissions(request)
