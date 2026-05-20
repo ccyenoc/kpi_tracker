@@ -1,92 +1,262 @@
-import {LineChart,Line,XAxis,YAxis, Tooltip,CartesianGrid,Legend, ResponsiveContainer} from "recharts";
-import {useEffect , useState} from "react";
+import {
+LineChart,
+Line,
+XAxis,
+YAxis,
+Tooltip,
+CartesianGrid,
+Legend,
+ResponsiveContainer
+}
+from "recharts";
+
+import {
+useEffect,
+useState
+}
+from "react";
 
 function RectangleGraphCard(){
-    console.log("RectangleGraphCard loaded");
 
-    {/* const [data, setData] = useState(); */}
+const[
+data,
+setData
+]=
+useState([]);
 
-     {/*useEffect( ()=> {
-        fetch("https://localhost:8000/api/data")
-        .then(res => res.json())
-        .then(data => setData(data))
-    },[] ); */}
-
-     const data = [
-    { time: "Week 1", kpi: 65, progress: 60, prediction: 68 },
-    { time: "Week 2", kpi: 72, progress: 70, prediction: 75 },
-    { time: "Week 3", kpi: 78, progress: 76, prediction: 80 },
-    { time: "Week 4", kpi: 85, progress: 82, prediction: 88 }
-  ];
+const[
+loading,
+setLoading
+]=
+useState(true);
 
 
-    return(
-        <div className="mx-3 mb-2 flex-grow-1"
-        style={{
-            position: "relative",
-            zIndex: 1,
-            display : "flex",
-            flexDirection: "column",
-            height: "380px",
-            padding: "20px",
-            backgroundColor: "#ffffff",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-            width: "97%", 
-            borderRadius : "15px",
-            fontSize: "16px",
-        }}>
-            
-            <div
-              style={{
-                display : "flex",
-                flexDirection :"column",
-                alignItems : "flex-start",
-                borderRadius : "15px",
-              }}>
-            <h4
-            style={{
-                fontSize: "18px",
-              }}>KPI Progress Over Time</h4>
-            <h5 style={{ 
-                color: "#8a8a8a" ,
-                fontSize : "14px"}}>Track KPI performance trends over time </h5>
+useEffect(()=>{
 
-                <div style={{ 
-                  width: "100%", 
-                  height: "300px",
-                  overflow: "hidden"  }}>
-          <ResponsiveContainer 
-          width="100%" 
-          height="100%">
-           <LineChart 
-            data={data}
-            margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
+const token =
+localStorage
+.getItem(
+"token"
+);
 
-            <XAxis dataKey="time" />
-            <YAxis />
+fetch(
+`${import.meta.env.VITE_API_BASE_URL}/api/manager/kpi/history`,
+{
+headers:{
+Authorization:
+`Bearer ${token}`
+}
+}
+)
 
-            <Tooltip />
-            <Legend verticalAlign="top" align="right" />
+.then(
+res=>{
 
-            {/* Blue */}
-            <Line type="monotone" dataKey="kpi" stroke="#2563eb" name="Assigned KPI" />
+if(
+!res.ok
+){
 
-            {/* Orange */}
-            <Line type="monotone" dataKey="progress" stroke="#f59e0b" name="Progress" />
+throw new Error(
+"Failed"
+);
 
-            {/* Green */}
-            <Line type="monotone" dataKey="prediction" stroke="#10b981" name="Prediction" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+}
 
-            </div>
+return res.json();
+
+}
+)
+
+.then(
+result=>{
+
+console.log(
+result
+);
+
+setData(
+result.chart
+||
+[]
+);
+
+}
+)
+
+.catch(
+console.error
+)
+
+.finally(
+()=>{
+
+setLoading(
+false
+);
+
+}
+);
+
+},
+[]);
 
 
+if(
+loading
+){
 
-        </div>
-    )
+return(
+
+<div>
+
+Loading...
+
+</div>
+
+);
+
+}
+
+
+return(
+
+<div
+className=
+"mx-3 mb-2 flex-grow-1"
+
+style={{
+
+height:
+"380px",
+
+padding:
+"20px",
+
+background:
+"#fff",
+
+borderRadius:
+"15px"
+
+}}
+
+>
+
+<h4>
+
+KPI Progress Over Time
+
+</h4>
+
+<h5
+style={{
+color:"#888"
+}}
+>
+
+Expected vs Actual vs Forecast
+
+</h5>
+
+<div
+style={{
+
+width:
+"100%",
+
+height:
+"300px"
+
+}}
+>
+
+<ResponsiveContainer>
+
+<LineChart
+data={
+data
+}
+>
+
+<CartesianGrid
+strokeDasharray=
+"3 3"
+/>
+
+<XAxis
+dataKey=
+"time"
+/>
+
+<YAxis
+domain={[0,100]}
+/>
+
+<Tooltip/>
+
+<Legend/>
+
+<Line
+
+type=
+"monotone"
+
+dataKey=
+"kpi"
+
+stroke=
+"#2563eb"
+
+name=
+"Expected"
+
+/>
+
+<Line
+
+type=
+"monotone"
+
+dataKey=
+"progress"
+
+stroke=
+"#f59e0b"
+
+name=
+"Actual"
+
+/>
+
+<Line
+
+type=
+"monotone"
+
+dataKey=
+"prediction"
+
+stroke=
+"#10b981"
+
+strokeDasharray=
+"5 5"
+
+name=
+"Forecast"
+
+/>
+
+</LineChart>
+
+</ResponsiveContainer>
+
+</div>
+
+</div>
+
+);
+
 }
 
 export default RectangleGraphCard;

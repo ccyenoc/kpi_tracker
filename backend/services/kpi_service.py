@@ -10,6 +10,8 @@ from fastapi import UploadFile
 from pathlib import Path
 import uuid
 from utils.auth_utils import require_user
+from collections import defaultdict
+from datetime import datetime
 
 import os , smtplib , threading
 
@@ -463,3 +465,196 @@ def send_email(to_email, subject, content):
     except Exception as e:
         print("❌ EMAIL ERROR:", e)
 
+from collections import defaultdict
+from datetime import datetime
+
+
+def get_kpi_history(request: Request):
+
+    data = get_kpis(request)
+
+    kpis = data["kpis"]
+
+    if not kpis:
+        return {
+            "success": True,
+            "chart": []
+        }
+
+    total_expected = 0
+    total_progress = 0
+    total_prediction = 0
+    count = 0
+
+    today = datetime.utcnow()
+
+    for kpi in kpis:
+
+        deadline = kpi.get("deadline")
+
+        assignments = kpi.get(
+            "kpiAssignments",
+            []
+        )
+
+        expected = 0
+
+        if deadline:
+
+            try:
+
+                due = datetime.fromisoformat(
+                    deadline
+                )
+
+                total_days = 30
+
+                days_elapsed = max(
+                    0,
+                    total_days -
+                    (
+                        due -
+                        today
+                    ).days
+                )
+
+                expected = min(
+                    (
+                        days_elapsed
+                        /
+                        total_days
+                    ) * 100,
+                    100
+                )
+
+            except:
+                expected = 50
+
+
+        for a in assignments:
+
+            current = a.get(
+                "current",
+                0
+            )
+
+            target = a.get(
+                "target",
+                1
+            )
+
+            if target <= 0:
+                continue
+
+
+            progress = (
+                current
+                /
+                target
+            ) * 100
+
+
+            gap = (
+                progress -
+                expected
+            )
+
+
+            prediction = max(
+    0,
+    min(
+        progress +
+        (
+            gap * 0.5
+        ),
+        100
+    )
+)
+
+
+            total_expected += expected
+            total_progress += progress
+            total_prediction += prediction
+
+            count += 1
+
+
+    if count == 0:
+
+        return {
+            "success": True,
+            "chart": []
+        }
+
+
+    avg_expected = (
+        total_expected
+        /
+        count
+    )
+
+    avg_progress = (
+        total_progress
+        /
+        count
+    )
+
+    avg_prediction = (
+        total_prediction
+        /
+        count
+    )
+
+
+    chart = []
+
+    for week in range(1, 5):
+
+        ratio = week / 4
+
+        chart.append({
+
+            "time":
+            f"Week {week}",
+
+            "kpi":
+            round(
+                avg_expected *
+                (
+                    0.7 +
+                    ratio * 0.3
+                ),
+                1
+            ),
+
+            "progress":
+            round(
+                avg_progress *
+                (
+                    0.7 +
+                    ratio * 0.3
+                ),
+                1
+            ),
+
+            "prediction":
+            round(
+                avg_prediction *
+                (
+                    0.7 +
+                    ratio * 0.3
+                ),
+                1
+            )
+
+        })
+
+    return {
+
+        "success":
+        True,
+
+        "chart":
+        chart
+
+    }

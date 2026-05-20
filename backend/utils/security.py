@@ -1,6 +1,8 @@
-import bcrypt
+import bcrypt, os
 import jwt
 import time
+
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev_secret")
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
