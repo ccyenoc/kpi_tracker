@@ -1,51 +1,87 @@
-from datetime import datetime
+from services.kpi_service import get_kpi
 
 
 def predict_kpi(
-    kpi_id: str,
+    kpi_id,
     request
 ):
 
-    kpi = get_kpi(
+    response = get_kpi(
         kpi_id,
         request
     )
 
-    assignment = (
-        kpi["kpiAssignments"][0]
+    kpi = response["kpi"]
+
+    assignments = kpi.get(
+        "kpiAssignments",
+        []
     )
 
-    current = assignment["current"]
-    target = assignment["target"]
+    if not assignments:
 
-    completion = (
-        current / target
+        return {
+            "success": True,
+            "chart": []
+        }
+
+    assignment = assignments[0]
+
+    current = assignment.get(
+        "current",
+        0
+    )
+
+    target = assignment.get(
+        "target",
+        1
+    )
+
+    progress = (
+        current /
+        target
     ) * 100
 
-    due = datetime.fromisoformat(
-        kpi["deadline"]
+
+    prediction = min(
+        progress * 1.1,
+        100
     )
 
-    today = datetime.now()
 
-    days_left = (
-        due - today
-    ).days
+    chart = [
 
-    if completion >= 100:
-        status = "Completed"
+        {
+            "time": "Week 1",
+            "kpi": 25,
+            "progress": progress * 0.25,
+            "prediction": prediction * 0.25
+        },
 
-    elif completion >= 70:
-        status = "On Track"
+        {
+            "time": "Week 2",
+            "kpi": 50,
+            "progress": progress * 0.5,
+            "prediction": prediction * 0.5
+        },
 
-    else:
-        status = "At Risk"
+        {
+            "time": "Week 3",
+            "kpi": 75,
+            "progress": progress * 0.75,
+            "prediction": prediction * 0.75
+        },
+
+        {
+            "time": "Week 4",
+            "kpi": 100,
+            "progress": progress,
+            "prediction": prediction
+        }
+
+    ]
 
     return {
-        "completion": round(
-            completion,
-            1
-        ),
-        "daysLeft": days_left,
-        "status": status
+        "success": True,
+        "chart": chart
     }
