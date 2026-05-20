@@ -1,120 +1,197 @@
-import {LineChart,Line,XAxis,YAxis, Tooltip,CartesianGrid,Legend, ResponsiveContainer} from "recharts";
-import {useEffect , useState} from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer
+} from "recharts";
 
-function RectangleGraphCard(){
-    console.log("RectangleGraphCard loaded");
+import {
+  useEffect,
+  useState
+} from "react";
 
-    const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-      const token = localStorage.getItem("token");
-      
-      // Fetch real KPI performance data from backend
-      fetch("/api/manager/dashboard/stats", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data?.kpiTrends) {
-          // Format backend data for the chart
-          setData(data.kpiTrends.map(item => ({
-            time: item.month || item.week || item.time,
-            kpi: item.kpi || item.target || 0,
-            progress: item.progress || item.current || 0,
-            prediction: item.prediction || item.predictedProgress || 0
-          })));
-        } else {
-          // Fallback data if endpoint doesn't return trends
-          setData([
-            { time: "Week 1", kpi: 65, progress: 60, prediction: 68 },
-            { time: "Week 2", kpi: 72, progress: 70, prediction: 75 },
-            { time: "Week 3", kpi: 78, progress: 76, prediction: 80 },
-            { time: "Week 4", kpi: 85, progress: 82, prediction: 88 }
-          ]);
+function RectangleGraphCard() {
+
+  const [data, setData] = useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+
+  useEffect(() => {
+
+    const token =
+      localStorage.getItem(
+        "token"
+      );
+
+    fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/manager/kpi/history`,
+      {
+        headers: {
+          Authorization:
+            `Bearer ${token}`
         }
+      }
+    )
+
+      .then((res) => {
+
+        if (!res.ok) {
+          throw new Error(
+            "Failed"
+          );
+        }
+
+        return res.json();
+
       })
-      .catch(err => {
-        console.error("Failed to fetch graph data:", err);
-        // Show fallback data on error
-        setData([
-          { time: "Week 1", kpi: 65, progress: 60, prediction: 68 },
-          { time: "Week 2", kpi: 72, progress: 70, prediction: 75 },
-          { time: "Week 3", kpi: 78, progress: 76, prediction: 80 },
-          { time: "Week 4", kpi: 85, progress: 82, prediction: 88 }
-        ]);
+
+      .then((result) => {
+
+        console.log(
+          result
+        );
+
+        setData(
+          result.chart ||
+          []
+        );
+
       })
-      .finally(() => setLoading(false));
-    }, []);
+
+      .catch(
+        console.error
+      )
+
+      .finally(() => {
+
+        setLoading(
+          false
+        );
+
+      });
+
+  }, []);
 
 
-    return(
-        <div className="mx-3 mb-2 flex-grow-1"
-        style={{
-            position: "relative",
-            zIndex: 1,
-            display : "flex",
-            flexDirection: "column",
-            height: "380px",
-            padding: "20px",
-            backgroundColor: "#ffffff",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-            width: "97%", 
-            borderRadius : "15px",
-            fontSize: "16px",
-        }}>
-            
-            <div
-              style={{
-                display : "flex",
-                flexDirection :"column",
-                alignItems : "flex-start",
-                borderRadius : "15px",
-              }}>
-            <h4
-            style={{
-                fontSize: "18px",
-              }}>KPI Progress Over Time</h4>
-            <h5 style={{ 
-                color: "#8a8a8a" ,
-                fontSize : "14px"}}>Track KPI performance trends over time </h5>
 
-                <div style={{ 
-                  width: "100%", 
-                  height: "300px",
-                  overflow: "hidden"  }}>
-          <ResponsiveContainer 
-          width="100%" 
-          height="100%">
-           <LineChart 
-            data={data}
-            margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
+  if (loading) {
 
-            <XAxis dataKey="time" />
-            <YAxis />
+    return (
 
-            <Tooltip />
-            <Legend verticalAlign="top" align="right" />
-
-            {/* Blue */}
-            <Line type="monotone" dataKey="kpi" stroke="#2563eb" name="Assigned KPI" />
-
-            {/* Orange */}
-            <Line type="monotone" dataKey="progress" stroke="#f59e0b" name="Progress" />
-
-            {/* Green */}
-            <Line type="monotone" dataKey="prediction" stroke="#10b981" name="Prediction" />
-          </LineChart>
-        </ResponsiveContainer>
+      <div>
+        Loading...
       </div>
 
-            </div>
+    );
+
+  }
 
 
 
-        </div>
-    )
+  return (
+
+    <div
+      className="mx-3 mb-2 flex-grow-1"
+      style={{
+        height: "380px",
+        padding: "20px",
+        background: "#fff",
+        borderRadius: "15px"
+      }}
+    >
+
+      <h4>
+        KPI Progress Over Time
+      </h4>
+
+      <h5
+        style={{
+          color: "#888"
+        }}
+      >
+        Expected vs Actual vs Forecast
+      </h5>
+
+
+
+      <div
+        style={{
+          width: "100%",
+          height: "300px"
+        }}
+      >
+
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+        >
+
+          <LineChart
+            data={data}
+          >
+
+            <CartesianGrid
+              strokeDasharray="3 3"
+            />
+
+            <XAxis
+              dataKey="time"
+            />
+
+            <YAxis
+              domain={[0, 100]}
+            />
+
+            <Tooltip />
+
+            <Legend />
+
+
+
+            <Line
+              type="monotone"
+              dataKey="kpi"
+              stroke="#2563eb"
+              name="Expected"
+            />
+
+
+
+            <Line
+              type="monotone"
+              dataKey="progress"
+              stroke="#f59e0b"
+              name="Actual"
+            />
+
+
+
+            <Line
+              type="monotone"
+              dataKey="prediction"
+              stroke="#10b981"
+              strokeDasharray="5 5"
+              name="Forecast"
+            />
+
+          </LineChart>
+
+        </ResponsiveContainer>
+
+      </div>
+
+    </div>
+
+  );
+
 }
+
 
 export default RectangleGraphCard;
