@@ -405,7 +405,6 @@ target
         diffDays >= 0 &&
         diffDays <= 7
       );
-    });
 
     const highPriority = dashboardKpis.filter(
       k => (k.priority || "").toLowerCase() === "high"
