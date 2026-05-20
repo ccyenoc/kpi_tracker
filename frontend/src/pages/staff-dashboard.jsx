@@ -325,46 +325,77 @@ const StaffDashboard = () => {
   } else {
     const weeks = getWeeksInMonth(selectedMonth);
 
-    graphData = weeks.map((weekLabel, index) => {
-      const weekNumber = index + 1;
-      const key = `${selectedMonth}-W${weekNumber}`;
-      const matched = weeklyMap[key];
+const submissionMap = Object.fromEntries(
+  submissions.map((s) => [s.kpiId, s])
+);
 
-      return matched || {
-        name: "Average KPI Progress",
-        month: selectedMonth,
-        time: weekLabel,
-        kpi: 100,
-        progress: 0,
-        prediction: 0
-      };
-    });
-  }
+const graphData = userKpis
+  .map((kpi) => {
 
-    {/*DASHBOARD DATA*/}
-    const totalPercentage = dashboardKpis.reduce((sum, kpi) => {
-      const current = Number(kpi.current || 0);
-      const target = Number(kpi.target || 0);
+    const submission =
+      submissionMap[kpi.id];
 
-      const percentage = target > 0
-        ? Math.min(100, Math.round((current / target) * 100))
-        : 0;
+    if (!submission) {
+      return null;
+    }
 
-      return sum + percentage;
-    }, 0);
+    const date =
+      new Date(submission.submittedAt);
 
-    const completionRate = totalAssignedKpi > 0
-      ? Math.round(totalPercentage / totalAssignedKpi)
-      : 0;
+    const month =
+      date.toLocaleString(
+        "default",
+        {
+          month: "short"
+        }
+      );
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const userData =
+      kpi.kpiAssignments.find(
+        (u) =>
+          u.userId === currentUserId
+      );
 
-    const upcoming = dashboardKpis.filter(k => {
-      if (!k.deadline) return false;
+    const target =
+      userData?.target || 0;
 
-      const deadline = new Date(k.deadline);
-      deadline.setHours(0, 0, 0, 0);
+    const progress =
+      userData?.current || 0;
+
+    return {
+      id: kpi.id,
+
+      name: kpi.title,
+
+      month,
+
+      time:
+        date.toLocaleDateString(),
+
+      kpi: target,
+
+      progress,
+
+      prediction:
+target === 0
+? 0
+: Math.round(
+(
+progress /
+target
+) * 100
+)
+    };
+
+  })
+
+  .filter(Boolean)
+
+  .filter(
+    (item) =>
+      selectedMonth === "All" ||
+      item.month === selectedMonth
+  );
 
       const diffDays = (deadline - today) / (1000 * 60 * 60 * 24);
 
