@@ -128,6 +128,33 @@ class KPIAssignmentService:
 
 class SubmissionVerificationService:
     @staticmethod
+    def get_all_submissions(kpi_id: Optional[str] = None) -> Dict:
+        """Get ALL submissions (pending, approved, rejected)"""
+        try:
+            db = get_db()
+            query = db.collection("kpiSubmissions")
+
+            if kpi_id:
+                query = query.where("kpiId", "==", kpi_id)
+
+            docs = query.stream()
+            submissions = []
+
+            for doc in docs:
+                data = doc.to_dict()
+                data["id"] = doc.id
+                submissions.append(data)
+
+            return {
+                "success": True,
+                "submissions": submissions,
+                "count": len(submissions)
+            }
+
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+    @staticmethod
     def get_pending_submissions(kpi_id: Optional[str] = None) -> Dict:
         try:
             db = get_db()
@@ -179,18 +206,21 @@ class SubmissionVerificationService:
             if status == "approved":
                 kpi_ref = db.collection("kpiData").document(kpi_id)
                 kpi_doc = kpi_ref.get()
-                kpi_data = kpi_doc.to_dict() or {}
+                
+                # Only update KPI if it exists
+                if kpi_doc.exists:
+                    kpi_data = kpi_doc.to_dict() or {}
 
-                kpi_assignments = kpi_data.get("kpiAssignments", [])
-                for assignment in kpi_assignments:
-                    if assignment.get("userId") == submitted_by:
-                        assignment["current"] = submission_data.get("current", assignment.get("current"))
-                        assignment["lastUpdated"] = datetime.now()
+                    kpi_assignments = kpi_data.get("kpiAssignments", [])
+                    for assignment in kpi_assignments:
+                        if assignment.get("userId") == submitted_by:
+                            assignment["current"] = submission_data.get("current", assignment.get("current"))
+                            assignment["lastUpdated"] = datetime.now()
 
-                kpi_ref.update({
-                    "kpiAssignments": kpi_assignments,
-                    "updatedAt": datetime.now()
-                })
+                    kpi_ref.update({
+                        "kpiAssignments": kpi_assignments,
+                        "updatedAt": datetime.now()
+                    })
 
             return {
                 "success": True,

@@ -10,7 +10,7 @@ import ProgressDeadline from "../components/progress_deadline";
 import ProgressKPIAssignStaff from "../components/progress_kpi_assign_staff";
 import ProgressKPIGraph from "../components/progress_kpi_graph";
 import { pathway } from "../Pathway";
-import { fetchKPIPrediction, deleteKPI, fetchCategories } from "../api/api";
+import { fetchKPIPrediction, deleteKPI, fetchCategories, fetchAllUsers } from "../api/api";
 
 function KPIProgressPage() {
   const location = useLocation();
@@ -19,6 +19,7 @@ function KPIProgressPage() {
 
   const [prediction, setPrediction] = useState(null);
   const [category, setCategory] = useState(null);
+  const [users, setUsers] = useState([]);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [error, setError] = useState(null);
@@ -29,16 +30,28 @@ function KPIProgressPage() {
   ]);
 
   useEffect(() => {
-    // Load categories and match the one for this KPI
-    fetchCategories()
+    // Fetch all users to get staff names
+    fetchAllUsers()
       .then((data) => {
-        const cats = data.categories || [];
-        const match = cats.find(
-          (c) => c.id === state.categoryId || c.id === state.category
-        );
-        setCategory(match || null);
+        setUsers(data.users || []);
       })
       .catch(() => {});
+
+    // If categoryName is provided in state, use it directly
+    if (state.categoryName) {
+      setCategory({ name: state.categoryName });
+    } else {
+      // Otherwise try to load categories and match by ID
+      fetchCategories()
+        .then((data) => {
+          const cats = data.categories || [];
+          const match = cats.find(
+            (c) => c.id === state.categoryId || c.id === state.category
+          );
+          setCategory(match || null);
+        })
+        .catch(() => {});
+    }
 
     // Load prediction if we have a KPI id
     if (state.id) {
@@ -195,25 +208,41 @@ function KPIProgressPage() {
         >
           <ProgressKPIAssignStaff
             staffProgress={
-              prediction?.staffPredictions?.map((p) => ({
-                staffId: p.staffId,
-                name: p.staffName,
-                email: "",
-                assignedKpi: state.target,
-                progress: Math.round((p.currentProgress / 100) * state.target),
-                target: state.target,
-                evidenceCount: 0,
-              })) || [
-                {
-                  staffId: 1,
-                  name: state.team || "—",
-                  email: "",
-                  assignedKpi: state.target,
-                  progress: 0,
-                  target: state.target,
-                  evidenceCount: 0,
-                },
-              ]
+              // Build staff list from assignedUserIds with actual user data
+              (state.assignedUserIds && state.assignedUserIds.length > 0)
+                ? state.assignedUserIds.map((userId, idx) => {
+                    const user = users.find(u => u.id === userId);
+                    const staffPred = prediction?.staffPredictions?.[idx];
+                    return {
+                      staffId: userId,
+                      name: user?.name || `User ${userId}`,
+                      email: user?.email || "",
+                      assignedKpi: state.target,
+                      progress: staffPred ? Math.round((staffPred.currentProgress / 100) * state.target) : 0,
+                      target: state.target,
+                      evidenceCount: 0,
+                    };
+                  })
+                // Fallback: try prediction data or use team
+                : prediction?.staffPredictions?.map((p) => ({
+                    staffId: p.staffId,
+                    name: p.staffName,
+                    email: "",
+                    assignedKpi: state.target,
+                    progress: Math.round((p.currentProgress / 100) * state.target),
+                    target: state.target,
+                    evidenceCount: 0,
+                  })) || [
+                    {
+                      staffId: 1,
+                      name: state.team || "—",
+                      email: "",
+                      assignedKpi: state.target,
+                      progress: 0,
+                      target: state.target,
+                      evidenceCount: 0,
+                    },
+                  ]
             }
             unit={state.unit || "units"}
           />
