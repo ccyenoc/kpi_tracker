@@ -83,13 +83,22 @@ function CreateKPI() {
 
     setErrorMessage("");
 
+    // Map short category ID to full category name
+    const categoryNameMap = {
+      "sales": "Sales Performance",
+      "lead": "Lead Generation",
+      "property": "Property Management",
+      "marketing": "Marketing Performance",
+      "customer": "Customer Experience"
+    };
+
     try {
       setLoading(true);
       const createFormData = {
         title: title,
         description: description,
         categoryId: category,
-        categoryName: category,
+        categoryName: categoryNameMap[category] || category,
         target: Number(target),
         unit: unit,
         frequency: "monthly",
@@ -117,12 +126,15 @@ function CreateKPI() {
   useEffect(() => {
     userService.getAllStaff()
       .then(data => {
-        console.log("STAFF:", data);
-        setStaffList(data);
-    })
-    .catch(err => {
-        console.error("Error fetching staff:", err.message); 
-    });
+        // Extract users array and filter for staff only
+        const allUsers = Array.isArray(data) ? data : (data.users || []);
+        const staffUsers = allUsers.filter(user => user.role === "staff");
+        console.log("STAFF:", staffUsers);
+        setStaffList(staffUsers);
+      })
+      .catch(err => {
+        console.error("Error fetching staff:", err.message);
+      });
   }, []);
 
   return (
@@ -167,13 +179,7 @@ function CreateKPI() {
 
 
           {/*title and category contanier*/}
-          <div
-            className="d-flex"
-            style={{
-              flexDirection: "row",
-              font: "16px",
-              gap: "400px",
-            }}>
+          <div className="d-flex" style={{ flexDirection: "row", gap: "400px" }}>
 
             <InputKPITitle value={title} setValue={setTitle} />
             <CategorySelection value={category} setValue={setCategory} />
@@ -226,14 +232,14 @@ function CreateKPI() {
                 style={{
                   width: "200px",
                   backgroundColor: "#2b4cb3",
-                color: "#fff",
-                padding: "10px 20px",
-                border: "none",
-                borderRadius: "10px",
-                fontSize: "14px",
-                cursor: "pointer"
-              }}>
-              Confirm</button>
+                  color: "#fff",
+                  padding: "10px 20px",
+                  border: "none",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  cursor: "pointer"
+                }}>
+                Confirm</button>
             )}
 
             {showModal && (
@@ -300,18 +306,10 @@ function CreateKPI() {
                 </div>
               </div>
             )}
-
           </div>
-
-
         </div>
-
-
-
       </div>
     </div>
-
-
   )
 }
 

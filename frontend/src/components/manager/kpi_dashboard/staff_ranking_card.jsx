@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import TopStaffCard from "./top_staff_card";
-import { rankUsers } from "../../../utils/performanceUtils";
-import { useMemo } from "react";
 
 const API_BASE_URL = "";
 
@@ -29,6 +27,7 @@ function StaffRankingCard() {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
+    //TODO: move fething to service layer
     fetch(`${API_BASE_URL}/api/manager/dashboard/stats`, {
       headers: { Authorization: `Bearer ${token}` },
     })
