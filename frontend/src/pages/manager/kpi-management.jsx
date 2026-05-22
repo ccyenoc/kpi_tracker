@@ -4,8 +4,8 @@ import PageTitle from "../../components/common/page_title.jsx";
 import SearchFilterKPI from "../../components/common/search_filter_kpi.jsx";
 import KPIAssignedListCard from "../../components/manager/kpi_management/kpi_assigned_list.jsx";
 import { NavLink } from "react-router-dom";
-import { pathway } from "../Pathway";
-import { fetchManagerKPIs, fetchAllUsers, fetchCategories } from "../api/api";
+import { pathway } from "../../Pathway";
+import { kpi, user } from "../../api/api";
 
 function KPIManagement() {
   const [kpis, setKpis] = useState([]);
@@ -24,11 +24,9 @@ function KPIManagement() {
     const token = localStorage.getItem("token");
     
     Promise.all([
-      fetchManagerKPIs(), 
-      fetchAllUsers(),
-      fetch("/api/kpi/underperform", {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(res => res.json())
+      kpi.fetchManagerKPIs(), 
+      user.fetchAll(),
+      kpi.fetchUnderperformKPIs()
     ])
       .then(([kpiData, userData, underperformData]) => {
         setKpis(kpiData.kpis || []);

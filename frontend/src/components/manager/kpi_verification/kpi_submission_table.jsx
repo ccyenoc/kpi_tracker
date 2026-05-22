@@ -1,13 +1,13 @@
-import {useNavigate} from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import KPIProgressPage from "../../../pages/manager/kpi_management/kpi-progress";
 import { useState } from "react";
 import { pathway } from "../../../Pathway";
-{/*import data*/}
+{/*import data*/ }
 import { users as mockUsers } from "../../../data/userData";
 import { kpis as mockKpis } from "../../../data/kpiData";
 import { categories as mockCategories } from "../../../data/categoriesData";
 
-function KPISubmissionTable({submissions, users = [], kpis = [], categories = [], onSubmissionUpdated = null}) {
+function KPISubmissionTable({ submissions, users = [], kpis = [], categories = [], onSubmissionUpdated = null }) {
   const navigate = useNavigate();
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -21,18 +21,18 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
 
   const headerStyle = {
     display: "flex",
-    textAlign:"left",
+    textAlign: "left",
     fontWeight: "bold",
-    fontSize:"16px",
-    padding:"5px",
+    fontSize: "16px",
+    padding: "5px",
     borderBottom: "1px solid #e5e7eb",
   };
 
   const rowStyle = {
     display: "flex",
-    textAlign:"left",
+    textAlign: "left",
     padding: "15px 0",
-    fontSize:"14px",
+    fontSize: "14px",
     borderBottom: "1px solid #e5e7eb",
     alignItems: "center",
   };
@@ -69,40 +69,30 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
 
   const submitVerification = async (status) => {
     if (!selectedSubmission) return;
-    
-    setIsProcessing(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("/api/kpi/verify-submission", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          submissionId: selectedSubmission.id,
-          kpiId: selectedSubmission.kpiId,
-          status: status,
-          comments: comments,
-        }),
-      });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        alert(`Submission ${status} successfully!`);
-        setShowModal(false);
-        setSelectedSubmission(null);
-        setComments("");
-        // Callback to refresh submissions list
-        if (onSubmissionUpdated) {
-          onSubmissionUpdated();
-        }
-      } else {
-        alert(`Error: ${data.message}`);
+    setIsProcessing(true);
+
+    try {
+      const body = {
+        submissionId: selectedSubmission.id,
+        kpiId: selectedSubmission.kpiId,
+        status: status,
+        comments: comments,
+      };
+
+      const data = await kpi.verifySubmission(body);
+
+      //TODO: change alert to modal or toast
+      alert(`Submission ${status} successfully!`);
+      setShowModal(false);
+      setSelectedSubmission(null);
+      setComments("");
+      // Callback to refresh submissions list
+      if (onSubmissionUpdated) {
+        onSubmissionUpdated();
       }
     } catch (err) {
-      alert("Failed to verify submission");
+      alert(`Error: ${data.message || "Failed to verify submission"}`);
     } finally {
       setIsProcessing(false);
     }
@@ -122,12 +112,13 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
 
   return (
     <div className="mx-3"
-    style={{ 
+      style={{
         marginTop: "10px",
-        padding:"20px",
+        padding: "20px",
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-        borderRadius:"12px" }}>
-      
+        borderRadius: "12px"
+      }}>
+
       <div style={headerStyle}>
         <div style={{ flex: 1.2, maxWidth: "100px", minWidth: 0 }}>Staff</div>
         <div style={{ flex: 2.5 }}>KPI Title</div>
@@ -156,33 +147,33 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
             : 0;
 
           return (
-            <div 
+            <div
               style={rowStyle}
               key={`${item.id}-${idx}`}
               onClick={() => navigate(pathway.VerifyKPI, { state: item })}>
 
-              <div style={{ 
+              <div style={{
                 flex: 1.2,
                 maxWidth: "100px",
                 minWidth: 0,
                 whiteSpace: "normal",
                 wordBreak: "break-word",
-                overflowWrap: "break-word" 
+                overflowWrap: "break-word"
               }}>
                 <div style={{ fontWeight: "500" }}>{user.name}</div>
                 <div style={{ fontSize: "13px", color: "#6b7280" }}>{user.email}</div>
               </div>
 
               <div style={{ flex: 2.5 }}>
-                <div style={{ 
+                <div style={{
                   fontWeight: "500",
                   maxWidth: "200px",
                   minWidth: 0,
                   whiteSpace: "normal",
                   wordBreak: "break-word",
-                  overflowWrap: "break-word" 
+                  overflowWrap: "break-word"
                 }}>{kpi.title}</div>
-                <div style={{ 
+                <div style={{
                   fontSize: "13px",
                   color: "#6b7280",
                   maxWidth: "200px",
@@ -223,7 +214,7 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
                   <div>
                     {item.files.map((file, idx) => (
                       <div key={idx}>
-                        <a 
+                        <a
                           href={`/api/kpi/evidence/${file.storedName}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -304,11 +295,11 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
             </div>
           );
         })
-        : (
-          <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
-            No submissions available
-          </div>
-        )}
+          : (
+            <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+              No submissions available
+            </div>
+          )}
       </div>
 
       {showModal && selectedSubmission && (
@@ -333,7 +324,7 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
             boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
           }}>
             <h2 style={{ marginTop: 0, marginBottom: "20px" }}>Verify Submission</h2>
-            
+
             <div style={{ marginBottom: "20px", backgroundColor: "#f3f4f6", padding: "15px", borderRadius: "8px" }}>
               <p style={{ margin: "5px 0" }}><strong>KPI:</strong> {kpiMap[selectedSubmission.kpiId]?.title || "Unknown"}</p>
               <p style={{ margin: "5px 0" }}><strong>Staff:</strong> {userMap[selectedSubmission.userId || selectedSubmission.submittedBy]?.name || "Unknown"}</p>

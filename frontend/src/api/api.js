@@ -15,90 +15,112 @@ async function request(method, path, body) {
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to fetch ${path}. ${res.status} - ${res.statusText} - ${data.detail || data.message || `HTTP ${res.status}`}`);
   return data;
+}
+
+async function requestBlob(method, path) {
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers: authHeaders(),
+  });
+  const blob = await res.blob();
+  if (!res.ok) {
+    const text = await blob.text();
+    throw new Error(`Failed to fetch ${path}. ${res.status} - ${res.statusText} - ${text}`);
+  }
+  return blob;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-export const sendVerificationEmail = (email) =>
-  request("POST", "/api/verify-email", { email });
+export const auth = {
+  sendVerificationEmail: (email) => request("POST", "/api/verify-email", { email }),
 
-export const verifyEmailCode = (email, code) =>
-  request("POST", "/api/verify-code", { email, code });
+  verifyEmailCode: (email, code) => request("POST", "/api/verify-code", { email, code }),
 
-export const registerUser = (payload) =>
-  request("POST", "/api/register", payload);
+  register: (payload) => request("POST", "/api/register", payload),
 
-export const loginUser = (email, password) =>
-  request("POST", "/api/login", { email, password });
+  login: (email, password) => request("POST", "/api/login", { email, password }),
 
-export const fetchCurrentUser = () => request("GET", "/api/user");
+  fetchCurrentUser: () => request("GET", "/api/user"),
+};
 
 // ── Users ─────────────────────────────────────────────────────────────────────
-export const fetchAllUsers = () => request("GET", "/api/users");
+export const user = {
+  fetchAll: () => request("GET", "/api/users"),
 
-export const fetchUserById = (userId) => request("GET", `/api/users/${userId}`);
-
-// ── Categories ────────────────────────────────────────────────────────────────
-export const fetchCategories = () => request("GET", "/api/categories");
-
-// ── KPIs (manager) ───────────────────────────────────────────────────────────
-export const fetchManagerKPIs = () => request("GET", "/api/manager/kpis");
-
-export const fetchKPIById = (kpiId) => request("GET", `/api/kpi/${kpiId}`);
-
-export const createKPI = (payload) => request("POST", "/api/manager/kpi", payload);
-
-export const updateKPI = (kpiId, payload) =>
-  request("PUT", `/api/manager/kpi/${kpiId}`, payload);
-
-export const deleteKPI = (kpiId) =>
-  request("DELETE", `/api/manager/kpi/${kpiId}`);
-
-// ── KPI Prediction ────────────────────────────────────────────────────────────
-export const fetchKPIPrediction = (kpiId) =>
-  request("GET", `/api/kpi/${kpiId}/prediction`);
-
-// ── Submissions ───────────────────────────────────────────────────────────────
-export const fetchSubmissions = () => request("GET", "/api/kpi/submissions");
-
-export const approveSubmission = (submissionId, note = "") =>
-  request("POST", `/api/kpi/submissions/${submissionId}/approve`, { note });
-
-export const returnSubmission = (submissionId, note = "") =>
-  request("POST", `/api/kpi/submissions/${submissionId}/return`, { note });
-
-// ── Staff KPI progress update (multipart) ─────────────────────────────────────
-export async function submitKPIProgress({ kpiId, current, notes, files }) {
-  const token = localStorage.getItem("token");
-  const form = new FormData();
-  form.append("kpiId", kpiId);
-  form.append("current", current);
-  form.append("notes", notes || "");
-  (files || []).forEach((f) => form.append("files", f));
-
-  const res = await fetch(`${BASE}/api/kpi/update`, {
-    method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form,
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || data.message || `HTTP ${res.status}`);
-  return data;
+  fetchById: (userId) => request("GET", `/api/users/${userId}`),
 }
 
-// ── Manager dashboard aggregated stats ────────────────────────────────────────
-export const fetchManagerDashboardStats = () =>
-  request("GET", "/api/manager/dashboard/stats");
+// ── KPIs ─────────────────────────────────────────────────────────────────────
+export const kpi = {
+  // ── Manager ──────────────────────────────────────────────────────────────────
+  fetchManagerKPIs: () => request("GET", "/api/manager/kpis"),
 
-// ── Staff ranking (computed from dashboard stats) ─────────────────────────────
-export const fetchStaffRankings = () =>
-  fetchManagerDashboardStats().then((d) => ({
+  fetchKPIById: (kpiId) => request("GET", `/api/kpi/${kpiId}`),
+
+  createKPI: (payload) => request("POST", "/api/manager/kpi", payload),
+
+  updateKPI: (kpiId, payload) =>
+    request("PUT", `/api/manager/kpi/${kpiId}`, payload),
+
+  deleteKPI: (kpiId) =>
+    request("DELETE", `/api/manager/kpi/${kpiId}`),
+
+  verifySubmission: (body) =>
+    request("POST", "/api/kpi/verify-submission", body),
+
+  fetchDashboardStats: () => request("GET", "/api/manager/dashboard/stats"),
+
+  // ── Staff ──────────────────────────────────────────────────────────────────
+  fetchStaffKPIs: () => request("GET", "/api/staff/kpi"),
+
+  fetchStaffKPISubmissions: (kpiId) => request("GET", `/api/staff/kpi/submissions`),
+
+  // ── KPI Prediction ────────────────────────────────────────────────────────────
+  fetchKPIPrediction: (kpiId) =>
+    request("GET", `/api/kpi/${kpiId}/prediction`),
+
+  // ── KPI Status (at-risk and underperformed) ───────────────────────────────────
+  fetchAtRiskKPIs: () => request("GET", "/api/kpi/at-risk"),
+
+  fetchUnderperformKPIs: () => request("GET", "/api/kpi/underperform"),
+
+  // ── Submissions ───────────────────────────────────────────────────────────────
+  fetchSubmissions: () => request("GET", "/api/kpi/submissions"),
+
+  approveSubmission: (submissionId, note = "") =>
+    request("POST", `/api/kpi/submissions/${submissionId}/approve`, { note }),
+
+  returnSubmission: (submissionId, note = "") =>
+    request("POST", `/api/kpi/submissions/${submissionId}/return`, { note }),
+
+  // ── Staff KPI progress update (multipart) ─────────────────────────────────────
+  submitKPIProgress: async (form) => {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${BASE}/api/kpi/update`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+    return data;
+  }
+};
+
+export const util = {
+  // ── Categories ────────────────────────────────────────────────────────────────
+  fetchCategories: () => request("GET", "/api/categories"),
+
+  // ── Manager dashboard aggregated stats ────────────────────────────────────────
+  fetchManagerDashboardStats: () => request("GET", "/api/manager/dashboard/stats"),
+
+  // ── Staff ranking (computed from dashboard stats) ─────────────────────────────
+  fetchStaffRankings: () => util.fetchManagerDashboardStats().then((d) => ({
     success: true,
     rankings: d.staffRankings || [],
-  }));
+  })),
 
-// ── KPI Status (at-risk and underperformed) ───────────────────────────────────
-export const fetchAtRiskKPIs = () => request("GET", "/api/kpi/at-risk");
-
-export const fetchUnderperformKPIs = () => request("GET", "/api/kpi/underperform");
+  getMyMonthlyReport: async () => requestBlob("GET", "/report/monthly/me"),
+};

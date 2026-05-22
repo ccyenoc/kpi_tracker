@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, NavLink, useNavigate } from "react-router-dom";
 import PageTitle from "../../../components/common/page_title"
-import { useLocation , NavLink} from "react-router-dom";
 import ProgressInputKPITitle from "../../../components/manager/kpi_management/kpi_progress/progress_input_KPI_title";
 import ProgressCategorySelection from "../../../components/manager/kpi_management/kpi_progress/progress_category_selection";
 import ProgressKPIPrediction from "../../../components/manager/kpi_management/kpi_progress/progress_prediction";
@@ -11,7 +10,7 @@ import ProgressKPIAssignStaff from "../../../components/manager/kpi_management/k
 import ProgressKPIGraph from "../../../components/manager/kpi_management/kpi_progress/progress_kpi_graph";
 import { pathway } from "../../../Pathway";
 
-import { fetchKPIPrediction, deleteKPI, fetchCategories, fetchAllUsers } from "../api/api";
+import { kpi, util, user } from "../../../api/api";
 
 function KPIProgressPage() {
   const location = useLocation();
@@ -32,7 +31,7 @@ function KPIProgressPage() {
 
   useEffect(() => {
     // Fetch all users to get staff names
-    fetchAllUsers()
+    user.fetchAll()
       .then((data) => {
         setUsers(data.users || []);
       })
@@ -43,7 +42,7 @@ function KPIProgressPage() {
       setCategory({ name: state.categoryName });
     } else {
       // Otherwise try to load categories and match by ID
-      fetchCategories()
+      util.fetchCategories()
         .then((data) => {
           const cats = data.categories || [];
           const match = cats.find(
@@ -56,7 +55,7 @@ function KPIProgressPage() {
 
     // Load prediction if we have a KPI id
     if (state.id) {
-      fetchKPIPrediction(state.id)
+      kpi.fetchKPIPrediction(state.id)
         .then((data) => {
           setPrediction(data);
 
@@ -81,7 +80,7 @@ function KPIProgressPage() {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await deleteKPI(state.id);
+      await kpi.deleteKPI(state.id);
       navigate(pathway.KPIManagement || "/manager/kpi");
     } catch (err) {
       setError(err.message || "Failed to delete KPI");

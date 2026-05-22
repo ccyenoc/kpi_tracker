@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import TopStaffCard from "./top_staff_card";
+import TopStaffCard from "./staff_ranking_card/top_staff_card";
+import { kpi } from "../../../api/api";
 
 const API_BASE_URL = "";
 
@@ -27,14 +28,7 @@ function StaffRankingCard() {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    //TODO: move fething to service layer
-    fetch(`${API_BASE_URL}/api/manager/dashboard/stats`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Failed to fetch staff rankings (${res.status})`);
-        return res.json();
-      })
+    kpi.fetchDashboardStats()
       .then((data) => {
         // staffRankings is already sorted by achievementRate desc (top 10)
         const rankings = (data.staffRankings || []).slice(0, 3);

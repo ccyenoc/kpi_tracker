@@ -1,6 +1,7 @@
 import KpiCard from "./manager_dashboard_kpi/kpi_card";
 import { useEffect, useMemo, useState } from "react";
-import { getAtRiskKpis, getUnderperformKpis, getDaysLeft } from "../utils/kpiUtils";
+import { kpi } from "../../../api/api";
+import { getAtRiskKpis, getUnderperformKpis, getDaysLeft } from "../../../utils/kpiUtils";
 
 function ManagerDashboardKpi({ kpis = [] }) {
   const [atRiskData, setAtRiskData] = useState([]);
@@ -12,16 +13,14 @@ function ManagerDashboardKpi({ kpis = [] }) {
     
     // Fetch at-risk and underperform KPIs from backend
     Promise.all([
-      fetch("/api/kpi/at-risk", {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(res => res.ok ? res.json() : { success: false, kpis: [] }),
-      fetch("/api/kpi/underperform", {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(res => res.ok ? res.json() : { success: false, kpis: [] })
+      kpi.fetchAtRiskKPIs(),
+      kpi.fetchUnderperformKPIs()
     ])
-    .then(([atRiskRes, underperformRes]) => {
-      setAtRiskData(atRiskRes.kpis || []);
-      setUnderperformData(underperformRes.kpis || []);
+    .then(([atRiskData, underperformData]) => {
+      console.log("Fetched at-risk KPIs:", atRiskData);
+      console.log("Fetched underperform KPIs:", underperformData);
+      setAtRiskData(atRiskData.kpis || []);
+      setUnderperformData(underperformData.kpis || []);
     })
     .catch((err) => {
       // Fallback to computing from passed kpis if API fails

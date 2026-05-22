@@ -5,6 +5,8 @@ import StaffSearchFilterKPI from "../../components/common/staff_search_filter_kp
 import StaffKPI from "../../components/staff/kpi_progress_update/staff_kpi";
 import UpdateKpiModal from "../../components/staff/kpi_progress_update/staff_update_kpi"
 import { useParams } from "react-router-dom";
+import { useAuth } from "../../Auth.jsx";
+import { kpi } from "../../api/api";
 
 const StaffKPIUpdate = () => {
   const { kpiId } = useParams();
@@ -50,14 +52,8 @@ const StaffKPIUpdate = () => {
   const [selectedKpi, setSelectedKpi] = useState(null);
   const [submissionHistory, setSubmissionHistory] = useState({});
 
-  //TODO: change to use useAuth
   const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const savedUser = localStorage.getItem("user");
-      return savedUser ? JSON.parse(savedUser) : null;
-    } catch {
-      return null;
-    }
+    return useAuth()?.user || JSON.parse(localStorage.getItem("user")) || null;
   });
 
   const currentUserId = String(currentUser?.id || currentUser?.user_id || "");
@@ -236,38 +232,10 @@ const StaffKPIUpdate = () => {
         throw new Error("Please login first before loading KPI data");
       }
 
-      const headers = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
-
-      const savedUser = localStorage.getItem("user");
-
-      const [kpiRes, submissionRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/staff/kpi`, {
-          method: "GET",
-          headers,
-        }),
-        fetch(`${API_BASE_URL}/api/staff/kpi/submissions`, {
-          method: "GET",
-          headers,
-        }),
+      const [kpiData, submissionData] = await Promise.all([
+        kpi.fetchStaffKPIs(),
+        kpi.fetchStaffKPISubmissions(),
       ]);
-
-      if (!kpiRes.ok) {
-        const errText = await kpiRes.text();
-        console.error("KPI API error:", kpiRes.status, errText);
-        throw new Error(`Failed to fetch KPI data. Status: ${kpiRes.status}`);
-      }
-
-      if (!submissionRes.ok) {
-        const errText = await submissionRes.text();
-        console.error("Submission API error:", submissionRes.status, errText);
-        throw new Error(`Failed to fetch submission data. Status: ${submissionRes.status}`);
-      }
-
-      const kpiData = await kpiRes.json();
-      const submissionData = await submissionRes.json();
 
       const realKpis = Array.isArray(kpiData)
       ? kpiData
@@ -348,26 +316,7 @@ const StaffKPIUpdate = () => {
         formData.append("files", file);
       });
 
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        throw new Error("Please login first before updating KPI progress");
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/kpi/update`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to update KPI progress");
-      }
-
-      const result = await response.json();
+      const result = await kpi.submitKPIProgress(formData);
       const newSubmission = normalizeSubmissions([result.submission])[0];
 
       setSubmissionHistory((prev) => {

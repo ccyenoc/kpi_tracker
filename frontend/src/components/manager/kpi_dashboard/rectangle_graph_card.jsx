@@ -1,5 +1,6 @@
 import {LineChart,Line,XAxis,YAxis, Tooltip,CartesianGrid,Legend, ResponsiveContainer} from "recharts";
 import {useEffect , useState} from "react";
+import { kpi } from "../../../api/api";
 
 function RectangleGraphCard(){
     console.log("RectangleGraphCard loaded");
@@ -11,10 +12,7 @@ function RectangleGraphCard(){
       const token = localStorage.getItem("token");
       
       // Fetch real KPI performance data from backend
-      fetch("/api/manager/dashboard/stats", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then(res => res.ok ? res.json() : null)
+      kpi.fetchDashboardStats()
       .then(data => {
         if (data?.kpiTrends) {
           // Format backend data for the chart

@@ -1,8 +1,9 @@
 import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import PageTitle from "../../../components/common/page_title";
-import DashboardCards from "../components/4x1_cards_layout";
-import KPISubmissionTable from "../components/kpi_submission_table";
+import PageTitle from "../../components/common/page_title";
+import DashboardCards from "../../components/common/4x1_cards_layout";
+import KPISubmissionTable from "../../components/manager/kpi_verification/kpi_submission_table";
+import { kpi, user } from "../../api/api";
 
 const API_BASE_URL = "";
 
@@ -26,29 +27,12 @@ function VerifyKPI() {
     setLoading(true);
 
     Promise.all([
-      fetch(`${API_BASE_URL}/api/kpi/submissions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE_URL}/api/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE_URL}/api/manager/kpis`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE_URL}/api/categories`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+      kpi.fetchSubmissions(),
+      user.fetchAll(),
+      kpi.fetchManagerKPIs(),
+      kpi.fetchCategories ? kpi.fetchCategories() : Promise.resolve({ categories: [] }),
     ])
-      .then(async ([submissionsRes, usersRes, kpisRes, categoriesRes]) => {
-        if (!submissionsRes.ok) throw new Error(`Failed to fetch submissions (${submissionsRes.status})`);
-        if (!usersRes.ok) throw new Error(`Failed to fetch users (${usersRes.status})`);
-        if (!kpisRes.ok) throw new Error(`Failed to fetch KPIs (${kpisRes.status})`);
-        
-        const submissionsData = await submissionsRes.json();
-        const usersData = await usersRes.json();
-        const kpisData = await kpisRes.json();
-        const categoriesData = categoriesRes.ok ? await categoriesRes.json() : { categories: [] };
-
+      .then(async ([submissionsData, usersData, kpisData, categoriesData]) => {
         const uniqueSubmissions = [];
         const seenIds = new Set();
         

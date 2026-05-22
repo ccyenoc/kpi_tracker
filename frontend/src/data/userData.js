@@ -1,4 +1,3 @@
-//TODO: Change users to actual data from backend and put fetching logic here
 export const users = [
   {
     id: "user_101",

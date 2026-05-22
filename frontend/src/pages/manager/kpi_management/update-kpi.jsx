@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";import PageTitle from "../../../components/common/page_title"
+import { useLocation } from "react-router-dom";
+import PageTitle from "../../../components/common/page_title"
 import InputKPITitle from "../../../components/manager/common/input_KPI_title"
 import CategorySelection from "../../../components/manager/common/category_selection"
-import { useState } from "react";
 import TargetKPISelection from "../../../components/manager/common/target_kpi"
 import Deadline from "../../../components/manager/common/deadline"
 import KPIAssignStaff from "../../../components/manager/common/kpi_assign_staff"
 import Description from "../../../components/manager/common/description";
-import { updateKPI, fetchAllUsers } from "../api/api";
-import { useLocation } from "react-router-dom";
+import { kpi, user } from "../../../api/api";
 
 function UpdateKPI() {
   const location = useLocation();
@@ -35,7 +34,7 @@ function UpdateKPI() {
   const [loadingStaff, setLoadingStaff] = useState(true);
 
   useEffect(() => {
-    fetchAllUsers()
+    user.fetchAll()
       .then((data) => setStaffList(data.users || []))
       .catch(() => setStaffList([]))
       .finally(() => setLoadingStaff(false));
@@ -81,7 +80,7 @@ function UpdateKPI() {
         assignedTo: assignedStaff[0]?.id || assignedStaff[0] || null,
       };
 
-      await updateKPI(kpiId, payload);
+      await kpi.updateKPI(kpiId, payload);
       setShowModal(true);
     } catch (err) {
       setErrorMessage(err.message || "Failed to update KPI. Please try again.");

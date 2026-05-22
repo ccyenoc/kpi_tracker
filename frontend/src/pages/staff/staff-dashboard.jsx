@@ -4,6 +4,8 @@ import DashboardCards from "../../components/common/4x1_cards_layout";
 import StaffMonthlyPerformanceGraph from '../../components/staff/kpi_dashboard/staff_monthly_performance_graph';
 import StaffKPIAssignedCard from "../../components/staff/kpi_dashboard/staff_kpi_assigned_card";
 import StaffRecentActivity from '../../components/staff/kpi_dashboard/staff_recent_activity';
+import { useAuth } from "../../Auth.jsx";
+import { kpi } from "../../api/api";
 
 const StaffDashboard = () => {
 
@@ -19,14 +21,8 @@ const StaffDashboard = () => {
 
   const navigate = useNavigate();
 
-  //TODO: use useAuth instead of fetching user from localStorage again
   const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const savedUser = localStorage.getItem("user");
-      return savedUser ? JSON.parse(savedUser) : null;
-    } catch {
-      return null;
-    }
+    return useAuth()?.user || JSON.parse(localStorage.getItem("user")) || null;
   });
 
   const currentUserId = currentUser?.id || currentUser?.user_id || "";
@@ -50,8 +46,6 @@ const StaffDashboard = () => {
     });
   };
 
-  //TODO: add api url to backend and functions
-  //TODO: move fetching logic to kpiData.jsx
   const loadDashboardData = async (silent = false) => {
     try {
       if (!silent) {
@@ -70,33 +64,11 @@ const StaffDashboard = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       };
-      const savedUser = localStorage.getItem("user");
 
-      const [kpiRes, submissionRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/staff/kpi`, {
-          method: "GET",
-          headers,
-        }),
-        fetch(`${API_BASE_URL}/api/staff/kpi/submissions`, {
-          method: "GET",
-          headers,
-        }),
+      const [kpiData, submissionData] = await Promise.all([
+        kpi.fetchStaffKPIs(),
+        kpi.fetchStaffKPISubmissions()
       ]);
-
-      if (!kpiRes.ok) {
-        const errText = await kpiRes.text();
-        console.error("KPI API error:", kpiRes.status, errText);
-        throw new Error(`Failed to fetch KPI data. Status: ${kpiRes.status}`);
-      }
-
-      if (!submissionRes.ok) {
-        const errText = await submissionRes.text();
-        console.error("Submission API error:", submissionRes.status, errText);
-        throw new Error(`Failed to fetch submission data. Status: ${submissionRes.status}`);
-      }
-
-     const kpiData = await kpiRes.json();
-    const submissionData = await submissionRes.json();
 
     const realKpis = Array.isArray(kpiData)
       ? kpiData

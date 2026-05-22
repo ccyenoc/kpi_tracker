@@ -5,16 +5,64 @@ import ExportBar from "../../components/manager/kpi_dashboard/export-bar.jsx";
 import RectangleGraphCard from "../../components/manager/kpi_dashboard/rectangle_graph_card.jsx";
 import StaffRankingCard from "../../components/manager/kpi_dashboard/staff_ranking_card.jsx";
 import ManagerDashboardKpi from "../../components/manager/kpi_dashboard/manager_dashboard_kpi.jsx";
-import { fetchManagerKPIs } from "../api/api";
-import { useAuth } from "../Auth.jsx";
-import { getAtRiskKpis, getUnderperformKpis } from "../../utils/kpiUtils.js";
+import { kpi } from "../../api/api";
+import { useAuth } from "../../Auth.jsx";
 
-function ManagerDashboard(){
+const API_BASE = "/api";
 
-  console.log("Manager Dashboard loaded");
+function ManagerDashboard() {
+  const { user } = useAuth();
 
-  {/*DATA*/}
-  {/*DASHBOARD DATA*/}
+  const [kpis, setKpis] = useState([]);
+  const [atRisk, setAtRisk] = useState([]);
+  const [underperform, setUnderperform] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    
+    Promise.all([
+      kpi.fetchManagerKPIs(),
+      kpi.fetchAtRiskKPIs(),
+      kpi.fetchUnderperformKPIs(),
+      kpi.fetchSubmissions()
+    ])
+      .then(([kpiData, atRiskData, underperformData, submissionData]) => {
+        setKpis(kpiData.kpis || []);
+        setAtRisk(atRiskData.kpis || []);
+        setUnderperform(underperformData.kpis || []);
+        setSubmissions(submissionData.submissions || []);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleDownloadMonthlyReport = async () => {
+    try {
+      const blob = await kpi.getMyMonthlyReport();
+
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+
+      a.href = url;
+      a.download = "monthly_report.pdf";
+
+      document.body.appendChild(a);
+
+      a.click();
+
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      // Handle download errors silently
+    }
+  };
+
   const stats = [
     {
       title: "Total KPIs",
