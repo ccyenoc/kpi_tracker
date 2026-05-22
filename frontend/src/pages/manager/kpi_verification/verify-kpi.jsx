@@ -1,397 +1,153 @@
 import { useLocation } from "react-router-dom";
-import { useState } from "react"
+import { useEffect, useState } from "react";
 import PageTitle from "../../../components/common/page_title";
-{/*import data*/}
-import { users } from "../../../data/userData";
-import { kpis } from "../../../data/kpiData";
-import { categories } from "../../../data/categoriesData";
+import DashboardCards from "../components/4x1_cards_layout";
+import KPISubmissionTable from "../components/kpi_submission_table";
+
+const API_BASE_URL = "";
 
 function VerifyKPI() {
-  const location = useLocation();
-  const state = location.state || {};
+  const [submissions, setSubmissions] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [kpis, setKpis] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const submission = state;
+  const fetchSubmissions = () => {
+    const token = localStorage.getItem("token");
 
-const userMap = Object.fromEntries(users.map(u => [u.id, u]));
-const kpiMap = Object.fromEntries(kpis.map(k => [k.id, k]));
-const categoryMap = Object.fromEntries(categories.map(c => [c.id, c]));
-
-const user = userMap[submission.submittedBy] || {};
-const kpi = kpiMap[submission.kpiId] || {};
-const category = categoryMap[kpi.categoryId] || {};
-const [showApproveModal, setShowApproveModal] = useState(false);
-const [showReturnModal, setShowReturnModal] = useState(false);
-const progress = kpi.target
-  ? Math.round((kpi.current / kpi.target) * 100)
-  : 0;
-
-  const progressContainerStyle = {
-    width: "100%",
-    padding: "4px",
-    height: "20px",
-    backgroundColor: "#85aeff",
-    borderRadius: "999px",
-    overflow: "hidden",
-  };
-
-  const progressBarStyle = (progress) => ({
-    height: "100%",
-    width: `${progress}%`,
-    backgroundColor: "#2563eb",
-    borderRadius: "999px",
-    transition: "width 0.3s ease",
-
-  });
-
-  {/*file upload*/ }
-  const [files, setFiles] = useState([
-    {
-      id: 1,
-      name: "the name of the file.jpg",
-      url: "/sample.jpg", // put file in public folder
-      approved: true
+    if (!token) {
+      setError("No authentication token found. Please log in.");
+      setLoading(false);
+      return;
     }
-  ]);
-  const [approved, setApproved] = useState(false);
 
-  const fieldStyle = {
-    minHeight: "100px",
-    lineHeight: "40px",
-    height: "20px",
-    width: "100%",
-    padding: "0 12px",
-    fontSize: "14px",
-    borderRadius: "15px",
-    border: "1px solid #ccc",
-    boxSizing: "border-box",
-    backgroundColor: "white",
+    setLoading(true);
+
+    Promise.all([
+      fetch(`${API_BASE_URL}/api/kpi/submissions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(`${API_BASE_URL}/api/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(`${API_BASE_URL}/api/manager/kpis`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(`${API_BASE_URL}/api/categories`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ])
+      .then(async ([submissionsRes, usersRes, kpisRes, categoriesRes]) => {
+        if (!submissionsRes.ok) throw new Error(`Failed to fetch submissions (${submissionsRes.status})`);
+        if (!usersRes.ok) throw new Error(`Failed to fetch users (${usersRes.status})`);
+        if (!kpisRes.ok) throw new Error(`Failed to fetch KPIs (${kpisRes.status})`);
+        
+        const submissionsData = await submissionsRes.json();
+        const usersData = await usersRes.json();
+        const kpisData = await kpisRes.json();
+        const categoriesData = categoriesRes.ok ? await categoriesRes.json() : { categories: [] };
+
+        const uniqueSubmissions = [];
+        const seenIds = new Set();
+        
+        for (const submission of (submissionsData.submissions || [])) {
+          if (!seenIds.has(submission.id)) {
+            uniqueSubmissions.push(submission);
+            seenIds.add(submission.id);
+          }
+        }
+
+        setSubmissions(uniqueSubmissions);
+        setUsers(usersData.users || []);
+        setKpis(kpisData.kpis || []);
+        setCategories(categoriesData.categories || []);
+      })
+      .catch((err) => {
+        setError(err.message);
+      })
+      .finally(() => setLoading(false));
   };
 
-  const buttonStyle = {
-    width: "100%",
-    backgroundColor: "#1e3a8a",
-    color: "#fff",
-    padding: "10px 20px",
-    border: "none",
-    borderRadius: "10px",
-    fontSize: "14px",
-    cursor: "pointer"
-  }
+  useEffect(() => {
+    fetchSubmissions();
+  }, []);
 
-  const fileCardStyle = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#1e3a8a",
-    color: "white",
-    padding: "12px 16px",
-    borderRadius: "10px",
-    marginTop: "10px"
-  };
-
-  const h3TitleStyle = {
-    marginTop: "20px",
-    fontSize: "16px",
-    textAlign: "start",
-    fontWeight: "bold",
-  }
-
-  const h3ContentStyle = {
-    borderRadius: "12px",
-    padding: "15px",
-    fontSize: "14px",
-    border: "1px solid #ccc",
-    textAlign: "start",
-    width: "100%",
-    height: "100%",
-    maxHeight: "50px",
-  }
-
-  const handleApprove = () => {
-    setShowApproveModal(true);
-  };
-
-  const handleReturn = () => {
-    setShowReturnModal(true);
-  }
+  const stats = [
+    {
+      title: "Total Submissions",
+      value: loading ? "—" : submissions.length,
+      subtitle: "All KPI Submissions",
+      color: "#3b82f6",
+    },
+    {
+      title: "Pending Verification",
+      value: loading ? "—" : submissions.filter((s) => s.status === "pending").length,
+      subtitle: "Awaiting Review",
+      color: "#facc15",
+    },
+    {
+      title: "Approved",
+      value: loading ? "—" : submissions.filter((s) => s.status === "approved").length,
+      subtitle: "Successfully Verified",
+      color: "#22c55e",
+    },
+    {
+      title: "Rejected",
+      value: loading ? "—" : submissions.filter((s) => s.status === "rejected").length,
+      subtitle: "Needs Improvement",
+      color: "#ef4444",
+    },
+  ];
 
   return (
-    <div>
-      <div className="d-flex flex-column justify-content-center">
-
+    <div
+      className="d-flex"
+      style={{ display: "flex", flexDirection: "column" }}
+    >
+      <div
+        className="d-flex"
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <PageTitle
-          title="Verify KPI Submission"
-          subtitle="Review and approve KPI completion eveidence" />
-
-        <div
-          className="mx-3 mb-4 d-flex justify-content-center"
-          style={{
-            flexDirection: "column",
-            alignItems: "start",
-            padding: "48px",
-            gap: "20px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-          }}>
-
-
-
-          {/*container for the submission detail*/}
-          <div
-            className="d-flex"
-            style={{
-              width: "100%",
-              flexDirection: "column",
-              textAlign: "start",
-              backgroundColor: "#ffffff",
-            }}>
-
-
-                {/*title and category*/}
-                <div
-                  className="d-flex"
-                  style={{
-                    flexDirection:"row",
-                    gap:"400px",
-                  }}>
-                    <div>
-                    <h3 style={{
-                        ...h3TitleStyle,
-                        marginTop:"0px",}}>KPI Title</h3>
-                    <h3 style={h3ContentStyle}>{kpi.title}</h3>
-                    </div>
-
-                    <div>
-                     <h3 style={{
-                        ...h3TitleStyle,
-                        marginTop:"0px",}}>Category</h3>
-                    <h3 style={h3ContentStyle}>{category.name}</h3>
-                    </div>
-                </div>
-
-                {/*desc*/}
-                <h3 style={
-                    h3TitleStyle}>KPI Description</h3>
-                <h3 style={h3ContentStyle}>{kpi.description}</h3>
-
-                 {/*progress*/}
-                <h3 style={h3TitleStyle}>Final Progress</h3>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={progressContainerStyle}>
-                <div style={progressBarStyle(progress)} />
-                </div>
-                    <span style={{ fontSize: "16px" }}>
-                         {progress}%
-                    </span>
-                </div>
-
-            {/*evidence*/}
-            <h3 style={h3TitleStyle}>Evidence</h3>
-            {files.map(file => (
-              <div
-                key={file.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  flexGrow: 1,
-                  gap: "50px",
-                  justifyContent: "space-between",
-                  marginTop: "10px"
-                }}
-              >
-
-                {/*file card*/}
-                <div className="w-100" style={fileCardStyle}>
-                  <div style={{ display: "flex", gap: "10px" }}>
-                    📄
-                    <a
-                      href={file.url}
-                      target="_blank"
-                      style={{ color: "white", fontSize: "14px" }}
-                    >
-                      {file.name}
-                    </a>
-                  </div>
-                </div>
-
-                {/*checkbox*/}
-                <div className="w-100" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <input
-                    type="checkbox"
-                    checked={file.approved}
-                    onChange={() => {
-                      setFiles(files.map(f =>
-                        f.id === file.id ? { ...f, approved: !f.approved } : f
-                      ));
-                    }}
-                  />
-                  <span style={{ fontSize: "14px" }}>Approved</span>
-                </div>
-
-              </div>
-
-
-            ))}
-
-                {/*submitted date and deadline*/}
-                <div
-                  className="d-flex"
-                  style={{
-                    flexDirection:"row",
-                    gap:"400px",
-                  }}>
-                    <div>
-                    <h3 style={h3TitleStyle}>Submitted Date</h3>
-                    <h3 style={h3ContentStyle}>{submission.submittedAt}</h3>
-                    </div>
-
-                    <div>
-                    <h3 style={h3TitleStyle}>Deadline</h3>
-                    <h3 style={h3ContentStyle}>{kpi.deadline}</h3>
-                    </div>
-                </div>
-
-            {/*note*/}
-            <div className="mb-4">
-              <h3 style={h3TitleStyle}>Note</h3>
-              <textarea
-                type="text"
-                placeholder="Enter Note ... "
-                style={fieldStyle} />
-            </div>
-
-            {/*buttons*/}
-            <div
-              className="d-flex"
-              style={{
-                marginTop: "20px",
-                flexDirection: "row",
-                gap: "50px",
-              }}>
-              <button style={buttonStyle} onClick={handleApprove}>
-                Approve
-              </button>
-              <button style={buttonStyle} onClick={handleReturn}>
-                Return
-              </button>
-            </div>
-          </div>
-        </div>
+          title="Verify KPI Submissions"
+          subtitle="Review and approve staff KPI progress"
+        />
       </div>
 
-    {showApproveModal && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(0,0,0,0.3)",
-      zIndex: 9999
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        padding: "30px",
-        borderRadius: "12px",
-        width: "350px",
-        textAlign: "center",
-        boxShadow: "0 8px 20px rgba(0,0,0,0.2)"
-      }}
-    >
-      {/* ✅ Icon */}
-      <div style={{ fontSize: "40px", color: "#22c55e" }}>✔</div>
-
-      {/* Title */}
-      <h4 style={{ marginTop: "10px" }}>Approved Successfully</h4>
-
-      {/* Message */}
-      <p style={{ color: "#555", fontSize: "14px" }}>
-        KPI submission has been approved.
-      </p>
-
-      {/* Button */}
-      <button
-        onClick={() => setShowApproveModal(false)}
-        style={{
-          marginTop: "15px",
-          padding: "8px 20px",
-          borderRadius: "8px",
-          border: "none",
-          backgroundColor: "#2b4cb3",
-          color: "#fff",
-          cursor: "pointer"
-        }}
-      >
-        OK
-      </button>
-    </div>
-  </div>
+      {error && (
+        <div style={{ color: "#d93025", padding: "10px 20px" }}>
+          Failed to load submissions: {error}
+        </div>
       )}
 
-      {showReturnModal && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(0,0,0,0.3)",
-      zIndex: 9999
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        padding: "30px",
-        borderRadius: "12px",
-        width: "350px",
-        textAlign: "center",
-        boxShadow: "0 8px 20px rgba(0,0,0,0.2)"
-      }}
-    >
-      {/* ✅ Icon */}
-      <div style={{ fontSize: "40px", color: "#22c55e" }}>✔</div>
-
-      {/* Title */}
-      <h4 style={{ marginTop: "10px" }}>Returned for Revision</h4>
-
-      {/* Message */}
-      <p style={{ color: "#555", fontSize: "14px" }}>
-        KPI submission has been returned for revision.
-      </p>
-
-      {/* Button */}
-      <button
-        onClick={() => setShowReturnModal(false)}
-        style={{
-          marginTop: "15px",
-          padding: "8px 20px",
-          borderRadius: "8px",
-          border: "none",
-          backgroundColor: "#2b4cb3",
-          color: "#fff",
-          cursor: "pointer"
-        }}
-      >
-        OK
-      </button>
+      {loading ? (
+        <div style={{ padding: "40px", textAlign: "center", color: "#888" }}>
+          Loading submissions…
+        </div>
+      ) : !error && submissions.length === 0 ? (
+        <div style={{ padding: "40px", textAlign: "center", color: "#888" }}>
+          No submissions found
+        </div>
+      ) : !error ? (
+        <>
+          <DashboardCards stats={stats} />
+          <KPISubmissionTable 
+            submissions={submissions} 
+            users={users}
+            kpis={kpis}
+            categories={categories}
+            onSubmissionUpdated={fetchSubmissions}
+          />
+        </>
+      ) : null}
     </div>
-  </div>
-      )}
-
-          </div>
-    
-  )
+  );
 }
 
-export default VerifyKPI
+export default VerifyKPI;

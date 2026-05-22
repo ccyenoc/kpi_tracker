@@ -40,16 +40,10 @@ export const routes = (role) => {
           parent: "/manager/kpi-management",
         },
         {
-          path: "/manager/verify-kpi-dashboard",
-          element: <VerifyKPIDashboard />,
-          breadcrumb: "Verify KPI Dashboard",
-          parent: "/manager/dashboard",
-        },
-        {
           path: "/manager/verify-kpi",
           element: <VerifyKPI />,
           breadcrumb: "Verify KPI",
-          parent: "/manager/verify-kpi-dashboard",
+          parent: "/manager/dashboard",
         },
         {
           path: "/profile",

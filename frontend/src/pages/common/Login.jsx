@@ -4,8 +4,8 @@ import './Login.css';
 import logo from "../../assets/achievepro.png";
 import { authService } from '../../services/authService';
 
-// In development, use Vite proxy; in production, use absolute URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8006';
+// Use Vite proxy in development; in production, use relative URLs
+const API_BASE_URL = '';
 
 const Login = () => {
 

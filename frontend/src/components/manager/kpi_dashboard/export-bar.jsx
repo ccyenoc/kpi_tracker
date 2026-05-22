@@ -1,6 +1,6 @@
 import { kpiService } from "../../../services/kpiService";
 
-function ExportBar() {
+function ExportBar({ onMonthlyReport }) {  
   console.log("ExportBar loaded");
 
   const buttonStyle = {
@@ -42,31 +42,24 @@ function ExportBar() {
         padding: "10px 12px",
         backgroundColor: "#ffffff",
         borderRadius: "12px",
-        boxShadow: "0 4px 6px rgba(0,0,0,0.05)"
+        boxShadow: "0 4px 6px rgba(0,0,0,0.05)",
       }}
     >
-      {/* Left */}
-      <p
-        style={{
-          fontSize: "16px",
-          fontWeight: "500",
-          color: "#374151"
-        }}
-      >
+      <p style={{ fontSize: "16px", fontWeight: "500", color: "#374151" }}>
         Report Export
       </p>
 
-      {/* Right */}
-      <div style={{
-        display: "flex",
-        gap: "10px"
-      }}>
-        <button style={buttonStyle} onClick={weeklyReport} >Weekly Performance</button>
-        <button style={buttonStyle} >Monthly Performance</button>
+      <div style={{ display: "flex", gap: "10px" }}>
+        <button style={buttonStyle} onClick={weeklyReport}>
+          Weekly Performance
+        </button>
+       
+        <button style={buttonStyle} onClick={onMonthlyReport}>
+          Monthly Performance
+        </button>
       </div>
     </div>
   );
-
 }
 
 export default ExportBar;

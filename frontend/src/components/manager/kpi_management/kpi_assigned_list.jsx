@@ -1,7 +1,7 @@
 import KPIAssignedListTable from "./kpi_assigned_list/kpi_assigned_list_table";
 
-function KPIAssignedListCard({data}){
-  console.log("KPIAssignedListCard loaded with data:", data);
+function KPIAssignedListCard({data, users = []}){
+  console.log("KPIAssignedListCard loaded with data:", data, "users:", users);
 
     return(
         <div 
@@ -30,7 +30,7 @@ function KPIAssignedListCard({data}){
              }}>View and manage all key performance indicators</h4>
           </div>
 
-          <KPIAssignedListTable data={data} />
+          <KPIAssignedListTable data={data} users={users} />
         </div>
     )
 }

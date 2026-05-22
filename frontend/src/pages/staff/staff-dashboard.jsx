@@ -7,10 +7,8 @@ import StaffRecentActivity from '../../components/staff/kpi_dashboard/staff_rece
 
 const StaffDashboard = () => {
 
-  {/*DATA*/}
-  {/*MOCK USER*/}
-  // In development, use Vite proxy; in production, use absolute URL
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8006';
+
+  const API_BASE_URL = '';
   
   const [kpis, setKpis] = useState([]);
   const [submissions, setSubmissions] = useState([]);

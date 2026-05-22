@@ -116,7 +116,7 @@ def create_kpi(kpi_data, request: Request):
     "assignedUserIds": kpi_data.assignedUserIds or [],
     "kpiAssignments": [a.dict() for a in kpi_data.kpiAssignments] if kpi_data.kpiAssignments else [],
 
-    "status": "pending",
+    "status": "active",
     "createdBy": manager_id,
     "createdAt": now,
     "updatedAt": now,
