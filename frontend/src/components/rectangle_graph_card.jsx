@@ -31,7 +31,7 @@ function RectangleGraphCard() {
       );
 
     fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/api/manager/kpi/history`,
+      "/api/manager/kpi/history",
       {
         headers: {
           Authorization:
@@ -100,20 +100,25 @@ function RectangleGraphCard() {
     <div
       className="mx-3 mb-2 flex-grow-1"
       style={{
-        height: "380px",
+        height: "400px",
         padding: "20px",
         background: "#fff",
-        borderRadius: "15px"
+        borderRadius: "15px",
+        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
       }}
     >
 
-      <h4>
+      <h4
+       style={{
+        fontSize : "20px",
+       }}>
         KPI Progress Over Time
       </h4>
 
       <h5
         style={{
-          color: "#888"
+          color: "#888",
+          fontSize: "14px",
         }}
       >
         Expected vs Actual vs Forecast

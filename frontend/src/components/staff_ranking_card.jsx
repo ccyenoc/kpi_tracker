@@ -13,7 +13,7 @@ const API_BASE_URL = "";
  *   { staffId, name, department, totalTarget, totalCurrent, kpiCount, achievementRate }
  *
  * We derive the three sub-scores that TopStaffCard expects as follows:
- *   - kpiScore        → achievementRate (overall %)
+ *   - kpiScore        → achievementRate (overall %
  *   - timelinessScore → placeholder derived from achievementRate (backend doesn't store
  *                       timeliness separately yet; extend when that data is available)
  *   - qualityScore    → same placeholder strategy
