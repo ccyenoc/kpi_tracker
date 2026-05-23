@@ -80,7 +80,7 @@ function CreateKPI(){
           setErrorMessage("");
 
           try {
-            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/manager/kpi`, {
+            const res = await fetch("/api/manager/kpi", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
