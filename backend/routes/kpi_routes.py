@@ -119,7 +119,7 @@ def get_staff_kpis(request: Request):
         
         # Get all KPIs assigned to this staff member
         from config.firebase_config import db
-        from models.kpi_model import KPI_COLLECTION
+        from firebase_secure import KPI_COLLECTION
         
         kpis_ref = db.collection(KPI_COLLECTION).stream()
         staff_kpis = []
@@ -158,7 +158,7 @@ def get_staff_monthly_performance(request: Request):
         user_id = current_user.get("id")
         
         from config.firebase_config import db
-        from models.kpi_model import KPI_COLLECTION
+        from firebase_secure import KPI_COLLECTION
         from datetime import datetime, timedelta
         
         # Get all KPIs assigned to this staff member

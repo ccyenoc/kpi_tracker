@@ -325,77 +325,46 @@ const StaffDashboard = () => {
   } else {
     const weeks = getWeeksInMonth(selectedMonth);
 
-const submissionMap = Object.fromEntries(
-  submissions.map((s) => [s.kpiId, s])
-);
+    graphData = weeks.map((weekLabel, index) => {
+      const weekNumber = index + 1;
+      const key = `${selectedMonth}-W${weekNumber}`;
+      const matched = weeklyMap[key];
 
-const graphData = userKpis
-  .map((kpi) => {
+      return matched || {
+        name: "Average KPI Progress",
+        month: selectedMonth,
+        time: weekLabel,
+        kpi: 100,
+        progress: 0,
+        prediction: 0
+      };
+    });
+  }
 
-    const submission =
-      submissionMap[kpi.id];
+    {/*DASHBOARD DATA*/}
+    const totalPercentage = dashboardKpis.reduce((sum, kpi) => {
+      const current = Number(kpi.current || 0);
+      const target = Number(kpi.target || 0);
 
-    if (!submission) {
-      return null;
-    }
+      const percentage = target > 0
+        ? Math.min(100, Math.round((current / target) * 100))
+        : 0;
 
-    const date =
-      new Date(submission.submittedAt);
+      return sum + percentage;
+    }, 0);
 
-    const month =
-      date.toLocaleString(
-        "default",
-        {
-          month: "short"
-        }
-      );
+    const completionRate = totalAssignedKpi > 0
+      ? Math.round(totalPercentage / totalAssignedKpi)
+      : 0;
 
-    const userData =
-      kpi.kpiAssignments.find(
-        (u) =>
-          u.userId === currentUserId
-      );
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const target =
-      userData?.target || 0;
+    const upcoming = dashboardKpis.filter(k => {
+      if (!k.deadline) return false;
 
-    const progress =
-      userData?.current || 0;
-
-    return {
-      id: kpi.id,
-
-      name: kpi.title,
-
-      month,
-
-      time:
-        date.toLocaleDateString(),
-
-      kpi: target,
-
-      progress,
-
-      prediction:
-target === 0
-? 0
-: Math.round(
-(
-progress /
-target
-) * 100
-)
-    };
-
-  })
-
-  .filter(Boolean)
-
-  .filter(
-    (item) =>
-      selectedMonth === "All" ||
-      item.month === selectedMonth
-  );
+      const deadline = new Date(k.deadline);
+      deadline.setHours(0, 0, 0, 0);
 
       const diffDays = (deadline - today) / (1000 * 60 * 60 * 24);
 
@@ -405,6 +374,7 @@ target
         diffDays >= 0 &&
         diffDays <= 7
       );
+    });
 
     const highPriority = dashboardKpis.filter(
       k => (k.priority || "").toLowerCase() === "high"
@@ -521,6 +491,5 @@ target
     </div>
   </div>
 )};
-}
 
 export default StaffDashboard;

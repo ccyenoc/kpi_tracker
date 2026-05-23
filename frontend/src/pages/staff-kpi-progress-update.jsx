@@ -8,9 +8,6 @@ import { useParams } from "react-router-dom";
 
 const StaffKPIUpdate = () => {
   const { kpiId } = useParams();
-  
-  // Use Vite proxy in development; in production, use relative URLs
-  const API_BASE_URL = '';
 
   const groupSubmissionsByKpi = (submissionList = []) => {
     const groupedHistory = {};
@@ -243,11 +240,11 @@ const StaffKPIUpdate = () => {
       const savedUser = localStorage.getItem("user");
 
       const [kpiRes, submissionRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/staff/kpi`, {
+        fetch("/api/staff/kpi", {
           method: "GET",
           headers,
         }),
-        fetch(`${API_BASE_URL}/api/staff/kpi/submissions`, {
+        fetch("/api/staff/kpi/submissions", {
           method: "GET",
           headers,
         }),
@@ -266,6 +263,10 @@ const StaffKPIUpdate = () => {
       }
 
       const kpiData = await kpiRes.json();
+console.log("RAW KPI RESPONSE");
+console.log(kpiData);
+
+
       const submissionData = await submissionRes.json();
 
       const realKpis = Array.isArray(kpiData)
@@ -273,6 +274,9 @@ const StaffKPIUpdate = () => {
       : kpiData.kpis || kpiData.data || [];
 
       setKpis(realKpis);
+
+console.log("PARSED KPIS");
+console.log(realKpis);
 
       console.log("Current user:", currentUser);
       console.log("Current user id:", currentUserId);
@@ -353,7 +357,7 @@ const StaffKPIUpdate = () => {
         throw new Error("Please login first before updating KPI progress");
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/kpi/update`, {
+      const response = await fetch("/api/kpi/update", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

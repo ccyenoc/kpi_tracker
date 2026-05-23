@@ -8,6 +8,18 @@ const StaffKPI = ({ kpi, onUpdate }) => {
     pending: { color: "#a855f7", bg: "#a855f720", label: "Pending" }
   };
 
+  const categoryColors = {
+    sales: "#dbeafe",
+    lead: "#dcfce7",
+    property: "#fef3c7",
+    marketing: "#fce7f3",
+    customer: "#ede9fe",
+  };
+
+  const getCategoryColor = (category) => {
+    return categoryColors[category?.toLowerCase()] || "#f3f4f6";
+  };
+
   const current = statusStyle[kpi.status] || statusStyle.in_progress;
 
   const currentVal = Number(kpi.current || 0);
@@ -111,7 +123,7 @@ const StaffKPI = ({ kpi, onUpdate }) => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span
           style={{
-            background: kpi.categoryColor,
+            background: getCategoryColor(kpi.categoryId ),
             padding: "4px 10px",
             borderRadius: "10px",
             fontSize: "12px"

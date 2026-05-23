@@ -114,8 +114,6 @@ function CreateKPI(){
               throw new Error(data.detail || "Failed to create KPI");
             }
 
-            console.log("KPI CREATED:", data);
-
             setShowModal(true);
           } catch (err) {
             console.error(err);
@@ -124,20 +122,20 @@ function CreateKPI(){
     };
 
    useEffect(() => {
-  fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff`)
-    .then(async res => {
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text);
-      }
-      return res.json();
-    })
-    .then(data => {
-      console.log("STAFF:", data);
-      setStaffList(data);
-    })
-    .catch(err => console.log("Error fetching staff:", err));
-}, []); 
+      fetch("/api/staff")
+        .then(async res => {
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text);
+          }
+          return res.json();
+        })
+        .then(data => {
+          console.log("STAFF:", data);
+          setStaffList(data);
+        })
+        .catch(err => console.log("Error fetching staff:", err));
+    }, []); 
   
     return(
       <div>
