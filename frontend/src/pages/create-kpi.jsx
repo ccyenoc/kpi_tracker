@@ -22,118 +22,109 @@ function CreateKPI(){
     const [showModal, setShowModal] = useState(false);
 
     const resetForm = () => {
-  setTitle("");
-  setDescription("");
-  setCategory("");
-  setUnit("");
-  setTarget("");
-  setDeadline(null);
-  setSearchStaff("")
-  setAssignedStaff([]);
-  setErrorMessage("");
-};
+      setTitle("");
+      setDescription("");
+      setCategory("");
+      setUnit("");
+      setTarget("");
+      setDeadline(null);
+      setSearchStaff("")
+      setAssignedStaff([]);
+      setErrorMessage("");
+    };
 
-  const KPI_TEMPLATES = {
-    sales: ["Monthly Sales Revenue", "Closed Deals", "Conversion Rate"],
-    lead: ["New Leads", "Cost per Lead", "Qualified Leads"],
-    property: ["Occupancy Rate", "Tenant Retention", "Maintenance Response Time"],
-    marketing: ["Campaign Conversion Rate", "CTR", "Traffic Growth"],
-    customer: ["CSAT", "NPS", "Response Time"]
-  }
+    const categoryMap = {
+      sales: "Sales Performance",
+      lead: "Lead Generation",
+      property: "Property Management",
+      marketing: "Marketing Performance",
+      customer: "Customer Experience"
+    };
 
-  const handleConfirm = async () => {
-  if (!title.trim()) {
-    setErrorMessage("KPI title is required");
-    return;
-  }
+      const handleConfirm = async () => {
+          if (!title.trim()) {
+            setErrorMessage("KPI title is required");
+            return;
+          }
 
-  if (!description.trim()) {
-    setErrorMessage("KPI description is required");
-    return;
-  }
+          if (!description.trim()) {
+            setErrorMessage("KPI description is required");
+            return;
+          }
 
-  if (!category) {
-    setErrorMessage("Please select a category");
-    return;
-  }
+          if (!category) {
+            setErrorMessage("Please select a category");
+            return;
+          }
 
-  if (!target || Number(target) <= 0) {
-    setErrorMessage("Please enter a valid target KPI");
-    return;
-  }
+          if (!target || Number(target) <= 0) {
+            setErrorMessage("Please enter a valid target KPI");
+            return;
+          }
 
-  if (!unit) {
-    setErrorMessage("Please select a unit");
-    return;
-  }
+          if (!unit) {
+            setErrorMessage("Please select a unit");
+            return;
+          }
 
-  if (!deadline) {
-    setErrorMessage("Please select a deadline");
-    return;
-  }
+          if (!deadline) {
+            setErrorMessage("Please select a deadline");
+            return;
+          }
 
-  if (assignedStaff.length === 0) {
-    setErrorMessage("Please assign at least one staff");
-    return;
-  }
+          if (assignedStaff.length === 0) {
+            setErrorMessage("Please assign at least one staff");
+            return;
+          }
 
-  setErrorMessage("");
+          setErrorMessage("");
 
-  // Map short category ID to full category name
-  const categoryNameMap = {
-    "sales": "Sales Performance",
-    "lead": "Lead Generation",
-    "property": "Property Management",
-    "marketing": "Marketing Performance",
-    "customer": "Customer Experience"
-  };
+          try {
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/manager/kpi`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token")}`
+              },
+              body: JSON.stringify({
+               title,
+               description,
+               categoryId: category,
+               categoryName: categoryMap[category],
 
-  try {
-    const res = await fetch(`/api/manager/kpi`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("token")}`
-      },
-      body: JSON.stringify({
-  title,
-  description,
-  categoryId: category,
-  categoryName: categoryNameMap[category] || category,
+               target: Number(target),
+               unit,
+               frequency: "monthly",
 
-  target: Number(target),
-  unit,
-  frequency: "monthly",
+                deadline: deadline.toISOString(),
 
-  deadline: deadline.toISOString(),
+                assignedUserIds: assignedStaff.map(s => s.id),
 
-  assignedUserIds: assignedStaff.map(s => s.id),
+                kpiAssignments: assignedStaff.map(s => ({
+                  userId: s.id,
+                  current: 0,
+                  target: s.kpi || Number(target)
+                }))
+              })
+            });
 
-  kpiAssignments: assignedStaff.map(s => ({
-    userId: s.id,
-    current: 0,
-    target: s.kpi || Number(target)
-  }))
-})
-    });
+            const data = await res.json();
 
-    const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data.detail || "Failed to create KPI");
+            }
 
-    if (!res.ok) {
-      throw new Error(data.detail || "Failed to create KPI");
-    }
+            console.log("KPI CREATED:", data);
 
-    console.log("KPI CREATED:", data);
-
-    setShowModal(true);
-  } catch (err) {
-    console.error(err);
-    setErrorMessage(err.message);
-  }
-};
+            setShowModal(true);
+          } catch (err) {
+            console.error(err);
+            setErrorMessage(err.message);
+          }
+    };
 
    useEffect(() => {
-  fetch(`/api/users`)
+  fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff`)
     .then(async res => {
       if (!res.ok) {
         const text = await res.text();
@@ -142,11 +133,8 @@ function CreateKPI(){
       return res.json();
     })
     .then(data => {
-      // Extract users array and filter for staff only
-      const allUsers = Array.isArray(data) ? data : (data.users || []);
-      const staffUsers = allUsers.filter(user => user.role === "staff");
-      console.log("STAFF:", staffUsers);
-      setStaffList(staffUsers);
+      console.log("STAFF:", data);
+      setStaffList(data);
     })
     .catch(err => console.log("Error fetching staff:", err));
 }, []); 
@@ -166,15 +154,15 @@ function CreateKPI(){
             subtitle="Create a key performance indicator and assign to a staff"/>
 
             {errorMessage && (
-  <div
-    style={{
-      backgroundColor: "#ffe5e5",
-      color: "#d93025",
-      padding: "10px",
-      borderRadius: "8px",
-      margin: "10px 20px"
-    }}
-  >
+              <div
+               style={{
+                  backgroundColor: "#ffe5e5",
+                  color: "#d93025",
+                  padding: "10px",
+                  borderRadius: "8px",
+                  margin: "10px 20px"
+                }}
+              >
     {errorMessage}
   </div>
 )}
@@ -183,15 +171,24 @@ function CreateKPI(){
           className="mx-3 mb-4 d-flex justify-content-center"
           style={{
             flexDirection: "column",
+            justifyContent: "space-between",
             alignItems: "start",
             borderRadius: "12px",
             boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
             padding: "24px",
-            gap: "20px",
-          }}
-        >
-          {/* Title and category */}
-          <div className="d-flex" style={{ flexDirection: "row", gap: "400px" }}>
+            gap: "20px"
+          }}>
+
+
+          {/*title and category contanier*/}
+          <div
+            className="d-flex"
+            style={{
+              flexDirection: "row",
+              font: "16px",
+              gap: "400px",
+            }}>
+
             <InputKPITitle value={title} setValue={setTitle} />
             <CategorySelection value={category} setValue={setCategory} />
           </div>
@@ -247,22 +244,22 @@ function CreateKPI(){
                   Confirm</button>
 
                    {showModal && (
-        <div 
-  className="modal show fade d-block"
-  tabIndex="-1"
-  style={{
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.3)",
-    zIndex: 9999
-  }}
->
+                    <div 
+                      className="modal show fade d-block"
+                      tabIndex="-1"
+                      style={{
+                       position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100vw",
+                        height: "100vh",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "rgba(0,0,0,0.3)",
+                        zIndex: 9999
+                      }}
+                    >
           <div className="modal-dialog" 
           style={{ 
             marginTop:"15%",
@@ -298,9 +295,9 @@ function CreateKPI(){
                 <button 
                   className="btn btn-primary"
                   onClick={() => {
-  setShowModal(false);
-  resetForm();
-}}
+                    setShowModal(false);
+                    resetForm();
+                  }}
                 >
                   OK
                 </button>
@@ -315,9 +312,14 @@ function CreateKPI(){
 
 
         </div>
+
+
+
       </div>
     </div>
-  );
+
+
+  )
 }
 
-export default CreateKPI;
+export default CreateKPI
