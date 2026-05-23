@@ -10,74 +10,70 @@ import {
 } from "recharts";
 
 import { useEffect, useState } from "react";
+import { fetchKPIPrediction } from "../api/api";
 
-function ProgressKPIGraph({
-
-  kpiId =
-  "6aGHiAwomQPLY3mzaA5D"
-
-}) {
+function ProgressKPIGraph({kpiId }) {
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
 
-    if (!kpiId) return;
+  console.log("kpiId =", kpiId);
 
-    const token =
-      localStorage.getItem("token");
+  if (!kpiId) {
+    setLoading(false);
+    return;
+  }
 
-    async function loadGraph() {
+  async function loadGraph() {
 
-      try {
+    try {
 
-        setLoading(true);
+      console.log("START REQUEST");
 
-        const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/manager/kpi/${kpiId}/predict`,
-          {
-            method: "GET",
+      setLoading(true);
 
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
+      const result =
+        await fetchKPIPrediction(
+          kpiId
         );
 
-        if (!response.ok) {
-          throw new Error(
-            `HTTP ${response.status}`
-          );
-        }
+      console.log(
+        "RESULT:",
+        result
+      );
 
-        const result =
-          await response.json();
-
-        console.log(result);
-
-        setData(
-          result.chart || []
-        );
-
-      } catch (err) {
-
-        console.error(
-          "Graph Error:",
-          err
-        );
-
-      } finally {
-
-        setLoading(false);
-
-      }
+      setData(
+        result.chart || []
+      );
 
     }
 
-    loadGraph();
+    catch (err) {
 
-  }, [kpiId]);
+      console.log(
+        "ERROR:",
+        err
+      );
+
+    }
+
+    finally {
+
+      console.log(
+        "DONE"
+      );
+
+      setLoading(false);
+
+    }
+
+  }
+
+  loadGraph();
+
+}, [kpiId]);
 
 
 

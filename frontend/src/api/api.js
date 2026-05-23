@@ -57,7 +57,10 @@ export const deleteKPI = (kpiId) =>
 
 // ── KPI Prediction ────────────────────────────────────────────────────────────
 export const fetchKPIPrediction = (kpiId) =>
-  request("GET", `/api/kpi/${kpiId}/prediction`);
+  request(
+    "GET",
+    `/api/manager/kpi/${kpiId}/predict`
+  );
 
 // ── Submissions ───────────────────────────────────────────────────────────────
 export const fetchSubmissions = () => request("GET", "/api/kpi/submissions");

@@ -173,7 +173,7 @@ function KPIProgressPage() {
           daysRemaining={prediction?.daysRemaining}
           staffPredictions={prediction?.staffPredictions}
         />
-        <ProgressKPIGraph data={graphData} />
+        <ProgressKPIGraph kpiId={state.id} />
       </div>
 
       {/* KPI details */}
