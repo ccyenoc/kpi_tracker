@@ -521,5 +521,6 @@ target
     </div>
   </div>
 )};
+}
 
 export default StaffDashboard;
