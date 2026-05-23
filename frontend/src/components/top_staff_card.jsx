@@ -139,6 +139,8 @@ function TopStaffCard({
               style={{
                 fontWeight: 700,
                 fontSize: "18px",
+                display:"flex",
+                alignItems:"start",
               }}
             >
               {name}
