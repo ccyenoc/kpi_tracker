@@ -1,11 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Layout from "./components/Layout.jsx";
+import Layout from "./components/common/Layout.jsx";
 import { routes } from "./Routes.jsx";
 import { useAuth } from "./Auth.jsx";
 import { pathway } from "./Pathway";
-import Login from "./pages/Login";
-import RegisterAcc from "./pages/RegisterAcc";
-import StaffKPIUpdate from "./pages/staff-kpi-progress-update";
+import Login from "./pages/common/Login";
+import RegisterAcc from "./pages/common/RegisterAcc";
 
 function App() {
   const { user } = useAuth();
