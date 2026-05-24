@@ -153,7 +153,6 @@ function CreateKPI() {
           style={{
             flexDirection: "column",
             justifyContent: "space-between",
-            justifyContent: "space-between",
             alignItems: "start",
             borderRadius: "12px",
             boxShadow: "0 4px 10px rgba(0,0,0,0.1)",

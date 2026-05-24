@@ -10,7 +10,7 @@ import {
 } from "recharts";
 
 import { useEffect, useState } from "react";
-import { fetchKPIPrediction } from "../api/api";
+import { kpi } from "../../../../api/api";
 
 function ProgressKPIGraph({kpiId }) {
 
@@ -35,7 +35,7 @@ function ProgressKPIGraph({kpiId }) {
       setLoading(true);
 
       const result =
-        await fetchKPIPrediction(
+        await kpi.fetchKPIPrediction(
           kpiId
         );
 

@@ -27,6 +27,7 @@ export default function Description({ value, setValue }){
                  borderRadius: "8px",
                  border: "1px solid #ccc",
                  backgroundColor: "#fff",
+                 color: "#333",
                 }}
                 rows={4}
                 />

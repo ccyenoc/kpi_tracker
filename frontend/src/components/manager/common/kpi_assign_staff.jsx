@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 function KPIAssignStaff({ staffList, unit, assignedStaff, setAssignedStaff, searchStaff, setSearchStaff }) {
 
   const [kpiValue, setKpiValue] = useState(100)
