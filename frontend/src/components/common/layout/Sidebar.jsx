@@ -6,15 +6,7 @@ import { useAuth } from "../../../Auth.jsx";
 
 //in react a component is a function that return a piece of UI 
 function Sidebar() {
-    // const [user, setUser] = useState(null);
     const { user } = useAuth();
-
-    // useEffect(()=>{
-    //     fetch("http://localhost:8000/api/user")
-    //         .then(res => res.json())
-    //         .then(data => setUser(data))
-    //         .catch(err => console.error(err))
-    // }, []);
 
     const roleDisplay = {
         manager: "Manager",
@@ -23,18 +15,6 @@ function Sidebar() {
 
     const handleLogout = async () => {
         try {
-            // No need to call API for logout since we're using token-based auth
-            // Backend also no /api/logout url, so we just clear localStorage and redirect
-            // const token = localStorage.getItem('token');
-            // if (token) {
-            //     await fetch('/api/logout', {
-            //         method: 'POST',
-            //         headers: {
-            //             'Authorization': `Bearer ${token}`
-            //         }
-            //     });
-            // }
-            // Clear localStorage and redirect to login
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/signin';

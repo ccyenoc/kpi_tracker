@@ -242,7 +242,9 @@ function KPISubmissionTable({ submissions, users = [], kpis = [], categories = [
               </div>
 
               <div style={{ flex: 1.2 }}>
-                <span style={statusStyle(item.status)}>{item.status}</span>
+                <span style={statusStyle(item.status)}>
+                    {item.status?.charAt(0).toUpperCase() + item.status?.slice(1).toLowerCase()}
+                </span>
               </div>
 
               <div style={{ flex: 1.5, display: "flex", gap: "5px" }}>

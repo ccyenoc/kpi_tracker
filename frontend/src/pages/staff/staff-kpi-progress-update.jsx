@@ -10,9 +10,6 @@ import { kpi } from "../../api/api";
 
 const StaffKPIUpdate = () => {
   const { kpiId } = useParams();
-  
-  // Use Vite proxy in development; in production, use relative URLs
-  const API_BASE_URL = '';
 
   const groupSubmissionsByKpi = (submissionList = []) => {
     const groupedHistory = {};
@@ -243,6 +240,9 @@ const StaffKPIUpdate = () => {
 
       setKpis(realKpis);
 
+console.log("PARSED KPIS");
+console.log(realKpis);
+
       console.log("Current user:", currentUser);
       console.log("Current user id:", currentUserId);
       console.log("Real KPIs:", realKpis);
@@ -306,7 +306,10 @@ const StaffKPIUpdate = () => {
 
   const handleSubmitUpdate = async (updateData) => {
     try {
-      const result = await kpi.submitKPIProgress(updateData);
+      const result = await kpi.submitKPIProgress(updateData).catch((err) => {
+        console.error("Error updating KPI progress:", err);
+        setError(err.message || "Failed to update KPI progress");
+      });
       const newSubmission = normalizeSubmissions([result.submission])[0];
 
       setSubmissionHistory((prev) => {

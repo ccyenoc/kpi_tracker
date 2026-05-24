@@ -7,11 +7,7 @@ import StaffRecentActivity from '../../components/staff/kpi_dashboard/staff_rece
 import { useAuth } from "../../Auth.jsx";
 import { kpi } from "../../api/api";
 
-const StaffDashboard = () => {
-
-
-  const API_BASE_URL = '';
-  
+const StaffDashboard = () => {  
   const [kpis, setKpis] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);

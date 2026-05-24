@@ -55,10 +55,10 @@ console.log("STATUS:", status);
         border: `1px solid ${style.border}`,
         borderRadius: "12px",
         padding: "12px",
+        paddingBottom:"5px",
         marginBottom: "8px",
         display: "flex",
         flexDirection: "column",  
-        gap:"8px",
       }}
     >
         
@@ -99,6 +99,7 @@ console.log("STATUS:", status);
           {/*progress bar*/}
          <div
          style={{
+            marginTop:"8px",
             height: "6px",
             background: "#e5e7eb",
             borderRadius: "999px",
@@ -120,6 +121,7 @@ console.log("STATUS:", status);
         {/*status*/}
         <h3
         style={{ 
+          marginTop:"5px",
           fontSize: "12px", 
           textAlign:"left", }}>
           {subtitle}

@@ -8,8 +8,10 @@ from services.kpi_service import (
     create_kpi,
     update_kpi,
     delete_kpi,
-    update_kpi_progress_service
+    update_kpi_progress_service,
+    get_kpi_history
 )
+from services.predictionService import predict_kpi;
 from fastapi import Form, File, UploadFile
 from typing import List
 import sys
@@ -41,6 +43,14 @@ def view_all_kpis(request: Request):
 @router.get("/manager/kpi")
 def view_kpis(request: Request):
     return get_kpis(request)
+
+@router.get("/manager/kpi/history")
+def history(
+    request: Request
+):
+    return get_kpi_history(
+        request
+    )
 
 
 @router.get("/manager/kpi/{kpi_id}")
@@ -109,7 +119,7 @@ def get_staff_kpis(request: Request):
         
         # Get all KPIs assigned to this staff member
         from config.firebase_config import db
-        from models.kpi_model import KPI_COLLECTION
+        from firebase_secure import KPI_COLLECTION
         
         kpis_ref = db.collection(KPI_COLLECTION).stream()
         staff_kpis = []
@@ -148,7 +158,7 @@ def get_staff_monthly_performance(request: Request):
         user_id = current_user.get("id")
         
         from config.firebase_config import db
-        from models.kpi_model import KPI_COLLECTION
+        from firebase_secure import KPI_COLLECTION
         from datetime import datetime, timedelta
         
         # Get all KPIs assigned to this staff member
@@ -220,6 +230,15 @@ async def update_kpi_progress(
     request: Request = None
 ):
     return await update_kpi_progress_service(kpiId, current, notes, files, request)
+@router.get("/manager/kpi/{kpi_id}/predict")
+def predict(
+    kpi_id: str,
+    request: Request
+):
+    return predict_kpi(
+        kpi_id,
+        request
+    )
 
 
 # Download evidence files

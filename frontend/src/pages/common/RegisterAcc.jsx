@@ -5,8 +5,6 @@ import './RegisterAcc.css';
 import logo from "../../assets/achievepro.png";
 import { auth } from '../../api/api';
 
-// Use Vite proxy in development; in production, use relative URLs
-const API_BASE_URL = '';
 
 const RegisterAcc = () => {
     const [formData, setFormData] = useState({

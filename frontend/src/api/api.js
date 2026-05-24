@@ -2,6 +2,9 @@ const BASE = "";
 
 function authHeaders() {
   const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("Please login first before using this feature.");
+  }
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -15,7 +18,7 @@ async function request(method, path, body) {
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(`Failed to fetch ${path}. ${res.status} - ${res.statusText} - ${data.detail || data.message || `HTTP ${res.status}`}`);
+  if (!res.ok) throw new Error(`Failed to ${method} ${path}. ${res.status} - ${res.statusText} - ${data.detail || data.message || `HTTP ${res.status}`}`);
   return data;
 }
 
@@ -149,14 +152,37 @@ export const kpi = {
 
   fetchDashboardStats: () => request("GET", "/api/manager/dashboard/stats"),
 
-  // ── Staff ──────────────────────────────────────────────────────────────────
-  fetchStaffKPIs: () => request("GET", "/api/staff/kpi"),
+  fetchKPIHistory: () => request("GET", `/api/manager/kpi/history`),
 
-  fetchStaffKPISubmissions: (kpiId) => request("GET", `/api/staff/kpi/submissions`),
+  // ── Staff ──────────────────────────────────────────────────────────────────
+  fetchStaffKPIs: () => {
+    const res = fetch("/api/staff/kpi", {
+      method: "GET",
+      headers: authHeaders(),
+    })
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("KPI API error:", res.status, errText);
+      throw new Error(`Failed to fetch KPI data. Status: ${res.status}`);
+    }
+    return await res.json();
+  },
+
+  fetchStaffKPISubmissions: (kpiId) => {
+    const res = fetch(`/api/staff/kpi/submissions`, {
+      method: "GET",
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Submission API error:", res.status, errText);
+      throw new Error(`Failed to fetch submission data. Status: ${res.status}`);
+    }
+    return await res.json();
+  },
 
   // ── KPI Prediction ────────────────────────────────────────────────────────────
-  fetchKPIPrediction: (kpiId) =>
-    request("GET", `/api/kpi/${kpiId}/prediction`),
+  fetchKPIPrediction: (kpiId) => request("GET", `/api/manager/kpi/${kpiId}/predict`),
 
   // ── KPI Status (at-risk and underperformed) ───────────────────────────────────
   fetchAtRiskKPIs: () => request("GET", "/api/kpi/at-risk"),

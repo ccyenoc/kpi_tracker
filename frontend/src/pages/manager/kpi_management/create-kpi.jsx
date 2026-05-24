@@ -22,8 +22,6 @@ function CreateKPI() {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8006';
-
   const resetForm = () => {
     setTitle("");
     setDescription("");
@@ -36,13 +34,13 @@ function CreateKPI() {
     setErrorMessage("");
   };
 
-  const KPI_TEMPLATES = {
-    sales: ["Monthly Sales Revenue", "Closed Deals", "Conversion Rate"],
-    lead: ["New Leads", "Cost per Lead", "Qualified Leads"],
-    property: ["Occupancy Rate", "Tenant Retention", "Maintenance Response Time"],
-    marketing: ["Campaign Conversion Rate", "CTR", "Traffic Growth"],
-    customer: ["CSAT", "NPS", "Response Time"]
-  }
+  const categoryMap = {
+    sales: "Sales Performance",
+    lead: "Lead Generation",
+    property: "Property Management",
+    marketing: "Marketing Performance",
+    customer: "Customer Experience"
+  };
 
   const handleConfirm = async () => {
     if (!title.trim()) {
@@ -82,22 +80,13 @@ function CreateKPI() {
 
     setErrorMessage("");
 
-    // Map short category ID to full category name
-    const categoryNameMap = {
-      "sales": "Sales Performance",
-      "lead": "Lead Generation",
-      "property": "Property Management",
-      "marketing": "Marketing Performance",
-      "customer": "Customer Experience"
-    };
-
     try {
       setLoading(true);
       const createFormData = {
         title: title,
         description: description,
         categoryId: category,
-        categoryName: categoryNameMap[category] || category,
+        categoryName: categoryMap[category],
         target: Number(target),
         unit: unit,
         frequency: "monthly",
@@ -111,8 +100,6 @@ function CreateKPI() {
       };
       const data = await kpi.createKPI(createFormData);
 
-      console.log("KPI CREATED:", data);
-
       setShowModal(true);
     } catch (err) {
       console.error(err);
@@ -125,11 +112,8 @@ function CreateKPI() {
   useEffect(() => {
     user.getAllStaff()
       .then(data => {
-        // Extract users array and filter for staff only
-        const allUsers = Array.isArray(data) ? data : (data.users || []);
-        const staffUsers = allUsers.filter(user => user.role === "staff");
-        console.log("STAFF:", staffUsers);
-        setStaffList(staffUsers);
+        console.log("STAFF:", data);
+        setStaffList(data);
       })
       .catch(err => {
         console.error("Error fetching staff:", err.message);
@@ -169,6 +153,7 @@ function CreateKPI() {
           style={{
             flexDirection: "column",
             justifyContent: "space-between",
+            justifyContent: "space-between",
             alignItems: "start",
             borderRadius: "12px",
             boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
@@ -178,7 +163,12 @@ function CreateKPI() {
 
 
           {/*title and category contanier*/}
-          <div className="d-flex" style={{ flexDirection: "row", gap: "400px" }}>
+          <div 
+            className="d-flex" 
+            style={{ 
+              flexDirection: "row", 
+              gap: "400px" 
+            }}>
 
             <InputKPITitle value={title} setValue={setTitle} />
             <CategorySelection value={category} setValue={setCategory} />

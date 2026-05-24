@@ -5,8 +5,6 @@ import DashboardCards from "../../components/common/4x1_cards_layout";
 import KPISubmissionTable from "../../components/manager/kpi_verification/kpi_submission_table";
 import { kpi, user } from "../../api/api";
 
-const API_BASE_URL = "";
-
 function VerifyKPI() {
   const [submissions, setSubmissions] = useState([]);
   const [users, setUsers] = useState([]);
