@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { authService } from "./services/authService";
+import { auth } from "./api/api";
 
 const AuthContext = createContext();
 
@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
       setUser(JSON.parse(storedUser));
     } else if (token) {
       // Fetch user data from backend if token exists but user not in localStorage
-      authService.fetchUserByToken(token)
+      auth.fetchCurrentUser()
         .then((data) => {
           if (data.success) {
             setUser(data.user);

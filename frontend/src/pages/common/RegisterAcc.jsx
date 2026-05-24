@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './RegisterAcc.css';
 import logo from "../../assets/achievepro.png";
+import { auth } from '../../api/api';
 
 // Use Vite proxy in development; in production, use relative URLs
 const API_BASE_URL = '';
@@ -87,7 +88,7 @@ const RegisterAcc = () => {
         setIsSendingCode(true);
         
         try {
-            const data = await authService.sendVerificationCode(email);
+            const data = await auth.sendVerificationEmail(email);
 
             setVerificationStatus('Verification code sent. Please check your email.');
             setIsEmailVerified(false);
@@ -121,7 +122,7 @@ const RegisterAcc = () => {
         setIsVerifyingCode(true);
         
         try {
-            const data = await authService.verifyCode(email, code);
+            const data = await auth.verifyEmailCode(email, code);
 
             setIsEmailVerified(true);
             setVerificationStatus('Email verified successfully. You can continue signup.');
@@ -208,7 +209,7 @@ const RegisterAcc = () => {
         };
 
         try {
-            const data = await authService.register(payload);
+            const data = await auth.register(payload);
 
                 setSuccessMessage("Account created successfully! You can now log in.");
                 setShowSuccessModal(true);

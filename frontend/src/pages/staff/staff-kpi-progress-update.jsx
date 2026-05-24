@@ -306,17 +306,7 @@ const StaffKPIUpdate = () => {
 
   const handleSubmitUpdate = async (updateData) => {
     try {
-      const formData = new FormData();
-
-      formData.append("kpiId", updateData.kpiId);
-      formData.append("current", updateData.current);
-      formData.append("notes", updateData.notes || "");
-
-      updateData.files?.forEach((file) => {
-        formData.append("files", file);
-      });
-
-      const result = await kpi.submitKPIProgress(formData);
+      const result = await kpi.submitKPIProgress(updateData);
       const newSubmission = normalizeSubmissions([result.submission])[0];
 
       setSubmissionHistory((prev) => {

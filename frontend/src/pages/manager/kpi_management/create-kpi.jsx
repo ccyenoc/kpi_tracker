@@ -6,8 +6,7 @@ import TargetKPISelection from "../../../components/manager/common/target_kpi"
 import Deadline from "../../../components/manager/common/deadline"
 import KPIAssignStaff from "../../../components/manager/common/kpi_assign_staff"
 import Description from "../../../components/manager/common/description";
-import { userService } from "../../../services/userService";
-import { kpiService } from "../../../services/kpiService";
+import { user, kpi } from "../../../api/api";
 
 function CreateKPI() {
   const [category, setCategory] = useState("")
@@ -110,7 +109,7 @@ function CreateKPI() {
           target: s.kpi || Number(target)
         }))
       };
-      const data = await kpiService.createKPI(createFormData);
+      const data = await kpi.createKPI(createFormData);
 
       console.log("KPI CREATED:", data);
 
@@ -124,7 +123,7 @@ function CreateKPI() {
   };
 
   useEffect(() => {
-    userService.getAllStaff()
+    user.getAllStaff()
       .then(data => {
         // Extract users array and filter for staff only
         const allUsers = Array.isArray(data) ? data : (data.users || []);

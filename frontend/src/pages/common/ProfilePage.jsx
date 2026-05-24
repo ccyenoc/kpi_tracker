@@ -4,7 +4,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './ProfilePage.css';
 import PageTitle from '../../components/common/page_title';
 import { useAuth } from '../../Auth';
-import { userService } from '../../services/userService';
+import { user } from '../../api/api';
 
 const ProfilePage = () => {
     const { user } = useAuth();
@@ -56,7 +56,7 @@ const ProfilePage = () => {
                 phone: phone,
                 department: department
             };
-            const data = await userService.updateProfile(profileData);
+            const data = await user.updateProfile(profileData);
 
             localStorage.setItem('user', JSON.stringify(data.user));
             setSuccessMsg('Profile updated successfully!');
@@ -93,7 +93,7 @@ const ProfilePage = () => {
                 new_password: newPassword,
                 confirm_password: confirmPassword
             };
-            const data = await userService.updatePassword(passwordData);
+            const data = await user.updatePassword(passwordData);
 
             setSuccessMsg('Password updated successfully!');
             setCurrentPassword('');
@@ -119,7 +119,7 @@ const ProfilePage = () => {
         setLoading(true);
 
         try {
-            const data = await userService.deleteAccount();
+            const data = await user.deleteAccount();
 
             localStorage.removeItem('token');
             localStorage.removeItem('user');

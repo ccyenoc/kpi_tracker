@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Login.css';
 import logo from "../../assets/achievepro.png";
-import { authService } from '../../services/authService';
+import { auth } from '../../api/api';
 
 // Use Vite proxy in development; in production, use relative URLs
 const API_BASE_URL = '';
@@ -41,7 +41,7 @@ const Login = () => {
         }
 
         try {
-            const data = await authService.login(credentials);
+            const data = await auth.login(credentials);
 
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));

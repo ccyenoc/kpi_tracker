@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { kpiService } from "../../../services/kpiService";
 
 const UpdateKpiModal = ({ kpi, onClose, onSubmit, history = []}) => {
   const [currentValue, setCurrentValue] = useState("");
@@ -85,7 +84,7 @@ const handleSubmit = async () => {
       formData.append("files", file);
     });
 
-    const data = await kpiService.staffUpdateKPI(formData);
+    onSubmit(formData);
 
     //TODO: change to modal alert
     alert("Submission successful!");

@@ -1,4 +1,4 @@
-import { kpiService } from "../../../services/kpiService";
+import { util } from "../../../api/api";
 
 function ExportBar({ onMonthlyReport }) {  
   console.log("ExportBar loaded");
@@ -15,7 +15,7 @@ function ExportBar({ onMonthlyReport }) {
 
   const weeklyReport = async () => {
     try {
-      const blob = await kpiService.getWeeklyKPIReport();
+      const blob = await util.getWeeklyReport();
       console.log("API DATA:", blob);
 
       const url = window.URL.createObjectURL(blob);
