@@ -16,9 +16,10 @@ const StaffDashboard = () => {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
-
+  
+  const auth = useAuth();
   const [currentUser, setCurrentUser] = useState(() => {
-    return useAuth()?.user || JSON.parse(localStorage.getItem("user")) || null;
+    return auth?.user || JSON.parse(localStorage.getItem("user")) || null;
   });
 
   const currentUserId = currentUser?.id || currentUser?.user_id || "";

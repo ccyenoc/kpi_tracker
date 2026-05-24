@@ -37,10 +37,10 @@ async function requestBlob(method, path) {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const auth = {
-  sendVerificationEmail: (email) => {
-    const response = await fetch(`${API_BASE_URL}/api/verify-email`, {
+  sendVerificationEmail: async (email) => {
+    const response = await fetch(`${BASE}/api/verify-email`, {
       method: 'POST',
-      headers: authHeaders(),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email })
     });
 
@@ -54,10 +54,10 @@ export const auth = {
     return data;
   },
 
-  verifyEmailCode: (email, code) => {
-    const response = await fetch(`${API_BASE_URL}/api/verify-code`, {
+  verifyEmailCode: async (email, code) => {
+    const response = await fetch(`${BASE}/api/verify-code`, {
       method: 'POST',
-      headers: authHeaders(),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, code })
     });
 
@@ -71,9 +71,9 @@ export const auth = {
   },
 
   register: async (payload) => {
-    const response = await fetch(`${API_BASE_URL}/api/register`, {
+    const response = await fetch(`${BASE}/api/register`, {
       method: 'POST',
-      headers: authHeaders(),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
 
@@ -91,9 +91,9 @@ export const auth = {
   },
 
   login: async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/api/login`, {
+    const response = await fetch(`${BASE}/api/login`, {
       method: 'POST',
-      headers: authHeaders(),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials)
     });
 
@@ -155,11 +155,11 @@ export const kpi = {
   fetchKPIHistory: () => request("GET", `/api/manager/kpi/history`),
 
   // ── Staff ──────────────────────────────────────────────────────────────────
-  fetchStaffKPIs: () => {
-    const res = fetch("/api/staff/kpi", {
+  fetchStaffKPIs: async () => {
+    const res = await fetch("/api/staff/kpi", {
       method: "GET",
       headers: authHeaders(),
-    })
+    });
     if (!res.ok) {
       const errText = await res.text();
       console.error("KPI API error:", res.status, errText);
@@ -168,8 +168,8 @@ export const kpi = {
     return await res.json();
   },
 
-  fetchStaffKPISubmissions: (kpiId) => {
-    const res = fetch(`/api/staff/kpi/submissions`, {
+  fetchStaffKPISubmissions: async (kpiId) => {
+    const res = await fetch(`/api/staff/kpi/submissions`, {
       method: "GET",
       headers: authHeaders(),
     });
