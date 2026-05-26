@@ -126,8 +126,19 @@ const StaffKPIUpdate = () => {
       (u) => String(u.userId || "") === currentUserId
     );
 
+    console.log("KPI Object:");
+  console.log(kpi);
+
     const category = categoryMap[kpi.categoryId];
-    const categoryName = getCategoryName(kpi);
+    const categoryName =
+    kpi.categoryName ||
+    categoryMap[kpi.categoryId]?.name ||
+    getCategoryName(kpi);
+
+    const categoryColor =
+    categoryMap[kpi.categoryId]?.color ||
+    kpi.categoryColor ||
+    "#e5e7eb";
 
     const history = submissionHistory[kpi.id] || submissionMap[kpi.id] || [];
 
@@ -173,7 +184,7 @@ const StaffKPIUpdate = () => {
         : "No deadline",
       categoryId: kpi.categoryId || category?.id || "",
       categoryName,
-      categoryColor: category?.color || kpi.categoryColor || "#e5e7eb",
+      categoryColor,
       status: normalizeStatus(kpi.status || latestUpdate?.status || "pending"),
       evidenceCount,
       evidence: `${evidenceCount} file${evidenceCount === 1 ? "" : "s"}`,
@@ -234,14 +245,31 @@ const StaffKPIUpdate = () => {
         kpi.fetchStaffKPISubmissions(),
       ]);
 
-      const realKpis = Array.isArray(kpiData)
-      ? kpiData
-      : kpiData.kpis || kpiData.data || [];
+      const rawKpis = Array.isArray(kpiData)
+ ? kpiData
+ : kpiData.kpis || kpiData.data || [];
 
-      setKpis(realKpis);
+const realKpis =
+rawKpis.map((kpi) => ({
+  id:
+    kpi.id ||
+    kpi.kpiId ||
+    kpi.documentId ||
+    kpi._id,
 
-console.log("PARSED KPIS");
+  title:
+    kpi.title ||
+    kpi.kpiTitle ||
+    "Untitled KPI",
+
+  ...kpi
+}));
+
+setKpis(realKpis);
+
+console.log("REAL KPI");
 console.log(realKpis);
+
 
       console.log("Current user:", currentUser);
       console.log("Current user id:", currentUserId);

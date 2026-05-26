@@ -7,7 +7,8 @@ import StaffRecentActivity from '../../components/staff/kpi_dashboard/staff_rece
 import { useAuth } from "../../Auth.jsx";
 import { kpi } from "../../api/api";
 
-const StaffDashboard = () => {  
+
+const StaffDashboard = () => {
   const [kpis, setKpis] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
@@ -54,13 +55,10 @@ const StaffDashboard = () => {
       const token = localStorage.getItem("token");
 
       if (!token) {
-        throw new Error("Please login first before loading dashboard data");
+        throw new Error(
+          "Please login first before loading dashboard data"
+        );
       }
-
-      const headers = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
 
       const [kpiData, submissionData] = await Promise.all([
         kpi.fetchStaffKPIs(),

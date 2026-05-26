@@ -103,12 +103,15 @@ function KPISubmissionTable({ submissions, users = [], kpis = [], categories = [
   );
 
   const kpiMap = Object.fromEntries(
-    kpisList.map(k => [k.id, k])
+    kpisList.map(k => [k.kpiId || k.id, k])
   );
 
   const categoryMap = Object.fromEntries(
-    categoriesList.map(c => [c.id, c])
-  );
+  categories.map((c) => [
+    c.name.toLowerCase(),
+    c
+  ])
+);
 
   return (
     <div className="mx-3"
@@ -135,8 +138,12 @@ function KPISubmissionTable({ submissions, users = [], kpis = [], categories = [
           // Backend sends "submittedBy" not "userId"
           const userId = item.userId || item.submittedBy;
           const user = userMap[userId] || { name: `User ${userId}`, email: "" };
-          const kpi = kpiMap[item.kpiId] || { title: `KPI ${item.kpiId}`, description: "", categoryId: "", target: 0 };
-          const category = categoryMap[kpi?.categoryId] || { name: "Unknown" };
+          const kpi = kpiMap[item.kpiId] || { title: `KPI ${item.title}`, description: "", categoryId: "", target: 0 };
+          const category =
+  categoryMap[
+    String(kpi.categoryName || "")
+      .toLowerCase()
+  ];
 
           // Always show the row - use available data with fallbacks
           // item.current is from submission, kpi.target is from KPI data
@@ -145,6 +152,13 @@ function KPISubmissionTable({ submissions, users = [], kpis = [], categories = [
           const progressPercent = target
             ? Math.min((current / target) * 100, 100)
             : 0;
+
+
+              console.log("Submission:", item);
+console.log("KPI ID:", item.kpiId);
+console.log("KPIs List:", kpisList);
+console.log("First KPI:", kpisList[0]);
+console.log("Found KPI:", kpiMap[item.kpiId]);
 
           return (
             <div

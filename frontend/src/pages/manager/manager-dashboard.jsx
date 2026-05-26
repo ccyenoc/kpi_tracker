@@ -8,8 +8,6 @@ import ManagerDashboardKpi from "../../components/manager/kpi_dashboard/manager_
 import { kpi } from "../../api/api";
 import { useAuth } from "../../Auth.jsx";
 
-const API_BASE = "/api";
-
 function ManagerDashboard() {
   const { user } = useAuth();
 
@@ -21,8 +19,6 @@ function ManagerDashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    
     Promise.all([
       kpi.fetchManagerKPIs(),
       kpi.fetchAtRiskKPIs(),
@@ -63,40 +59,40 @@ function ManagerDashboard() {
     }
   };
 
-  const stats = [
-    {
-      title: "Total KPIs",
-      value: loading ? "—" : kpis.length,
-      subtitle: "All defined KPIs",
-      color: "#3b82f6",
-    },
-    {
-      title: "Active KPIs",
-      value:
-        loading
-          ? "—"
-          : kpis.filter(
-              (k) => k.status === "active"
-            ).length,
-      subtitle: "Currently in progress",
-      color: "#22c55e",
-    },
-    {
-      title: "Completed",
-      value:
-        loading
-          ? "—"
-          : kpis.filter((k) => k.status === "completed").length,
-      subtitle: "Finished KPIs",
-      color: "#facc15",
-    },
-    {
-      title: "Requires Attention",
-      value: loading ? "—" : underperform.length,
-      subtitle: "Underperforming KPIs",
-      color: "#ef4444",
-    },
-  ];
+      const stats = [
+        {
+          title: "Total KPIs",
+          value: loading ? "—" : kpis.length,
+          subtitle: "All defined KPIs",
+          color: "#3b82f6",
+        },
+        {
+          title: "Active KPIs",
+          value:
+            loading
+              ? "—"
+              : kpis.filter(
+                  (k) => k.status === "active"
+                ).length,
+          subtitle: "Currently in progress",
+          color: "#22c55e",
+        },
+        {
+          title: "Completed",
+          value:
+            loading
+              ? "—"
+              : kpis.filter((k) => k.status === "completed").length,
+          subtitle: "Finished KPIs",
+          color: "#facc15",
+        },
+        {
+          title: "Requires Attention",
+          value: loading ? "—" : underperform.length,
+          subtitle: "Underperforming KPIs",
+          color: "#ef4444",
+        },
+      ];
 
   return (
     <div className="d-flex">

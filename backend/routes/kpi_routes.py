@@ -21,8 +21,7 @@ from manager_service import ManagerDashboardService, SubmissionVerificationServi
 
 router = APIRouter()
 
-
-# Get all KPIs (plural endpoint for frontend)
+# Get all KPIs
 @router.get("/manager/kpis")
 def view_all_kpis(request: Request):
     return get_kpis(request)
@@ -31,12 +30,6 @@ def view_all_kpis(request: Request):
 # Get single KPI endpoint
 from fastapi import Form, File, UploadFile
 from typing import List
-
-
-# Get all KPIs (plural endpoint for frontend)
-@router.get("/manager/kpis")
-def view_all_kpis(request: Request):
-    return get_kpis(request)
 
 
 # Get single KPI endpoint

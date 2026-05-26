@@ -5,7 +5,6 @@ import './RegisterAcc.css';
 import logo from "../../assets/achievepro.png";
 import { auth } from '../../api/api';
 
-
 const RegisterAcc = () => {
     const [formData, setFormData] = useState({
         fullName: '',
@@ -207,7 +206,7 @@ const RegisterAcc = () => {
         };
 
         try {
-            const data = await auth.register(payload);
+                const data = await auth.register(payload);
 
                 setSuccessMessage("Account created successfully! You can now log in.");
                 setShowSuccessModal(true);

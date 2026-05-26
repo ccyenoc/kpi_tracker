@@ -31,7 +31,7 @@ function StaffRankingCard() {
         // staffRankings is already sorted by achievementRate desc (top 10)
         const rankings = (data.staffRankings || []).slice(0, 3);
 
-        // Map backend shape → TopStaffCard props
+        // map backend shape → TopStaffCard props
         const mapped = rankings.map((s) => ({
           id: s.staffId,
           name: s.name,
