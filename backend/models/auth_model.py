@@ -6,3 +6,8 @@ class EmailVerificationRequest(BaseModel):
 class EmailCodeVerificationRequest(BaseModel):
     email: str
     code: str
+
+
+
+
+    

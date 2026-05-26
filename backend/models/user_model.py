@@ -29,3 +29,15 @@ class UserResponse(BaseModel):
     user: Optional[dict] = None
     dashboard: Optional[str] = None
     requiresEmailVerification: Optional[bool] = False
+
+
+
+
+
+
+
+
+
+
+
+    

@@ -40,3 +40,10 @@ class KPIUpdate(BaseModel):
 
     assignedUserIds: Optional[List[str]] = None
     kpiAssignments: Optional[List[KPIAssignment]] = None
+
+
+
+
+
+
+

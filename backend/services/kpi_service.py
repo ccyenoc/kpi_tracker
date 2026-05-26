@@ -372,13 +372,13 @@ def get_kpi_by_id(kpi_id):
 
 async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadFile], request: Request):
     try:
-        # 🔥 get staff from token
+        # get staff from token
         decoded = require_user(request)
         staff_id = decoded.get("user_id")
 
         staff = get_user_info(staff_id)
 
-        # 🔥 upload files
+        # upload files
         upload_dir = "uploads"
         os.makedirs(upload_dir, exist_ok=True)
 
