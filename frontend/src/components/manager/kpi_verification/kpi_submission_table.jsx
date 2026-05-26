@@ -2,10 +2,7 @@ import { useNavigate } from "react-router-dom"
 import KPIProgressPage from "../../../pages/manager/kpi_management/kpi-progress";
 import { useState } from "react";
 import { pathway } from "../../../Pathway";
-{/*import data*/ }
-import { users as mockUsers } from "../../../data/userData";
-import { kpis as mockKpis } from "../../../data/kpiData";
-import { categories as mockCategories } from "../../../data/categoriesData";
+import { kpi } from "../../../api/api";
 
 function KPISubmissionTable({submissions, users = [], kpis = [], categories = [], onSubmissionUpdated = null}) {
   const navigate = useNavigate();
@@ -14,10 +11,6 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
   const [comments, setComments] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Use passed data, fallback to mock data
-  const usersList = users && users.length > 0 ? users : mockUsers;
-  const kpisList = kpis && kpis.length > 0 ? kpis : mockKpis;
-  const categoriesList = categories && categories.length > 0 ? categories : mockCategories;
 
   const headerStyle = {
     display: "flex",
@@ -71,54 +64,58 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
     if (!selectedSubmission) return;
     
     setIsProcessing(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("/api/kpi/verify-submission", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          submissionId: selectedSubmission.id,
-          kpiId: selectedSubmission.kpiId,
-          status: status,
-          comments: comments,
-        }),
+        try {
+      setIsProcessing(true);
+
+      const data = await kpi.verifySubmission({
+        submissionId: selectedSubmission.id,
+        kpiId: selectedSubmission.kpiId,
+        status,
+        comments,
       });
 
-      const data = await response.json();
-      
       if (data.success) {
         alert(`Submission ${status} successfully!`);
+
         setShowModal(false);
         setSelectedSubmission(null);
         setComments("");
-        // Callback to refresh submissions list
+
         if (onSubmissionUpdated) {
           onSubmissionUpdated();
         }
       } else {
         alert(`Error: ${data.message}`);
       }
+
     } catch (err) {
-      alert("Failed to verify submission");
+      console.error(err);
+
+      alert(
+        err.message ||
+        "Failed to verify submission"
+      );
+
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const userMap = Object.fromEntries(
-    usersList.map(u => [u.id, u])
-  );
 
-  const kpiMap = Object.fromEntries(
-    kpisList.map(k => [k.id, k])
-  );
+ const userMap = Object.fromEntries(
+  users.map((u) => [u.id || u.userId, u])
+);
 
-  const categoryMap = Object.fromEntries(
-    categoriesList.map(c => [c.id, c])
-  );
+const kpiMap = Object.fromEntries(
+  kpis.map((k) => [k.id, k])
+);
+
+const categoryMap = Object.fromEntries(
+  categories.map((c) => [c.id, c])
+);
+
+console.log("KPIS", kpis);
+console.log("FIRST KPI", kpis[0]);
 
   return (
     <div className="mx-3"
@@ -145,7 +142,21 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
           const userId = item.userId || item.submittedBy;
           const user = userMap[userId] || { name: `User ${userId}`, email: "" };
           const kpi = kpiMap[item.kpiId] || { title: `KPI ${item.kpiId}`, description: "", categoryId: "", target: 0 };
-          const category = categoryMap[kpi?.categoryId] || { name: "Unknown" };
+          const categoryColorMap = {
+            sales: "#639fff",
+            lead: "#7ef203",
+            property: "#fff200",
+            marketing: "#df93ff",
+            customer: "#ff67e386",
+          };
+
+          const category = {
+            name: kpi?.categoryName || "Unknown",
+            color:
+              categoryColorMap[
+                kpi?.categoryId?.toLowerCase()
+              ] || "#e5e7eb",
+          };
 
           // Always show the row - use available data with fallbacks
           // item.current is from submission, kpi.target is from KPI data
@@ -211,8 +222,20 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
               </div>
 
               <div style={{ flex: 1.5 }}>
-                <div style={{ fontWeight: "500" }}>{category?.name}</div>
-              </div>
+              <span
+                style={{
+                  backgroundColor: category.color,
+                  padding: "6px 12px",
+                  borderRadius: "999px",
+                  fontSize: "12px",
+                  fontWeight: "500",
+                  display: "inline-block",
+                  whiteSpace: "nowrap", 
+                }}
+              >
+                {category.name}
+              </span>
+            </div>
 
               <div style={{ flex: 1.2 }}>
                 <div style={{ fontWeight: "500" }}>{item.submittedAt}</div>
