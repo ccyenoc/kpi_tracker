@@ -1,12 +1,8 @@
 import KPIAssignedListTable from "./kpi_assigned_list/kpi_assigned_list_table";
 
-<<<<<<< HEAD:frontend/src/components/manager/kpi_management/kpi_assigned_list.jsx
 function KPIAssignedListCard({data, users = []}){
   console.log("KPIAssignedListCard loaded with data:", data, "users:", users);
-=======
-function KPIAssignedListCard({data}){
-  console.log("KPIAssignedListCard loaded with data:", data);
->>>>>>> 7aecd0edd3a2ad7f9b3e5363b8049b5176e10d23:frontend/src/components/kpi_assigned_list.jsx
+
 
     return(
         <div 
