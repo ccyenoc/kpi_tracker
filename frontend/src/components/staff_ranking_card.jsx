@@ -20,9 +20,13 @@ const API_BASE_URL = "";
  *   - finalScore      → achievementRate (used for the circular progress ring)
  */
 function StaffRankingCard() {
+<<<<<<< HEAD
   const [top3, setTop3] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+=======
+  console.log("StaffRankingCard loaded");
+>>>>>>> 7aecd0edd3a2ad7f9b3e5363b8049b5176e10d23
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -58,17 +62,36 @@ function StaffRankingCard() {
   }, []);
 
   return (
+<<<<<<< HEAD
     <div
       className="ms-2 flex-grow-1"
+=======
+
+    <div className="ms-2 flex-grow-1"
+>>>>>>> 7aecd0edd3a2ad7f9b3e5363b8049b5176e10d23
       style={{
         backgroundColor: "#ffffff",
         padding: "20px",
         borderRadius: "15px",
         boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+<<<<<<< HEAD
       }}
     >
       <h4 style={{ fontSize: "18px", textAlign: "left" }}>Staff Ranking</h4>
       <p style={{ textAlign: "left", fontSize: "14px", color: "#666" }}>
+=======
+      }}>
+      <h4
+       style={{
+        fontSize: "18px",
+        textAlign: "left",
+       }}>Staff Ranking</h4>
+      <p style={{ 
+        textAlign: "left",
+        fontSize : "14px",
+        color: "#666" 
+        }}>
+>>>>>>> 7aecd0edd3a2ad7f9b3e5363b8049b5176e10d23
         Top staffs based on KPI performance
       </p>
 

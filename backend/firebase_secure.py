@@ -16,6 +16,7 @@ FIREBASE_CONFIG = {
     "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
     "appId": os.getenv("FIREBASE_APP_ID"),
     "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID")
+
 }
 
 FIREBASE_ADMIN_CONFIG = {
@@ -28,7 +29,9 @@ SERVICE_ACCOUNT_KEY_PATH = os.getenv("SERVICE_ACCOUNT_KEY_PATH", "serviceAccount
 
 USERDATA_COLLECTION = os.getenv("USERDATA_COLLECTION", "userData")
 USERAUTH_COLLECTION = os.getenv("USERAUTH_COLLECTION", "userAuth")
+
 KPI_COLLECTION = os.getenv("KPI_COLLECTION", "kpiData")
+
 
 # Counter collection/doc used to allocate sequential user IDs (user_101, user_102...)
 USER_COUNTER_COLLECTION = os.getenv("USER_COUNTER_COLLECTION", "systemCounters")
@@ -39,8 +42,6 @@ USER_ROLES = {
     "MANAGER": "manager",
     "ADMIN": "admin"
 }
-
-KPI_COLLECTION = os.getenv("KPI_COLLECTION", "kpiData")
 
 def validate_firebase_config():
     required = [

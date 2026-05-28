@@ -61,7 +61,11 @@ export const kpis = [
     unit: "hours",
     target: 40,
     current: 12,
+<<<<<<< HEAD
     status: "underperform",
+=======
+    status: "in_progress",
+>>>>>>> 7aecd0edd3a2ad7f9b3e5363b8049b5176e10d23
     deadline: "2026-12-31",
     categoryId: "cat_4",
     categoryName: "Marketing Performance",

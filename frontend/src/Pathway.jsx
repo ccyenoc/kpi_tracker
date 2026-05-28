@@ -14,6 +14,3 @@ export const pathway = {
     Login: "/signin",
     RegisterAcc: "/signup"
 } 
-
-
-
