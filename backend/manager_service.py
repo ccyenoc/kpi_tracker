@@ -1,5 +1,5 @@
 from firebase_admin import firestore
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 from pydantic import BaseModel
 
@@ -222,25 +222,25 @@ class SubmissionVerificationService:
                             updated = True
                             break
                     
-                    # Check if all assigned staff have approved submissions
-                    all_submissions = list(db.collection("kpiSubmissions")
-                        .where("kpiId", "==", kpi_id)
-                        .stream())
-                    assigned_staff = set(a.get("userId") for a in kpi_assignments)
-                    approved_staff = set()
-                    
-                    for sub_doc in all_submissions:
-                        sub_data = sub_doc.to_dict()
-                        sub_status = sub_data.get("status")
-                        sub_submitted_by = sub_data.get("submittedBy")
+                    if not updated:
+                        return {
+                            "success": False,
+                            "message": "Staff assignment not found for this KPI"
+                        }
 
-                        if sub_doc.id == submission_id or sub_status == "approved":
-                            approved_staff.add(sub_submitted_by)
+                    # Mark KPI as completed only when every assigned staff reaches 100%
+                    all_staff_completed = (
+                        len(kpi_assignments) > 0 and
+                        all(
+                            float(assignment.get("target", 0) or 0) > 0 and
+                            float(assignment.get("current", 0) or 0) >=
+                            float(assignment.get("target", 0) or 0)
+                            for assignment in kpi_assignments
+                        )
+                    )
 
-                    # Mark KPI as completed if all assigned staff have approved
-                    all_approved = assigned_staff.issubset(approved_staff) if assigned_staff else False
-                    new_status = "completed" if all_approved else "active"
-                    
+                    new_status = "completed" if all_staff_completed else "active"
+
                     kpi_ref.update({
                         "kpiAssignments": kpi_assignments,
                         "status": new_status,
@@ -497,88 +497,230 @@ class ManagerDashboardService:
 
 
 class KPIStatusService:
+    AT_RISK_GAP = -10
+    UNDERPERFORMED_GAP = -25
+
+    @staticmethod
+    def _to_datetime(value):
+        if not value:
+            return None
+
+        try:
+            if isinstance(value, datetime):
+                if value.tzinfo is None:
+                    return value.replace(tzinfo=timezone.utc)
+                return value.astimezone(timezone.utc)
+
+            if hasattr(value, "to_datetime"):
+                parsed = value.to_datetime()
+                if parsed.tzinfo is None:
+                    return parsed.replace(tzinfo=timezone.utc)
+                return parsed.astimezone(timezone.utc)
+
+            if isinstance(value, str):
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    return parsed.replace(tzinfo=timezone.utc)
+                return parsed.astimezone(timezone.utc)
+
+        except Exception:
+            return None
+
+        return None
+
+    @staticmethod
+    def _calculate_kpi_performance(kpi_doc) -> Optional[Dict]:
+        kpi_data = kpi_doc.to_dict() or {}
+
+        # Completed KPI should not appear in At Risk or Underperformed cards
+        if str(kpi_data.get("status", "")).lower() == "completed":
+            return None
+
+        kpi_assignments = kpi_data.get("kpiAssignments", [])
+
+        if not kpi_assignments:
+            return None
+
+        deadline = KPIStatusService._to_datetime(kpi_data.get("deadline"))
+        created_at = KPIStatusService._to_datetime(kpi_data.get("createdAt"))
+        now = datetime.now(timezone.utc)
+
+        total_target = 0.0
+        credited_current = 0.0
+        total_expected_value = 0.0
+        valid_assignment_count = 0
+        schedule_available = deadline is not None
+
+        all_staff_completed = True
+
+        for assignment in kpi_assignments:
+            target = float(assignment.get("target", 0) or 0)
+            current = float(assignment.get("current", 0) or 0)
+
+            if target <= 0:
+                all_staff_completed = False
+                continue
+
+            valid_assignment_count += 1
+            total_target += target
+
+            # Do not allow overachievement by one staff to cover another staff
+            credited_current += min(max(current, 0), target)
+
+            if current < target:
+                all_staff_completed = False
+
+            assigned_at = KPIStatusService._to_datetime(
+                assignment.get("assignedAt")
+            )
+
+            start_date = assigned_at or created_at
+
+            if not start_date or not deadline or deadline <= start_date:
+                schedule_available = False
+                continue
+
+            if now <= start_date:
+                expected_percentage = 0
+            elif now >= deadline:
+                expected_percentage = 100
+            else:
+                elapsed_duration = (now - start_date).total_seconds()
+                total_duration = (deadline - start_date).total_seconds()
+
+                expected_percentage = (
+                    elapsed_duration / total_duration
+                ) * 100
+
+            total_expected_value += target * (expected_percentage / 100)
+
+        if valid_assignment_count == 0 or total_target <= 0:
+            return None
+
+        actual_progress = round((credited_current / total_target) * 100, 2)
+
+        # If every assigned staff reaches their own target, do not show risk status
+        if all_staff_completed:
+            return {
+                **kpi_data,
+                "id": kpi_doc.id,
+                "current": credited_current,
+                "target": total_target,
+                "achievementRate": 100,
+                "expectedProgress": 100,
+                "progressGap": 0,
+                "calculatedStatus": "completed"
+            }
+
+        # If old KPI data has no usable dates, fall back to percentage calculation
+        if not schedule_available:
+            if actual_progress < 50:
+                calculated_status = "underperformed"
+            elif actual_progress < 80:
+                calculated_status = "at_risk"
+            else:
+                calculated_status = "in_progress"
+
+            return {
+                **kpi_data,
+                "id": kpi_doc.id,
+                "current": credited_current,
+                "target": total_target,
+                "achievementRate": actual_progress,
+                "expectedProgress": None,
+                "progressGap": None,
+                "calculatedStatus": calculated_status
+            }
+
+        expected_progress = round(
+            (total_expected_value / total_target) * 100,
+            2
+        )
+
+        progress_gap = round(actual_progress - expected_progress, 2)
+
+        if now > deadline:
+            calculated_status = "underperformed"
+        elif progress_gap < KPIStatusService.UNDERPERFORMED_GAP:
+            calculated_status = "underperformed"
+        elif progress_gap < KPIStatusService.AT_RISK_GAP:
+            calculated_status = "at_risk"
+        else:
+            calculated_status = "in_progress"
+
+        return {
+            **kpi_data,
+            "id": kpi_doc.id,
+            "current": credited_current,
+            "target": total_target,
+            "achievementRate": actual_progress,
+            "expectedProgress": expected_progress,
+            "progressGap": progress_gap,
+            "calculatedStatus": calculated_status
+        }
+
     @staticmethod
     def get_at_risk_kpis() -> Dict:
         try:
             db = get_db()
             at_risk_kpis = []
-            
+
             kpi_docs = db.collection("kpiData").stream()
+
             for kpi_doc in kpi_docs:
-                kpi_data = kpi_doc.to_dict() or {}
-                
-                # Skip if already completed
-                if kpi_data.get("status") == "completed":
-                    continue
-                
-                kpi_assignments = kpi_data.get("kpiAssignments", [])
-                
-                if not kpi_assignments:
-                    continue
-                
-                # Calculate average achievement rate for this KPI
-                total_target = 0
-                total_current = 0
-                for assignment in kpi_assignments:
-                    total_target += assignment.get("target", 0)
-                    total_current += assignment.get("current", 0)
-                
-                if total_target > 0:
-                    achievement_rate = (total_current / total_target) * 100
-                    # At risk: between 50-80%
-                    if 50 <= achievement_rate < 80:
-                        kpi_data["id"] = kpi_doc.id
-                        kpi_data["achievementRate"] = round(achievement_rate, 2)
-                        kpi_data["status"] = "at_risk"
-                        at_risk_kpis.append(kpi_data)
-            
+                performance = KPIStatusService._calculate_kpi_performance(
+                    kpi_doc
+                )
+
+                if (
+                    performance and
+                    performance.get("calculatedStatus") == "at_risk"
+                ):
+                    performance["status"] = "at_risk"
+                    at_risk_kpis.append(performance)
+
             return {
                 "success": True,
                 "kpis": at_risk_kpis,
                 "count": len(at_risk_kpis)
             }
+
         except Exception as e:
-            return {"success": False, "message": str(e), "kpis": []}
-    
+            return {
+                "success": False,
+                "message": str(e),
+                "kpis": []
+            }
+
     @staticmethod
     def get_underperform_kpis() -> Dict:
         try:
             db = get_db()
             underperform_kpis = []
-            
+
             kpi_docs = db.collection("kpiData").stream()
+
             for kpi_doc in kpi_docs:
-                kpi_data = kpi_doc.to_dict() or {}
-                
-                # Skip if already completed
-                if kpi_data.get("status") == "completed":
-                    continue
-                
-                kpi_assignments = kpi_data.get("kpiAssignments", [])
-                
-                if not kpi_assignments:
-                    continue
-                
-                # Calculate average achievement rate for this KPI
-                total_target = 0
-                total_current = 0
-                for assignment in kpi_assignments:
-                    total_target += assignment.get("target", 0)
-                    total_current += assignment.get("current", 0)
-                
-                if total_target > 0:
-                    achievement_rate = (total_current / total_target) * 100
-                    # Underperforming: below 50%
-                    if achievement_rate < 50:
-                        kpi_data["id"] = kpi_doc.id
-                        kpi_data["achievementRate"] = round(achievement_rate, 2)
-                        kpi_data["status"] = "underperformed"
-                        underperform_kpis.append(kpi_data)
-            
+                performance = KPIStatusService._calculate_kpi_performance(
+                    kpi_doc
+                )
+
+                if (
+                    performance and
+                    performance.get("calculatedStatus") == "underperformed"
+                ):
+                    performance["status"] = "underperformed"
+                    underperform_kpis.append(performance)
+
             return {
                 "success": True,
                 "kpis": underperform_kpis,
                 "count": len(underperform_kpis)
             }
+
         except Exception as e:
-            return {"success": False, "message": str(e), "kpis": []}
+            return {
+                "success": False,
+                "message": str(e),
+                "kpis": []
+            }

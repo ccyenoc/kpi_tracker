@@ -20,15 +20,25 @@ const StaffKPI = ({ kpi, onUpdate }) => {
     return categoryColors[category?.toLowerCase()] || "#f3f4f6";
   };
 
-  const current = statusStyle[kpi.status] || statusStyle.in_progress;
-
   const currentVal = Number(kpi.current || 0);
   const targetVal = Number(kpi.target || 0);
 
   const percentage =
-    targetVal === 0 ? 0 : Math.round((currentVal / targetVal) * 100);
+    targetVal > 0
+      ? Math.min(100, Math.round((currentVal / targetVal) * 100))
+      : 0;
 
-  return (
+  const displayStatus =
+    percentage >= 100 ? "completed" : kpi.status;
+
+  const current =
+    statusStyle[displayStatus] || statusStyle.in_progress;
+
+  const isCompleted =
+    String(kpi.status || "").toLowerCase() === "completed" ||
+    Number(kpi.progress || 0) >= 100;
+
+    return (
     <div
       style={{
         background: "#fff",
@@ -139,19 +149,25 @@ const StaffKPI = ({ kpi, onUpdate }) => {
 
       {/* BUTTON */}
       <button
-        onClick={onUpdate}
+        type="button"
+        disabled={isCompleted}
+        onClick={() => {
+          if (!isCompleted) {
+            onUpdate();
+          }
+        }}
         style={{
-          marginTop: "auto",
-          background: "#2563eb",
-          color: "#fff",
+          width: "100%",
+          padding: "14px",
           border: "none",
-          padding: "10px",
-          borderRadius: "10px",
-          cursor: "pointer",
-          fontSize:"16px",
+          borderRadius: "12px",
+          background: isCompleted ? "#cbd5e1" : "#2563eb",
+          color: isCompleted ? "#64748b" : "#ffffff",
+          cursor: isCompleted ? "not-allowed" : "pointer",
+          opacity: isCompleted ? 0.75 : 1,
         }}
       >
-        ⬆ Update Progress
+        {isCompleted ? "✓ Completed" : "⬆ Update Progress"}
       </button>
     </div>
   );

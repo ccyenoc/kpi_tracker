@@ -54,6 +54,97 @@ const StaffKPIUpdate = () => {
   });
 
   const currentUserId = String(currentUser?.id || currentUser?.user_id || "");
+  const toDate = (value) => {
+    if (!value) return null;
+
+    if (typeof value.toDate === "function") {
+      return value.toDate();
+    }
+
+    if (value._seconds) {
+      return new Date(value._seconds * 1000);
+    }
+
+    const parsedDate = new Date(value);
+
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+  };
+
+  const getTimeBasedStatus = ({
+    progress,
+    assignedAt,
+    createdAt,
+    deadline,
+    latestSubmissionStatus
+  }) => {
+    // A submitted update waiting for manager approval has priority
+    if (latestSubmissionStatus === "pending") {
+      return {
+        status: "pending",
+        expectedProgress: null
+      };
+    }
+
+    // Individual staff completed their own assigned target
+    if (progress >= 100) {
+      return {
+        status: "completed",
+        expectedProgress: 100
+      };
+    }
+
+    const startDate = toDate(assignedAt || createdAt);
+    const deadlineDate = toDate(deadline);
+    const today = new Date();
+
+    // Fallback when dates are unavailable
+    if (!startDate || !deadlineDate || deadlineDate <= startDate) {
+      return {
+        status: progress > 0 ? "in_progress" : "in_progress",
+        expectedProgress: null
+      };
+    }
+
+    const totalDuration = deadlineDate - startDate;
+    const elapsedDuration = Math.max(
+      0,
+      Math.min(today - startDate, totalDuration)
+    );
+
+    const expectedProgress = Math.min(
+      100,
+      Math.round((elapsedDuration / totalDuration) * 100)
+    );
+
+    // Deadline already passed but this staff member is not completed
+    if (today > deadlineDate) {
+      return {
+        status: "underperformed",
+        expectedProgress
+      };
+    }
+
+    const progressGap = progress - expectedProgress;
+
+    if (progressGap >= -10) {
+      return {
+        status: "in_progress",
+        expectedProgress
+      };
+    }
+
+    if (progressGap >= -25) {
+      return {
+        status: "at_risk",
+        expectedProgress
+      };
+    }
+
+    return {
+      status: "underperformed",
+      expectedProgress
+    };
+  };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -127,7 +218,7 @@ const StaffKPIUpdate = () => {
     );
 
     console.log("KPI Object:");
-  console.log(kpi);
+    console.log(kpi);
 
     const category = categoryMap[kpi.categoryId];
     const categoryName =
@@ -165,6 +256,28 @@ const StaffKPIUpdate = () => {
       kpi.target ??
       0;
 
+    const progress =
+      Number(targetValue) > 0
+        ? Math.min(
+            100,
+            Math.round((Number(currentValue) / Number(targetValue)) * 100)
+          )
+        : 0;
+
+    const latestSubmission = sortedHistory[sortedHistory.length - 1];
+
+    const latestSubmissionStatus = String(
+      latestSubmission?.status || ""
+    ).toLowerCase();
+
+    const { status: displayStatus, expectedProgress } = getTimeBasedStatus({
+      progress,
+      assignedAt: userData?.assignedAt,
+      createdAt: kpi.createdAt,
+      deadline: kpi.deadline,
+      latestSubmissionStatus
+    });
+
     const evidenceCount = sortedHistory.reduce((total, item) => {
       return total + (item.fileNames?.length || item.files?.length || 0);
     }, 0);
@@ -185,7 +298,9 @@ const StaffKPIUpdate = () => {
       categoryId: kpi.categoryId || category?.id || "",
       categoryName,
       categoryColor,
-      status: normalizeStatus(kpi.status || latestUpdate?.status || "pending"),
+      status: displayStatus,
+      progress,
+      expectedProgress,
       evidenceCount,
       evidence: `${evidenceCount} file${evidenceCount === 1 ? "" : "s"}`,
       updatedAt: latestUpdate?.submittedAt || kpi.updatedAt || null,
@@ -303,30 +418,50 @@ console.log(realKpis);
   console.log(categories);
 
   const dashboardKpis = userKpis;
-  const totalAssignedKpi = dashboardKpis.length;
+  const summaryKpis = userKpis.map((kpi) => ({
+    ...kpi,
+    status:
+      normalizeStatus(kpi.status) === "completed"
+        ? "completed"
+        : "in_progress"
+  }));
 
-   const stats = [
+  const totalAssignedKpi = summaryKpis.length;
+
+  const activeKpiCount = summaryKpis.filter(
+    (kpi) => normalizeStatus(kpi.status) === "in_progress"
+  ).length;
+
+  const completedKpiCount = summaryKpis.filter(
+    (kpi) => normalizeStatus(kpi.status) === "completed"
+  ).length;
+
+  const underperformed = dashboardKpis.filter(
+      (kpi) => kpi.status === "underperformed"
+    ).length;
+    
+  const stats = [
     {
       title: "Total KPIs",
       value: totalAssignedKpi,
-      subtitle: "All defined KPIs",
+      subtitle: "Assigned KPIs",
       color: "#3b82f6"
     },
     {
       title: "Active KPIs",
-      value: kpis.filter(k => k.status === "in_progress").length,
+      value: activeKpiCount,
       subtitle: "Currently in progress",
       color: "#22c55e"
     },
     {
       title: "Completed",
-      value: kpis.filter(k => k.status === "completed").length,
+      value: completedKpiCount,
       subtitle: "Finished KPIs",
       color: "#facc15"
     },
     {
       title: "High Priority",
-      value: kpis.filter(k => k.priority === "high").length || 0,
+      value: underperformed,
       subtitle: "Requires attention",
       color: "#ef4444"
     }
@@ -334,10 +469,52 @@ console.log(realKpis);
 
   const handleSubmitUpdate = async (updateData) => {
     try {
-      const result = await kpi.submitKPIProgress(updateData).catch((err) => {
-        console.error("Error updating KPI progress:", err);
-        setError(err.message || "Failed to update KPI progress");
+      setError("");
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("Please login first before updating KPI progress.");
+      }
+
+      const response = await fetch("/api/kpi/update", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: updateData,
       });
+
+      const text = await response.text();
+
+      if (!text.trim()) {
+        throw new Error(
+          `Backend returned an empty response. Status: ${response.status}`
+        );
+      }
+
+      let result;
+
+      try {
+        result = JSON.parse(text);
+      } catch {
+        throw new Error(
+          `Backend returned invalid JSON. Status: ${response.status}`
+        );
+      }
+
+      if (!response.ok || result.success === false) {
+        throw new Error(
+          result.detail ||
+          result.message ||
+          "Failed to update KPI progress."
+        );
+      }
+
+      if (!result.submission) {
+        throw new Error("Backend did not return submission data.");
+      }
+
       const newSubmission = normalizeSubmissions([result.submission])[0];
 
       setSubmissionHistory((prev) => {
@@ -351,14 +528,13 @@ console.log(realKpis);
 
       setSubmissions((prev) => [...prev, newSubmission]);
 
-      alert("Progress updated successfully!");
-      setSelectedKpi(null);
+      await loadRealData(true);
 
-      // reload latest database data after submission
-      loadRealData(true);
+      return result;
     } catch (error) {
-      console.error(error);
-      alert(error.message || "Failed to update progress. Please check backend.");
+      console.error("Error updating KPI progress:", error);
+      setError(error.message || "Failed to update KPI progress.");
+      throw error;
     }
   };
 
@@ -421,10 +597,15 @@ console.log(realKpis);
       }}
       >
      {filteredKPIs.map((kpi) => (
-       <StaffKPI 
-       key={kpi.id} 
-       kpi={kpi}
-       onUpdate={() => setSelectedKpi(kpi)} />
+      <StaffKPI
+        key={kpi.id}
+        kpi={kpi}
+        onUpdate={() => {
+          if (normalizeStatus(kpi.status) !== "completed") {
+            setSelectedKpi(kpi);
+          }
+        }}
+      />
     ))}
 
     <UpdateKpiModal

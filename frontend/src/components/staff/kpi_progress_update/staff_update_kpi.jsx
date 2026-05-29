@@ -80,22 +80,17 @@ const handleSubmit = async () => {
     formData.append("current", Number(currentValue));
     formData.append("notes", notes);
 
-    files.forEach(file => {
+    files.forEach((file) => {
       formData.append("files", file);
     });
 
-    onSubmit(formData);
+    await onSubmit(formData);
 
-    //TODO: change to modal alert
     alert("Submission successful!");
-
     onClose();
-
   } catch (err) {
     console.error("Error submitting KPI update:", err);
-
-    //TODO: change to modal alert
-    alert(err.message);
+    alert(err.message || "Failed to submit KPI progress.");
   }
 };
 
