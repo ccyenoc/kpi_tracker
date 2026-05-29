@@ -25,6 +25,98 @@ const StaffDashboard = () => {
 
   const currentUserId = currentUser?.id || currentUser?.user_id || "";
 
+  const toDate = (value) => {
+    if (!value) return null;
+
+    if (typeof value.toDate === "function") {
+      return value.toDate();
+    }
+
+    if (value._seconds) {
+      return new Date(value._seconds * 1000);
+    }
+
+    const parsedDate = new Date(value);
+
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+  };
+
+  const getTimeBasedStatus = ({
+    progress,
+    assignedAt,
+    createdAt,
+    deadline,
+    latestSubmissionStatus
+  }) => {
+    // A submitted update waiting for manager approval has priority
+    if (latestSubmissionStatus === "pending") {
+      return {
+        status: "pending",
+        expectedProgress: null
+      };
+    }
+
+    // Individual staff completed their own assigned target
+    if (progress >= 100) {
+      return {
+        status: "completed",
+        expectedProgress: 100
+      };
+    }
+
+    const startDate = toDate(assignedAt || createdAt);
+    const deadlineDate = toDate(deadline);
+    const today = new Date();
+
+    // Fallback when dates are unavailable
+    if (!startDate || !deadlineDate || deadlineDate <= startDate) {
+      return {
+        status: progress > 0 ? "in_progress" : "in_progress",
+        expectedProgress: null
+      };
+    }
+
+    const totalDuration = deadlineDate - startDate;
+    const elapsedDuration = Math.max(
+      0,
+      Math.min(today - startDate, totalDuration)
+    );
+
+    const expectedProgress = Math.min(
+      100,
+      Math.round((elapsedDuration / totalDuration) * 100)
+    );
+
+    // Deadline already passed but this staff member is not completed
+    if (today > deadlineDate) {
+      return {
+        status: "underperformed",
+        expectedProgress
+      };
+    }
+
+    const progressGap = progress - expectedProgress;
+
+    if (progressGap >= -10) {
+      return {
+        status: "in_progress",
+        expectedProgress
+      };
+    }
+
+    if (progressGap >= -25) {
+      return {
+        status: "at_risk",
+        expectedProgress
+      };
+    }
+
+    return {
+      status: "underperformed",
+      expectedProgress
+    };
+  };
+
   const goUpdate = (kpiId) => {
     navigate(`/staff/kpi/${kpiId}`);
   };
@@ -128,8 +220,12 @@ const StaffDashboard = () => {
 
       const history = submissionMap[kpi.id] || [];
 
-      const approvedHistory = history.filter(
-        item => item.status === "approved"
+      const sortedHistory = [...history].sort(
+        (a, b) => new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0)
+      );
+
+      const approvedHistory = sortedHistory.filter(
+        (item) => String(item.status || "").toLowerCase() === "approved"
       );
 
       const latestApprovedUpdate = approvedHistory[approvedHistory.length - 1];
@@ -137,7 +233,6 @@ const StaffDashboard = () => {
       const currentValue =
         latestApprovedUpdate?.current ??
         userData?.current ??
-        kpi.current ??
         0;
 
       const targetValue =
@@ -146,15 +241,34 @@ const StaffDashboard = () => {
         0;
 
       const progress =
-        targetValue > 0
-          ? Math.min(100, Math.round((Number(currentValue) / Number(targetValue)) * 100))
+        Number(targetValue) > 0
+          ? Math.min(
+              100,
+              Math.round((Number(currentValue) / Number(targetValue)) * 100)
+            )
           : 0;
+
+      const latestSubmission = sortedHistory[sortedHistory.length - 1];
+
+      const latestSubmissionStatus = String(
+        latestSubmission?.status || ""
+      ).toLowerCase();
+
+      const { status: displayStatus, expectedProgress } = getTimeBasedStatus({
+        progress,
+        assignedAt: userData?.assignedAt,
+        createdAt: kpi.createdAt,
+        deadline: kpi.deadline,
+        latestSubmissionStatus
+      });
 
       return {
         ...kpi,
         current: currentValue,
         target: targetValue,
         progress,
+        expectedProgress,
+        status: displayStatus,
         progressText: `${currentValue} / ${targetValue} ${kpi.unit || ""}`,
         deadlineText: kpi.deadline
           ? `${Math.ceil(
@@ -346,9 +460,10 @@ const StaffDashboard = () => {
       );
     });
 
-    const highPriority = dashboardKpis.filter(
-      k => (k.priority || "").toLowerCase() === "high"
+    const underperformed = dashboardKpis.filter(
+      (kpi) => kpi.status === "underperformed"
     ).length;
+      
 
     const stats = [
       {
@@ -371,7 +486,7 @@ const StaffDashboard = () => {
       },
       {
         title: "High Priority",
-        value: highPriority,
+        value: underperformed,
         subtitle: "Requires attention",
         color: "#ef4444"
       }
