@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException, status
 from utils.security import verify_jwt_token
 from models.user_model import ProfileUpdate, PasswordUpdate
 from services.user_service import (
@@ -16,7 +16,10 @@ router = APIRouter()
 def extract_token(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing Authorization header"
+        )
     return auth_header.split(" ", 1)[1]
 
 

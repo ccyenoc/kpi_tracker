@@ -1,7 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from models.user_model import UserRegistration, UserLogin
 from models.auth_model import EmailVerificationRequest, EmailCodeVerificationRequest
-from services.auth_service import register_user, login_user, send_verification_email_service, verify_email_code_service
+from services.auth_service import register_user, login_user, send_verification_email_service, verify_email_code_service, logout_user
 
 
 router = APIRouter()
@@ -21,3 +21,8 @@ def send_verification_email(email_data: EmailVerificationRequest) :
 @router.post("/verify-code")
 def verify_code(data: EmailCodeVerificationRequest):
     return verify_email_code_service(data)
+
+
+@router.post("/logout")
+def logout(request: Request):
+    return logout_user(request)

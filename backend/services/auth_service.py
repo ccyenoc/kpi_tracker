@@ -2,7 +2,8 @@ from fastapi import HTTPException, status
 from google.cloud.firestore import FieldFilter
 from firebase_secure import USERDATA_COLLECTION, USERAUTH_COLLECTION
 from datetime import datetime
-from utils.security import hash_password, verify_password, create_jwt_token
+from utils.security import hash_password, verify_password, create_jwt_token, SECRET_KEY, SESSIONS_COLLECTION
+import jwt
 from utils.user_utils import build_public_user_document
 from config.firebase_config import db
 from utils.auth_utils import get_user_auth_hash, create_user_documents,allocate_next_user_id
@@ -13,6 +14,9 @@ import re, traceback, secrets, time , os , hashlib, smtplib
 
 
 from dotenv import load_dotenv
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
 VERIFICATION_CODE_TTL_SECONDS = int(
     os.getenv("VERIFICATION_CODE_TTL_SECONDS", "600")
@@ -73,6 +77,22 @@ def login_user(credentials):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_jwt_token(user_id, credentials.email)
+
+    # Create a server-side session record keyed by the JWT "jti"
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        jti = payload.get("jti")
+        expires = int(payload.get("exp", int(time.time()) + (24 * 3600)))
+        if jti:
+            db.collection(SESSIONS_COLLECTION).document(jti).set({
+                "jti": jti,
+                "user_id": user_id,
+                "createdAt": int(time.time()),
+                "expiresAt": expires,
+                "revoked": False,
+            })
+    except Exception as e:
+        print(f"Warning: could not persist session record: {e}")
 
     dashboard_url = "/staff/dashboard"
     if user_data.get('role') == 'manager':
@@ -146,7 +166,14 @@ def is_email_registered_case_insensitive(target_email: str) -> bool:
 
 def send_email_verification_message(target_email: str, verification_code: str) -> None:
     """Send verification code email through SMTP settings from environment variables."""
-    if not SMTP_HOST or not SMTP_USER or not SMTP_PASSWORD or not SMTP_FROM:
+    smtp_host = os.getenv("SMTP_HOST", SMTP_HOST)
+    smtp_port = int(os.getenv("SMTP_PORT", str(SMTP_PORT)))
+    smtp_user = os.getenv("SMTP_USER", SMTP_USER)
+    smtp_password = os.getenv("SMTP_PASSWORD", SMTP_PASSWORD)
+    smtp_from = os.getenv("SMTP_FROM", SMTP_FROM or smtp_user)
+    smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").strip().lower() in ("1", "true", "yes", "on")
+
+    if not smtp_host or not smtp_user or not smtp_password or not smtp_from:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="SMTP is not configured. Please set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM"
@@ -154,7 +181,7 @@ def send_email_verification_message(target_email: str, verification_code: str) -
 
     msg = EmailMessage()
     msg["Subject"] = "Your AchievePro verification code"
-    msg["From"] = SMTP_FROM
+    msg["From"] = smtp_from
     msg["To"] = target_email
     msg.set_content(
         "Use this verification code to complete your signup:\n\n"
@@ -163,16 +190,16 @@ def send_email_verification_message(target_email: str, verification_code: str) -
     )
 
     try:
-        if SMTP_USE_TLS and SMTP_PORT == 465:
-            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-                server.login(SMTP_USER, SMTP_PASSWORD)
+        if smtp_use_tls and smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=20) as server:
+                server.login(smtp_user, smtp_password)
                 server.send_message(msg)
             return
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-            if SMTP_USE_TLS:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+            if smtp_use_tls:
                 server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.login(smtp_user, smtp_password)
             server.send_message(msg)
     except Exception as e:
         raise HTTPException(
@@ -340,3 +367,36 @@ def get_current_user_from_request(request):
     except Exception as e:
         print(f"Error extracting user from request: {e}")
         return None
+
+
+def logout_user(request):
+    """Invalidate the current JWT by marking its server-side session as revoked."""
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Missing Authorization header")
+
+        token = auth_header.split(" ", 1)[1]
+
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+        jti = payload.get("jti")
+        if not jti:
+            raise HTTPException(status_code=400, detail="Token missing session identifier")
+
+        session_ref = db.collection(SESSIONS_COLLECTION).document(jti)
+        session_doc = session_ref.get()
+        if not session_doc.exists:
+            # Nothing to revoke, but treat as success for idempotency
+            return {"success": True, "message": "Logged out"}
+
+        session_ref.update({"revoked": True})
+        return {"success": True, "message": "Logged out"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Logout failed: {e}")

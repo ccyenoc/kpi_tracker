@@ -4,10 +4,10 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './ProfilePage.css';
 import PageTitle from '../../components/common/page_title';
 import { useAuth } from '../../Auth';
-import { user as userService } from '../../api/api';
+import { user as userApi } from '../../api/api';
 
 const ProfilePage = () => {
-    const { user } = useAuth();
+    const { user: currentUser } = useAuth();
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('');
@@ -33,16 +33,16 @@ const ProfilePage = () => {
         .toUpperCase();
 
     useEffect(() => {
-        if (user) {
-            setFullName(user.name || '');
-            setEmail(user.email || '');
-            setRole(user.role === 'manager' ? 'Manager' : 'Staff');
-            const deptValue = (user.department || '').toLowerCase();
+        if (currentUser) {
+            setFullName(currentUser.name || '');
+            setEmail(currentUser.email || '');
+            setRole(currentUser.role === 'manager' ? 'Manager' : 'Staff');
+            const deptValue = (currentUser.department || '').toLowerCase();
             setDepartment(deptValue);
-            const phoneValue = user.phone || '';
+            const phoneValue = currentUser.phone || '';
             setPhone(phoneValue !== '0000000000' ? phoneValue : '');
         }
-    }, [user]);
+    }, [currentUser]);
 
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
@@ -56,7 +56,7 @@ const ProfilePage = () => {
                 phone: phone,
                 department: department
             };
-            const data = await userService.updateProfile(profileData);
+            const data = await userApi.updateProfile(profileData);
 
             localStorage.setItem('user', JSON.stringify(data.user));
             setSuccessMsg('Profile updated successfully!');
@@ -93,7 +93,7 @@ const ProfilePage = () => {
                 newPassword: newPassword,
                 confirmPassword: confirmPassword
             };
-            const data = await userService.updatePassword(passwordData);
+            const data = await userApi.updatePassword(passwordData);
 
             setSuccessMsg('Password updated successfully!');
             setCurrentPassword('');
@@ -119,7 +119,7 @@ const ProfilePage = () => {
         setLoading(true);
 
         try {
-            const data = await userService.deleteAccount();
+            const data = await userApi.deleteAccount();
 
             localStorage.removeItem('token');
             localStorage.removeItem('user');

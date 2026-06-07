@@ -1,22 +1,13 @@
 from services.kpi_service import get_kpi
 
 
-def predict_kpi(
-    kpi_id,
-    request
-):
+def predict_kpi( kpi_id, request ):
 
-    response = get_kpi(
-        kpi_id,
-        request
-    )
+    response = get_kpi( kpi_id, request )
 
     kpi = response["kpi"]
 
-    assignments = kpi.get(
-        "kpiAssignments",
-        []
-    )
+    assignments = kpi.get( "kpiAssignments",[] )
 
     if not assignments:
 
@@ -26,27 +17,10 @@ def predict_kpi(
         }
 
     assignment = assignments[0]
-
-    current = assignment.get(
-        "current",
-        0
-    )
-
-    target = assignment.get(
-        "target",
-        1
-    )
-
-    progress = (
-        current /
-        target
-    ) * 100
-
-
-    prediction = min(
-        progress * 1.1,
-        100
-    )
+    current = assignment.get( "current", 0 )
+    target = assignment.get( "target", 1 )
+    progress = ( current / target ) * 100
+    prediction = min( progress * 1.1, 100 )
 
 
     chart = [
