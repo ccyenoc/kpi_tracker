@@ -422,8 +422,7 @@ async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadF
         print("🔥 KPI doc exists:", get_kpi_by_id(kpiId))
 
         # 🔥 GET KPI → manager
-        ###################### HARDCODE KPIID FOR EMAIL SENDING TESTING#########################
-        kpi = get_kpi_by_id("9UWLxM7bmLImC3wreUUK")
+        kpi = get_kpi_by_id(kpiId)
 
         if kpi:
             manager_id = kpi.get("createdBy")
