@@ -2,7 +2,8 @@ from fastapi import HTTPException, status
 from google.cloud.firestore import FieldFilter
 from firebase_secure import USERDATA_COLLECTION, USERAUTH_COLLECTION
 from datetime import datetime
-from utils.security import hash_password, verify_password, create_jwt_token
+from utils.security import hash_password, verify_password, create_jwt_token, SECRET_KEY, SESSIONS_COLLECTION
+import jwt
 from utils.user_utils import build_public_user_document
 from config.firebase_config import db
 from utils.auth_utils import get_user_auth_hash, create_user_documents,allocate_next_user_id
@@ -73,6 +74,22 @@ def login_user(credentials):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_jwt_token(user_id, credentials.email)
+
+    # Create a server-side session record keyed by the JWT "jti"
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        jti = payload.get("jti")
+        expires = int(payload.get("exp", int(time.time()) + (24 * 3600)))
+        if jti:
+            db.collection(SESSIONS_COLLECTION).document(jti).set({
+                "jti": jti,
+                "user_id": user_id,
+                "createdAt": int(time.time()),
+                "expiresAt": expires,
+                "revoked": False,
+            })
+    except Exception as e:
+        print(f"Warning: could not persist session record: {e}")
 
     dashboard_url = "/staff/dashboard"
     if user_data.get('role') == 'manager':
@@ -340,3 +357,36 @@ def get_current_user_from_request(request):
     except Exception as e:
         print(f"Error extracting user from request: {e}")
         return None
+
+
+def logout_user(request):
+    """Invalidate the current JWT by marking its server-side session as revoked."""
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Missing Authorization header")
+
+        token = auth_header.split(" ", 1)[1]
+
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+        jti = payload.get("jti")
+        if not jti:
+            raise HTTPException(status_code=400, detail="Token missing session identifier")
+
+        session_ref = db.collection(SESSIONS_COLLECTION).document(jti)
+        session_doc = session_ref.get()
+        if not session_doc.exists:
+            # Nothing to revoke, but treat as success for idempotency
+            return {"success": True, "message": "Logged out"}
+
+        session_ref.update({"revoked": True})
+        return {"success": True, "message": "Logged out"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Logout failed: {e}")
