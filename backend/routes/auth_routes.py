@@ -22,7 +22,10 @@ def send_verification_email(email_data: EmailVerificationRequest) :
 def verify_code(data: EmailCodeVerificationRequest):
     return verify_email_code_service(data)
 
+@router.post("/auth/logout")
+def logout_auth(request: Request):
+    return logout_user(request)
 
 @router.post("/logout")
-def logout(request: Request):
+def logout_general(request: Request):
     return logout_user(request)

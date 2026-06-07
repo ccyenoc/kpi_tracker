@@ -41,6 +41,12 @@ class KPIUpdate(BaseModel):
     assignedUserIds: Optional[List[str]] = None
     kpiAssignments: Optional[List[KPIAssignment]] = None
 
+class KPISubmission(BaseModel):
+    kpiId: str
+    current: float
+    notes: Optional[str] = ""
+
+
 
 
 
