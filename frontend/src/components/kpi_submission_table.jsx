@@ -1,13 +1,13 @@
 import {useNavigate} from "react-router-dom"
 import KPIProgressPage from "../pages/kpi-progress";
 import { pathway } from "../Pathway";
-{/*import data*/}
-import { users } from "../data/userData";
-import { kpis } from "../data/kpiData";
-import { categories } from "../data/categoriesData";
+import Confirmation from "../../common/confirmation";
 
 function KPISubmissionTable({submissions}) {
   const navigate = useNavigate();
+
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationTitle, setConfirmationTitle] = useState("");
 
   const headerStyle = {
     display: "flex",
@@ -168,25 +168,25 @@ const categoryMap = Object.fromEntries(
 
           {/* progress */}
            <div style={{
-  flex: 3,
-  display: "flex",
-  alignItems: "center"
-}}>
-  <div style={{
-    width: "100%",       
-    maxWidth: "220px",      
-    background: "#e5e7eb",
-    borderRadius: "10px",
-    height: "8px",
-    overflow: "hidden"
-  }}>
-    <div style={{
-      width: `${(item.current / item.target) * 100}%`,
-      background: "#3b82f6",
-      height: "100%"
-    }} />
-  </div>
-</div>
+            flex: 3,
+            display: "flex",
+            alignItems: "center"
+          }}>
+            <div style={{
+              width: "100%",       
+              maxWidth: "220px",      
+              background: "#e5e7eb",
+              borderRadius: "10px",
+              height: "8px",
+              overflow: "hidden"
+            }}>
+              <div style={{
+                width: `${(item.current / item.target) * 100}%`,
+                background: "#3b82f6",
+                height: "100%"
+              }} />
+            </div>
+          </div>
             {/* category */}
             <div
             style={{ 
