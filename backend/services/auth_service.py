@@ -15,6 +15,9 @@ import re, traceback, secrets, time , os , hashlib, smtplib
 
 from dotenv import load_dotenv
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
+
 VERIFICATION_CODE_TTL_SECONDS = int(
     os.getenv("VERIFICATION_CODE_TTL_SECONDS", "600")
 )
@@ -163,7 +166,14 @@ def is_email_registered_case_insensitive(target_email: str) -> bool:
 
 def send_email_verification_message(target_email: str, verification_code: str) -> None:
     """Send verification code email through SMTP settings from environment variables."""
-    if not SMTP_HOST or not SMTP_USER or not SMTP_PASSWORD or not SMTP_FROM:
+    smtp_host = os.getenv("SMTP_HOST", SMTP_HOST)
+    smtp_port = int(os.getenv("SMTP_PORT", str(SMTP_PORT)))
+    smtp_user = os.getenv("SMTP_USER", SMTP_USER)
+    smtp_password = os.getenv("SMTP_PASSWORD", SMTP_PASSWORD)
+    smtp_from = os.getenv("SMTP_FROM", SMTP_FROM or smtp_user)
+    smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").strip().lower() in ("1", "true", "yes", "on")
+
+    if not smtp_host or not smtp_user or not smtp_password or not smtp_from:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="SMTP is not configured. Please set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM"
@@ -171,7 +181,7 @@ def send_email_verification_message(target_email: str, verification_code: str) -
 
     msg = EmailMessage()
     msg["Subject"] = "Your AchievePro verification code"
-    msg["From"] = SMTP_FROM
+    msg["From"] = smtp_from
     msg["To"] = target_email
     msg.set_content(
         "Use this verification code to complete your signup:\n\n"
@@ -180,16 +190,16 @@ def send_email_verification_message(target_email: str, verification_code: str) -
     )
 
     try:
-        if SMTP_USE_TLS and SMTP_PORT == 465:
-            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-                server.login(SMTP_USER, SMTP_PASSWORD)
+        if smtp_use_tls and smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=20) as server:
+                server.login(smtp_user, smtp_password)
                 server.send_message(msg)
             return
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-            if SMTP_USE_TLS:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+            if smtp_use_tls:
                 server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.login(smtp_user, smtp_password)
             server.send_message(msg)
     except Exception as e:
         raise HTTPException(

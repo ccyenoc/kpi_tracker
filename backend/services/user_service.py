@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 from utils.security import verify_jwt_token, verify_password, hash_password
+from utils.security import SESSIONS_COLLECTION
 from utils.user_utils import build_public_user_document
 from utils.auth_utils import save_user_auth_document
 from services.auth_service import save_user_profile_document, get_user_auth_hash
@@ -80,6 +81,11 @@ def delete_account(user_id):
     user_ref.delete()
     if auth_ref.get().exists:
         auth_ref.delete()
+
+    # Revoke all server-side sessions for this user to prevent stale tokens
+    sessions = db.collection(SESSIONS_COLLECTION).where("user_id", "==", user_id).stream()
+    for session in sessions:
+        session.reference.set({"revoked": True}, merge=True)
 
     return True
 
