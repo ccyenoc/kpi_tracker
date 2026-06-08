@@ -17,7 +17,15 @@ from typing import List
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from manager_service import ManagerDashboardService, SubmissionVerificationService, KPIStatusService, KPIPredictionService
+from services.manager_service import (
+    ManagerDashboardService,
+    SubmissionVerificationService,
+    KPIStatusService,
+    KPIPredictionService,
+    KPIAssignmentService,
+    KPIReportService,
+    AssignKPIRequest
+)
 
 router = APIRouter()
 
@@ -302,3 +310,40 @@ async def verify_submission(request: Request):
 @router.get("/staff/kpi/submissions")
 def view_staff_kpi_submissions(request: Request):
     return get_staff_kpi_submissions(request)
+
+
+# Assign KPI to staff members
+@router.post("/manager/kpi/{kpi_id}/assign")
+def assign_kpi(kpi_id: str, assign_data: AssignKPIRequest, request: Request):
+    decoded = require_manager(request)
+    manager_id = decoded.get("id") or decoded.get("user_id")
+    return KPIAssignmentService.assign_kpi_to_staff(kpi_id, assign_data.assignments, manager_id)
+
+
+# Get KPI assignment details
+@router.get("/manager/kpi/{kpi_id}/assignments")
+def get_assignments(kpi_id: str, request: Request):
+    require_manager(request)
+    return KPIAssignmentService.get_kpi_assignments(kpi_id)
+
+
+# Generate JSON structured performance report for a KPI
+@router.get("/manager/kpi/{kpi_id}/report")
+def get_kpi_report(kpi_id: str, request: Request):
+    require_manager(request)
+    return KPIReportService.generate_report(kpi_id)
+
+
+# Export KPI performance report data as CSV
+@router.get("/manager/kpi/{kpi_id}/report/csv")
+def export_kpi_report(kpi_id: str, request: Request):
+    require_manager(request)
+    result = KPIReportService.export_report_data(kpi_id)
+    if result.get("success"):
+        from fastapi.responses import Response
+        return Response(
+            content=result["csvContent"],
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={result['fileName']}"}
+        )
+    return result
