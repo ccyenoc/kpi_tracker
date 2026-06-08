@@ -113,7 +113,7 @@ def get_underperform_kpis(request: Request):
 
 # Get staff's assigned KPIs
 @router.get("/staff/kpis")
-def get_staff_kpis(request: Request):
+def get_staff_kpis_route(request: Request):
     from services.auth_service import get_current_user_from_request
     try:
         current_user = get_current_user_from_request(request)
@@ -235,6 +235,7 @@ async def update_kpi_progress(
     request: Request = None
 ):
     return await update_kpi_progress_service(kpiId, current, notes, files, request)
+    
 @router.get("/manager/kpi/{kpi_id}/predict")
 def predict(
     kpi_id: str,
