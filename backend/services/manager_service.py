@@ -42,7 +42,7 @@ def assign_kpi_to_staff(kpi_id: str, assignments: List[KPIStaffAssignment], mana
                     "target": assignment.targetValue,
                     "current": 0,
                     "assignedBy": manager_id,
-                    "assignedAt": datetime.now()
+                    "assignedAt": datetime.now().isoformat()
                 })
 
             # Update the userData collection for this specific staff member
@@ -58,7 +58,7 @@ def assign_kpi_to_staff(kpi_id: str, assignments: List[KPIStaffAssignment], mana
         kpi_ref.update({
             "assignedUserIds": assigned_users,
             "kpiAssignments": kpi_assignments,
-            "updatedAt": datetime.now()
+            "updatedAt": datetime.now().isoformat()
         })
 
         return {
@@ -282,7 +282,7 @@ def generate_report(kpi_id: str) -> Dict:
             "overallProgress": kpi_data.get("current_progress", 0),
             "overallTarget": kpi_data.get("target_kpi", 0),
             "staffPerformance": staff_performance,
-            "reportGeneratedAt": datetime.now(),
+            "reportGeneratedAt": datetime.now().isoformat(),
             "totalAssignedStaff": len(staff_performance)
         }
 

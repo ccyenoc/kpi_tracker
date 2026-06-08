@@ -136,12 +136,15 @@ def create_kpi(kpi_data, request: Request):
         print("👤 User:", user)
 
         if user:
-         send_kpi_assignment_email(
-            to_email=user["email"],
-            staff_name=user["name"],
-            kpi_title=kpi_data.title,
-            deadline=kpi_data.deadline
-        )
+            try:
+                send_kpi_assignment_email(
+                    to_email=user["email"],
+                    staff_name=user["name"],
+                    kpi_title=kpi_data.title,
+                    deadline=kpi_data.deadline
+                )
+            except Exception as email_err:
+                print(f"❌ Failed to send KPI assignment email to {user['email']}: {email_err}")
 
     return {"success": True, "kpi": doc_data}
 

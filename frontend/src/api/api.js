@@ -138,7 +138,7 @@ export const kpi = {
   // ── Manager ──────────────────────────────────────────────────────────────────
   fetchManagerKPIs: () => request("GET", "/api/manager/kpis"),
 
-  fetchKPIById: (kpiId) => request("GET", `/api/kpi/${kpiId}`),
+  fetchKPIById: (kpiId) => request("GET", `/api/manager/kpi/${kpiId}`),
 
   createKPI: (payload) => request("POST", "/api/manager/kpi", payload),
 

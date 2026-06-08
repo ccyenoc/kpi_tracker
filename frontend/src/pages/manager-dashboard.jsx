@@ -6,7 +6,6 @@ import RectangleGraphCard from "../components/rectangle_graph_card.jsx";
 import StaffRankingCard from "../components/staff_ranking_card.jsx";
 import ManagerDashboardKpi from "../components/manager_dashboard_kpi.jsx";
 import Sidebar from "../components/Sidebar.jsx";
-{/*mock data import*/}
 import { kpis } from "../data/kpiData";
 
 function ManagerDashboard(){
