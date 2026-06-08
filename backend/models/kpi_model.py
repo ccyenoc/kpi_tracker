@@ -42,6 +42,25 @@ class KPIUpdate(BaseModel):
     kpiAssignments: Optional[List[KPIAssignment]] = None
 
 
+class KPIStaffAssignment(BaseModel):
+    staffId: str
+    staffName: str
+    staffEmail: str
+    targetValue: float
+
+
+class AssignKPIRequest(BaseModel):
+    kpiId: str
+    assignments: List[KPIStaffAssignment]
+
+
+class VerifySubmissionRequest(BaseModel):
+    submissionId: str
+    kpiId: str
+    status: str
+    comments: Optional[str] = None
+
+
 
 
 

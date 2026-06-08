@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from models.kpi_model import KPICreate, KPIUpdate
+from models.kpi_model import KPICreate, KPIUpdate, AssignKPIRequest
 from services.kpi_service import (
     get_kpis,
     get_kpi,
@@ -18,13 +18,17 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services.manager_service import (
-    ManagerDashboardService,
-    SubmissionVerificationService,
-    KPIStatusService,
-    KPIPredictionService,
-    KPIAssignmentService,
-    KPIReportService,
-    AssignKPIRequest
+    get_dashboard_stats as get_dashboard_stats_service,
+    get_all_submissions,
+    get_pending_submissions,
+    verify_submission as verify_submission_service,
+    get_at_risk_kpis as get_at_risk_kpis_service,
+    get_underperform_kpis as get_underperform_kpis_service,
+    assign_kpi_to_staff,
+    get_kpi_assignments,
+    generate_report,
+    export_report_data,
+    predict_kpi_outcome
 )
 
 router = APIRouter()
@@ -77,14 +81,14 @@ def delete(kpi_id: str, request: Request):
 # Manager Dashboard Stats (aggregated KPI data and staff rankings)
 @router.get("/manager/dashboard/stats")
 def get_dashboard_stats(request: Request):
-    result = ManagerDashboardService.get_dashboard_stats()
+    result = get_dashboard_stats_service()
     return result
 
 
 # Get all KPI submissions (pending, approved, rejected)
 @router.get("/kpi/submissions")
 def get_submissions(request: Request):
-    result = SubmissionVerificationService.get_all_submissions()
+    result = get_all_submissions()
     if result["success"]:
         return {
             "success": True,
@@ -97,14 +101,14 @@ def get_submissions(request: Request):
 # Get at-risk KPIs (achievement rate 50-80%)
 @router.get("/kpi/at-risk")
 def get_at_risk_kpis(request: Request):
-    result = KPIStatusService.get_at_risk_kpis()
+    result = get_at_risk_kpis_service()
     return result
 
 
 # Get underperforming KPIs (achievement rate < 50%)
 @router.get("/kpi/underperform")
 def get_underperform_kpis(request: Request):
-    result = KPIStatusService.get_underperform_kpis()
+    result = get_underperform_kpis_service()
     return result
 
 # Get staff's assigned KPIs
@@ -237,7 +241,7 @@ def predict(
     request: Request
 ):
     require_manager(request)
-    return KPIPredictionService.predict_kpi_outcome(kpi_id)
+    return predict_kpi_outcome(kpi_id)
 
 
 # Download evidence files
@@ -298,7 +302,7 @@ async def verify_submission(request: Request):
             return {"success": False, "message": "Invalid status"}
         
         # Update submission in Firestore
-        result = SubmissionVerificationService.verify_submission(
+        result = verify_submission_service(
             submission_id, kpi_id, status, comments, manager_id
         )
 
@@ -317,28 +321,28 @@ def view_staff_kpi_submissions(request: Request):
 def assign_kpi(kpi_id: str, assign_data: AssignKPIRequest, request: Request):
     decoded = require_manager(request)
     manager_id = decoded.get("id") or decoded.get("user_id")
-    return KPIAssignmentService.assign_kpi_to_staff(kpi_id, assign_data.assignments, manager_id)
+    return assign_kpi_to_staff(kpi_id, assign_data.assignments, manager_id)
 
 
 # Get KPI assignment details
 @router.get("/manager/kpi/{kpi_id}/assignments")
 def get_assignments(kpi_id: str, request: Request):
     require_manager(request)
-    return KPIAssignmentService.get_kpi_assignments(kpi_id)
+    return get_kpi_assignments(kpi_id)
 
 
 # Generate JSON structured performance report for a KPI
 @router.get("/manager/kpi/{kpi_id}/report")
 def get_kpi_report(kpi_id: str, request: Request):
     require_manager(request)
-    return KPIReportService.generate_report(kpi_id)
+    return generate_report(kpi_id)
 
 
 # Export KPI performance report data as CSV
 @router.get("/manager/kpi/{kpi_id}/report/csv")
 def export_kpi_report(kpi_id: str, request: Request):
     require_manager(request)
-    result = KPIReportService.export_report_data(kpi_id)
+    result = export_report_data(kpi_id)
     if result.get("success"):
         from fastapi.responses import Response
         return Response(
