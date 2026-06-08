@@ -11,13 +11,13 @@ from services.kpi_service import (
     update_kpi_progress_service,
     get_kpi_history
 )
-from services.predictionService import predict_kpi;
+from utils.auth_utils import require_manager
 from fastapi import Form, File, UploadFile
 from typing import List
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from manager_service import ManagerDashboardService, SubmissionVerificationService, KPIStatusService
+from manager_service import ManagerDashboardService, SubmissionVerificationService, KPIStatusService, KPIPredictionService
 
 router = APIRouter()
 
@@ -228,10 +228,8 @@ def predict(
     kpi_id: str,
     request: Request
 ):
-    return predict_kpi(
-        kpi_id,
-        request
-    )
+    require_manager(request)
+    return KPIPredictionService.predict_kpi_outcome(kpi_id)
 
 
 # Download evidence files
@@ -272,10 +270,9 @@ async def verify_submission(request: Request):
         from services.auth_service import get_current_user_from_request
         import json
         
-        # Get manager from token
         try:
             decoded = get_current_user_from_request(request)
-            manager_id = decoded.get("user_id")
+            manager_id = decoded.get("id") or decoded.get("user_id")
         except:
             return {"success": False, "message": "Unauthorized"}
         

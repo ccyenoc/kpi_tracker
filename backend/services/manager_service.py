@@ -364,14 +364,32 @@ class KPIPredictionService:
             deadline = kpi_data.get("deadline")
             kpi_assignments = kpi_data.get("kpiAssignments", [])
 
-            now = datetime.now()
-            if isinstance(deadline, str):
-                deadline = datetime.fromisoformat(deadline)
-            elif hasattr(deadline, 'timestamp'):
-                deadline = datetime.fromtimestamp(deadline.timestamp())
+            def parse_dt(value, fallback=None):
+                """Parse any date value from Firestore into a naive datetime."""
+                if value is None:
+                    return fallback
+                if isinstance(value, str):
+                    # Handle Z-suffix (UTC) which fromisoformat can't parse pre-3.11
+                    normalised = value.replace("Z", "+00:00").replace(".000+00:00", "+00:00")
+                    try:
+                        dt = datetime.fromisoformat(normalised)
+                    except ValueError:
+                        return fallback
+                elif hasattr(value, 'timestamp'):
+                    # Firestore DatetimeWithNanoseconds / datetime
+                    dt = datetime.fromtimestamp(value.timestamp())
+                else:
+                    return fallback
+                # Strip timezone so comparisons with datetime.now() are safe
+                return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
 
-            days_remaining = (deadline - now).days if deadline > now else 0
-            total_days = (deadline - datetime.fromisoformat(kpi_data.get("createdAt", now.isoformat()))).days if isinstance(kpi_data.get("createdAt"), str) else 30
+            now = datetime.now()
+            deadline = parse_dt(deadline, now)
+            created_at = parse_dt(kpi_data.get("createdAt"), now)
+
+            days_remaining = max((deadline - now).days, 0)
+            total_days = max((deadline - created_at).days, 1)
+
 
             staff_predictions = []
             overall_prediction = 0
