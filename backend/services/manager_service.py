@@ -63,19 +63,21 @@ class KPIAssignmentService:
                         "assignedAt": datetime.now()
                     })
 
+                # Update the userData collection for this specific staff member
+                user_ref = db.collection("userData").document(assignment.staffId)
+                user_doc = user_ref.get()
+                user_data = user_doc.to_dict() if user_doc.exists else {}
+                assigned_kpis = user_data.get("assignedKpis", [])
+
+                if kpi_id not in assigned_kpis:
+                    assigned_kpis.append(kpi_id)
+                    user_ref.update({"assignedKpis": assigned_kpis})
+
             kpi_ref.update({
                 "assignedUserIds": assigned_users,
                 "kpiAssignments": kpi_assignments,
                 "updatedAt": datetime.now()
             })
-
-            user_ref = db.collection("userData").document(assignment.staffId)
-            user_data = user_ref.get().to_dict() or {}
-            assigned_kpis = user_data.get("assignedKpis", [])
-
-            if kpi_id not in assigned_kpis:
-                assigned_kpis.append(kpi_id)
-                user_ref.update({"assignedKpis": assigned_kpis})
 
             return {
                 "success": True,
