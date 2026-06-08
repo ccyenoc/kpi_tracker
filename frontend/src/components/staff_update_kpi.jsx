@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import Confirmation from "../../common/confirmation";
 
 const UpdateKpiModal = ({ kpi, onClose, onSubmit, history = []}) => {
   const [currentValue, setCurrentValue] = useState("");
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState([]);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationTitle, setConfirmationTitle] = useState("");
 
   useEffect(() => {
     if (kpi) {
@@ -57,7 +60,7 @@ const uploadBox = {
   fontSize:"16px",
 };
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (currentValue === "") {
     alert("Please enter current value");
     return;
@@ -73,15 +76,21 @@ const handleSubmit = () => {
     return;
   }
 
-  onSubmit({
-    kpiId: kpi.id,
-    current: Number(currentValue),
-    notes: notes,
-    files: files,
-    updatedAt: "just now",
-  });
+  try {
+    await onSubmit({
+      kpiId: kpi.id,
+      current: Number(currentValue),
+      notes,
+      files,
+      updatedAt: "just now",
+    });
 
-  onClose();
+    setConfirmationTitle("KPI progress submitted");
+    setShowConfirmation(true);
+
+  } catch (err) {
+    alert(err.message || "Failed to submit KPI progress.");
+  }
 };
 
   return (
@@ -228,6 +237,16 @@ const handleSubmit = () => {
         </div>
 
       </div>
+
+      {showConfirmation && (
+              <Confirmation
+                title={confirmationTitle}
+                onClose={() => {
+                  setShowConfirmation(false);
+                  onClose();
+                }}
+              />
+            )}
     </div>
   );
 };

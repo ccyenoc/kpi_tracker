@@ -3,6 +3,7 @@ import KPIProgressPage from "../../../pages/manager/kpi_management/kpi-progress"
 import { useState } from "react";
 import { pathway } from "../../../Pathway";
 import { kpi } from "../../../api/api";
+import Confirmation from "../../common/confirmation";
 
 function KPISubmissionTable({submissions, users = [], kpis = [], categories = [], onSubmissionUpdated = null}) {
   const navigate = useNavigate();
@@ -10,7 +11,8 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
   const [showModal, setShowModal] = useState(false);
   const [comments, setComments] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationTitle, setConfirmationTitle] = useState("");
 
   const headerStyle = {
     display: "flex",
@@ -75,15 +77,12 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
       });
 
       if (data.success) {
-        alert(`Submission ${status} successfully!`);
+        setConfirmationTitle(`Submission ${status}`);
+        setShowConfirmation(true);
 
         setShowModal(false);
         setSelectedSubmission(null);
         setComments("");
-
-        if (onSubmissionUpdated) {
-          onSubmissionUpdated();
-        }
       } else {
         alert(`Error: ${data.message}`);
       }
@@ -447,6 +446,20 @@ console.log("FIRST KPI", kpis[0]);
           </div>
         </div>
       )}
+
+      {showConfirmation && (
+        <Confirmation
+          title={confirmationTitle}
+          onClose={() => {
+            setShowConfirmation(false);
+
+            if (onSubmissionUpdated) {
+              onSubmissionUpdated();
+            }
+          }}
+        />
+      )}
+
     </div>
   );
 }

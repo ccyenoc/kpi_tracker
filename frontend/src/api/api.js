@@ -17,6 +17,7 @@ async function request(method, path, body) {
     headers: authHeaders(),
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
+  console.log(body);
   const data = await res.json();
   if (!res.ok) throw new Error(`Failed to ${method} ${path}. ${res.status} - ${res.statusText} - ${data.detail || data.message || `HTTP ${res.status}`}`);
   return data;
