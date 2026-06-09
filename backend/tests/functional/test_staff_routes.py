@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-# FT-01: Get Assigned KPIs - GET /api/staff/kpis
+# FT-12: Get Assigned KPIs - GET /api/staff/kpis
 def test_get_staff_kpis_success(client, db_mock, jwt_mock):
     jwt_mock.return_value = {"user_id": "staff_01", "email": "staff@company.com"}
     
@@ -28,7 +28,7 @@ def test_get_staff_kpis_success(client, db_mock, jwt_mock):
     assert len(data["kpis"]) == 1
     assert data["kpis"][0]["id"] == "kpi_001"
 
-# FT-02: Search KPI - GET /api/staff/kpis?search=sales
+# FT-13: Search KPI - GET /api/staff/kpis?search=sales
 def test_search_staff_kpis_success(client, db_mock, jwt_mock):
     jwt_mock.return_value = {"user_id": "staff_01", "email": "staff@company.com"}
     
@@ -55,7 +55,7 @@ def test_search_staff_kpis_success(client, db_mock, jwt_mock):
     for kpi in data["kpis"]:
         assert "sales" in kpi["title"].lower()
 
-# FT-03: Update KPI Progress - POST /api/kpi/update
+# FT-14: Update KPI Progress - POST /api/kpi/update
 @patch("services.kpi_service.get_user_info")
 @patch("services.kpi_service.get_kpi_by_id")
 @patch("services.kpi_service.send_email")

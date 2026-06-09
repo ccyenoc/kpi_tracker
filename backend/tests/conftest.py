@@ -75,6 +75,7 @@ mock_firebase_admin = MagicMock()
 mock_credentials = MagicMock()
 mock_firestore = MagicMock()
 mock_firestore.client = MagicMock(return_value=mock_db)
+mock_firebase_admin.firestore = mock_firestore
 
 sys.modules['firebase_admin'] = mock_firebase_admin
 sys.modules['firebase_admin.credentials'] = mock_credentials
@@ -87,12 +88,14 @@ sys.modules['config.firebase_config'] = mock_config_module
 
 # Globally patch verify_jwt_token at the utils.security module level
 import utils.security
+utils.security.original_verify_jwt_token = utils.security.verify_jwt_token
 mock_verify_token = MagicMock()
 mock_verify_token.return_value = {
     "user_id": "manager_123",
     "email": "manager@company.com"
 }
 utils.security.verify_jwt_token = mock_verify_token
+
 
 import pytest
 from fastapi.testclient import TestClient
