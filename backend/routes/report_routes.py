@@ -14,6 +14,10 @@ router = APIRouter()
 
 def get_user_name(user_id):
     try:
+        doc = db.collection("userData").document(user_id).get()
+        if doc.exists:
+            return doc.to_dict().get("name", user_id)
+
         users_ref = db.collection("userData")
         query = users_ref.where("userId", "==", user_id).limit(1).stream()
 
@@ -319,7 +323,7 @@ def my_monthly_report(request: Request):
             return {"error": "Unauthorized"}
 
         user_id = current_user.get("id")
-        user_name = current_user.get("name", "Staff")
+        user_name = get_user_name(user_id)
 
         kpi_docs = db.collection(KPI_COLLECTION).stream()
 

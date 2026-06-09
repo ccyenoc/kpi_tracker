@@ -1,4 +1,5 @@
 def build_user_profile_document(user_data):
+    is_dict = isinstance(user_data, dict)
     return {
         "name": user_data["name"] if isinstance(user_data, dict) else user_data.name,
         "email": user_data["email"] if isinstance(user_data, dict) else user_data.email,

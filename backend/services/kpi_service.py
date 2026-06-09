@@ -203,7 +203,28 @@ def delete_kpi(kpi_id: str, request: Request):
     if not kpi_doc.exists:
         raise HTTPException(status_code=404, detail="KPI not found")
 
+    # Get assigned user IDs before deleting the document
+    kpi_data = kpi_doc.to_dict() or {}
+    assigned_user_ids = kpi_data.get("assignedUserIds", [])
+
+    # Delete the main KPI document
     kpi_ref.delete()
+
+    # Clean up assignedKpis references inside userData (DI-01)
+    for user_id in assigned_user_ids:
+        user_ref = db.collection("userData").document(user_id)
+        user_doc = user_ref.get()
+        if user_doc.exists:
+            user_data = user_doc.to_dict() or {}
+            assigned_kpis = user_data.get("assignedKpis", [])
+            if kpi_id in assigned_kpis:
+                assigned_kpis.remove(kpi_id)
+                user_ref.update({"assignedKpis": assigned_kpis})
+
+    # Clean up associated submissions (DI-05)
+    submissions = db.collection("kpiSubmissions").where("kpiId", "==", kpi_id).stream()
+    for sub in submissions:
+        sub.reference.delete()
 
     return {"success": True}
 
