@@ -6,7 +6,7 @@ import datetime as real_datetime
 
 from models.kpi_model import KPICreate, KPIUpdate
 from services import kpi_service
-from manager_service import ManagerDashboardService, SubmissionVerificationService, KPIPredictionService
+from services.manager_service import ManagerDashboardService, SubmissionVerificationService, KPIPredictionService
 
 # UT-MM-01: Successful KPI Creation
 @patch('services.kpi_service.require_manager')

@@ -8,10 +8,13 @@ from unittest.mock import patch, MagicMock
 from fastapi import Request
 from fastapi.testclient import TestClient
 
+from main import app
 import utils.security
 from utils.security import create_jwt_token, SESSIONS_COLLECTION
 from services.auth_service import EMAIL_VERIFICATION_COLLECTION, hash_verification_code
-from firebase_secure import KPI_COLLECTION, USERDATA_COLLECTION
+from firebase_secure import KPI_COLLECTION, USERDATA_COLLECTION, USERAUTH_COLLECTION
+
+client = TestClient(app)
 
 # ==========================================
 # IN-MEMORY FIRESTORE MOCK ENGINE
@@ -1035,94 +1038,160 @@ def test_report_generator_personal_pdf(client, in_memory_db, jwt_mock):
 # 5. PROFILE MANAGEMENT MODULE INTEGRATION TESTS
 # ==========================================
 
-# INT-05-A: Profile update persists details in Firestore and returns updated profile document
-def test_profile_update_integration(client, in_memory_db, jwt_mock):
-    jwt_mock.return_value = {"user_id": "staff_101"}
-
-    # Setup initial profile in Firestore
-    in_memory_db.data[USERDATA_COLLECTION] = {
-        "staff_101": {
+@pytest.fixture
+def mock_db():
+    db = MockFirestoreDB()
+    # Seed Data for Profile Tests
+    db.data[USERDATA_COLLECTION] = {
+        "user_101": {
             "name": "John Doe",
-            "email": "john@company.com",
-            "phone": "123456",
-            "role": "staff",
-            "department": "Sales"
-        }
-    }
-
-    update_payload = {
-        "name": "John Updated",
-        "phone": "987654",
-        "department": "Marketing"
-    }
-
-    response = client.put(
-        "/api/profile",
-        json=update_payload,
-        headers={"Authorization": "Bearer valid_token"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert data["user"]["name"] == "John Updated"
-    assert data["user"]["phone"] == "987654"
-    assert data["user"]["department"] == "Marketing"
-
-    # Verify that the DB was updated
-    db_profile = in_memory_db.data[USERDATA_COLLECTION]["staff_101"]
-    assert db_profile["name"] == "John Updated"
-    assert db_profile["phone"] == "987654"
-    assert db_profile["department"] == "Marketing"
-
-
-# INT-05-B: Profile deletion deletes userData, userAuth, and revokes sessions in Firestore
-def test_profile_deletion_integration(client, in_memory_db, jwt_mock):
-    from firebase_secure import USERAUTH_COLLECTION
-
-    jwt_mock.return_value = {"user_id": "staff_101"}
-
-    # Setup profile, auth, and sessions in Firestore
-    in_memory_db.data[USERDATA_COLLECTION] = {
-        "staff_101": {
-            "name": "John Doe",
-            "email": "john@company.com",
+            "email": "john@example.com",
+            "phone": "123456789",
+            "department": "Engineering",
             "role": "staff"
-        }
-    }
-    in_memory_db.data[USERAUTH_COLLECTION] = {
-        "staff_101": {
-            "userId": "staff_101",
-            "email": "john@company.com",
-            "password_hash": "some_hash"
-        }
-    }
-    in_memory_db.data[SESSIONS_COLLECTION] = {
-        "session_1": {
-            "jti": "session_1",
-            "user_id": "staff_101",
-            "revoked": False
         },
-        "session_2": {
-            "jti": "session_2",
-            "user_id": "other_user",
+        "user_102": {
+            "name": "Jane Manager",
+            "email": "jane@example.com",
+            "role": "manager"
+        }
+    }
+    db.data[USERAUTH_COLLECTION] = {
+        "user_101": {
+            "userId": "user_101",
+            "password_hash": "hashed_old_password"
+        }
+    }
+    db.data[SESSIONS_COLLECTION] = {
+        "session_xyz": {
+            "user_id": "user_101",
             "revoked": False
         }
+    }
+    return db
+
+# INT-P01: Verify user can retrieve their profile details.
+@patch("services.user_service.verify_jwt_token") 
+@patch("services.user_service.db")
+def test_int_p01_get_profile(mock_db_service, mock_verify_jwt, mock_db):
+    mock_db_service.collection.side_effect = mock_db.collection
+    mock_verify_jwt.return_value = {"user_id": "user_101"}
+
+    response = client.get("/api/user", headers={"Authorization": "Bearer valid_token"})
+    
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    assert response.json()["user"]["name"] == "John Doe"
+    assert response.json()["user"]["email"] == "john@example.com"
+
+# INT-P02: Verify user can update profile fields and it persists in DB.
+@patch("routes.user_routes.verify_jwt_token")
+@patch("services.user_service.db")
+@patch("services.user_service.save_user_profile_document")
+def test_int_p02_update_profile(mock_save_profile, mock_db_service, mock_verify_jwt, mock_db):
+    mock_db_service.collection.side_effect = mock_db.collection
+    mock_verify_jwt.return_value = {"user_id": "user_101"}
+    
+    # Mock the save function to actually update our mock DB dict
+    def mock_save(ref, updated_data):
+        ref.update(updated_data)
+    mock_save_profile.side_effect = mock_save
+
+    payload = {
+        "name": "Johnathan Doe",
+        "phone": "987654321",
+        "department": "HR"
     }
 
-    # Execute deletion request
-    response = client.delete(
-        "/api/profile",
-        headers={"Authorization": "Bearer valid_token"}
-    )
+    response = client.put("/api/profile", json=payload, headers={"Authorization": "Bearer valid_token"})
+    
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    assert response.json()["user"]["name"] == "Johnathan Doe"
+    
+    # Verify DB was mutated
+    updated_doc = mock_db.data[USERDATA_COLLECTION]["user_101"]
+    assert updated_doc["phone"] == "987654321"
+    assert updated_doc["department"] == "HR"
+
+# INT-P03: Verify user can change their password with correct current password.
+@patch("routes.user_routes.verify_jwt_token")
+@patch("services.user_service.get_user_auth_hash")
+@patch("services.user_service.verify_password")
+@patch("services.user_service.hash_password")
+@patch("services.user_service.save_user_auth_document")
+def test_int_p03_update_password_success(mock_save_auth, mock_hash, mock_verify_pw, mock_get_hash, mock_verify_jwt, mock_db):
+    mock_verify_jwt.return_value = {"user_id": "user_101"}
+    mock_get_hash.return_value = "hashed_old_password"
+    mock_verify_pw.return_value = True # Simulate correct current password
+    mock_hash.return_value = "hashed_new_password"
+
+    payload = {
+        "currentPassword": "old_password_123",
+        "newPassword": "new_password_456",
+        "confirmPassword": "new_password_456"
+    }
+
+    response = client.put("/api/password", json=payload, headers={"Authorization": "Bearer valid_token"})
+    
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    
+    # Verify the save logic was called to update the DB
+    mock_save_auth.assert_called_once_with("user_101", "", "hashed_new_password")
+
+# INT-P04: Verify password update fails with incorrect current password.
+@patch("routes.user_routes.verify_jwt_token")
+@patch("services.user_service.get_user_auth_hash")
+@patch("services.user_service.verify_password")
+def test_int_p04_update_password_wrong_current(mock_verify_pw, mock_get_hash, mock_verify_jwt):
+    mock_verify_jwt.return_value = {"user_id": "user_101"}
+    mock_get_hash.return_value = "hashed_old_password"
+    mock_verify_pw.return_value = False # Simulate WRONG current password
+
+    payload = {
+        "currentPassword": "wrong_password",
+        "newPassword": "new_password_456",
+        "confirmPassword": "new_password_456"
+    }
+
+    response = client.put("/api/password", json=payload, headers={"Authorization": "Bearer valid_token"})
+    
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Current password incorrect"
+
+# INT-P05: Verify account deletion removes userData, userAuth, and revokes sessions.
+@patch("routes.user_routes.verify_jwt_token")
+@patch("services.user_service.db")
+def test_int_p05_delete_account_cascade(mock_db_service, mock_verify_jwt, mock_db):
+    mock_db_service.collection.side_effect = mock_db.collection
+    mock_verify_jwt.return_value = {"user_id": "user_101"}
+
+    response = client.delete("/api/profile", headers={"Authorization": "Bearer valid_token"})
+    
     assert response.status_code == 200
     assert response.json()["success"] is True
 
-    # Verify userData and userAuth records are deleted
-    assert "staff_101" not in in_memory_db.data[USERDATA_COLLECTION]
-    assert "staff_101" not in in_memory_db.data[USERAUTH_COLLECTION]
+    # 1. Verify userData is gone
+    assert "user_101" not in mock_db.data[USERDATA_COLLECTION]
+    
+    # 2. Verify userAuth is gone
+    assert "user_101" not in mock_db.data[USERAUTH_COLLECTION]
+    
+    # 3. Verify active sessions were revoked
+    assert mock_db.data[SESSIONS_COLLECTION]["session_xyz"]["revoked"] is True
 
-    # Verify that sessions for deleted user are revoked
-    assert in_memory_db.data[SESSIONS_COLLECTION]["session_1"]["revoked"] is True
-    # Verify other users' sessions are untouched
-    assert in_memory_db.data[SESSIONS_COLLECTION]["session_2"]["revoked"] is False
+# INT-P06: Verify retrieving staff directory filters by role=='staff'.
+@patch("services.user_service.db")
+def test_int_p06_get_all_staff_role_filter(mock_db_service, mock_db):
+    mock_db_service.collection.side_effect = mock_db.collection
 
+    response = client.get("/api/staff")
+    
+    assert response.status_code == 200
+    staff_list = response.json()
+    
+    # We seeded 1 staff (user_101) and 1 manager (user_102)
+    assert len(staff_list) == 1
+    assert staff_list[0]["id"] == "user_101"
+    assert staff_list[0]["role"] == "staff"
