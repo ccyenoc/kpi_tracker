@@ -35,9 +35,11 @@ def get_user_name(user_id):
 @router.get("/report/weekly")
 def weekly_report():
     try:
+        # temporary PDF in memory
         buffer = io.BytesIO()
         p = canvas.Canvas(buffer, pagesize=letter)
 
+        # get kpi data
         data = get_weekly_kpi()
         summary = data.get("summary", {})
         kpis = data.get("kpis", [])
@@ -80,9 +82,10 @@ def weekly_report():
 
         for kpi in kpis:
             title = kpi.get("title", "No Title")
+            status = kpi.get("status", "Active").capitalize()
 
             p.setFont("Helvetica-Bold", 12)
-            p.drawString(50, y, f"KPI: {title}")
+            p.drawString(50, y, f"KPI: {title} ({status})")
             y -= 15
 
             p.setFont("Helvetica", 10)
@@ -224,7 +227,8 @@ def monthly_report():
         p.setFont("Helvetica", 10)
 
         for kpi in completed:
-            p.drawString(50, y, kpi.get("title", ""))
+            title = kpi.get("title", "")
+            p.drawString(50, y, f"{title} (Completed)")
             p.drawString(250, y, str(kpi.get("target", 0)))
             p.drawString(320, y, f"{kpi.get('progress', 100)}%")
             y -= 15
@@ -241,9 +245,10 @@ def monthly_report():
 
         for kpi in active:
             title = kpi.get("title", "No Title")
+            status = kpi.get("status", "Active").capitalize()
 
             p.setFont("Helvetica-Bold", 12)
-            p.drawString(50, y, f"KPI: {title}")
+            p.drawString(50, y, f"KPI: {title} ({status})")
             y -= 15
 
             p.setFont("Helvetica", 10)
@@ -428,7 +433,8 @@ def my_monthly_report(request: Request):
             p.setFont("Helvetica", 10)
 
             for kpi in kpi_list:
-                p.drawString(50, y, kpi["title"][:30])
+                status = kpi.get("status", "Active").capitalize()
+                p.drawString(50, y, f"{kpi['title'][:20]} ({status})")
                 p.drawString(260, y, f"{kpi['target']} {kpi['unit']}")
                 p.drawString(320, y, str(kpi["current"]))
                 p.drawString(390, y, f"{kpi['progress']}%")

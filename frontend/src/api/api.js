@@ -216,11 +216,11 @@ export const util = {
     rankings: d.staffRankings || [],
   })),
 
-  getWeeklyReport: async () => requestBlob("GET", "/report/weekly"),
+  getWeeklyReport: async () => requestBlob("GET", "/api/report/weekly"),
 
-  getMonthlyReport: async () => requestBlob("GET", "/report/monthly"),
+  getMonthlyReport: async () => requestBlob("GET", "/api/report/monthly"),
 
-  getMyWeeklyReport: async () => requestBlob("GET", "/report/weekly/me"),
+  getMyWeeklyReport: async () => requestBlob("GET", "/api/report/weekly/me"),
 
-  getMyMonthlyReport: async () => requestBlob("GET", "/report/monthly/me"),
+  getMyMonthlyReport: async () => requestBlob("GET", "/api/report/monthly/me"),
 };

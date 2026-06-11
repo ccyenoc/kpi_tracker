@@ -453,7 +453,8 @@ def test_manager_delete_kpi_integration(client, in_memory_db, jwt_mock):
 
 
 # INT-02-D: Manager verifies staff submission (Approval), updates progress metrics and resolves KPI completeness
-def test_manager_verify_submission_approval_sync(client, in_memory_db, jwt_mock, db_mock):
+@patch("services.kpi_service.send_email")
+def test_manager_verify_submission_approval_sync(mock_send_email, client, in_memory_db, jwt_mock, db_mock):
     jwt_mock.return_value = {"user_id": "manager_123"}
 
     # Setup database with staff, manager, kpi, and submission records
@@ -514,9 +515,17 @@ def test_manager_verify_submission_approval_sync(client, in_memory_db, jwt_mock,
     # Verify KPI status is automatically set to completed since all staff reached their targets
     assert kpi_doc["status"] == "completed"
 
+    # Verify email is sent to staff
+    mock_send_email.assert_called_once_with(
+        "john@company.com",
+        "KPI Submission APPROVED",
+        "Hi John Staff,\n\nYour KPI submission for \"Sales target\" has been APPROVED.\n\nManager's Comments:\nCompleted successfully!\n\nThank you,\nKPI System"
+    )
+
 
 # INT-02-E: Manager verifies staff submission (Rejection) and leaves progress metrics unchanged
-def test_manager_verify_submission_rejection(client, in_memory_db, jwt_mock):
+@patch("services.kpi_service.send_email")
+def test_manager_verify_submission_rejection(mock_send_email, client, in_memory_db, jwt_mock):
     jwt_mock.return_value = {"user_id": "manager_123"}
     in_memory_db.data[USERDATA_COLLECTION] = {
         "manager_123": {"role": "manager", "name": "Jane Manager", "email": "manager@company.com"},
@@ -565,6 +574,13 @@ def test_manager_verify_submission_rejection(client, in_memory_db, jwt_mock):
     kpi_doc = in_memory_db.data[KPI_COLLECTION]["kpi_123"]
     assert kpi_doc["kpiAssignments"][0]["current"] == 0.0
     assert kpi_doc["status"] == "active"
+
+    # Verify email is sent to staff
+    mock_send_email.assert_called_once_with(
+        "john@company.com",
+        "KPI Submission REJECTED",
+        "Hi John Staff,\n\nYour KPI submission for \"Sales target\" has been REJECTED.\n\nManager's Comments:\nPlease submit correct evidence.\n\nThank you,\nKPI System"
+    )
 
 
 # INT-02-F: Manager dashboard statistics retrieves aggregated statistics and top staff rankings

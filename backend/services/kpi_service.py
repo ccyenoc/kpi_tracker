@@ -233,6 +233,7 @@ def delete_kpi(kpi_id: str, request: Request):
 # to generate weekly report
 def get_weekly_kpi():
     try:
+        from datetime import timedelta
         kpi_ref = db.collection(KPI_COLLECTION)
 
         query = kpi_ref.where("status", "!=", "completed")
@@ -241,9 +242,31 @@ def get_weekly_kpi():
         total_tasks = 0
         total_progress = 0
 
+        now = datetime.utcnow()
+        # get the date 7 days before
+        start_date = now - timedelta(days=7)
+        end_date = now
+
         for doc in query.stream():
             data = doc.to_dict() or {}
             data["id"] = doc.id
+
+             # date filtering logic
+            date_in_range = False
+            has_dates = False
+            for date_field in ["createdAt", "updatedAt"]:
+                date_str = data.get(date_field)
+                if date_str:
+                    has_dates = True
+                    try:
+                        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00").split("+")[0])
+                        if start_date <= dt <= end_date:
+                            date_in_range = True
+                            break
+                    except:
+                        pass
+            if has_dates and not date_in_range:
+                continue
 
             # calculate KPI-level progress
             assignments = data.get("kpiAssignments", [])
@@ -298,9 +321,37 @@ def get_monthly_kpi():
         total_tasks = 0
         total_progress = 0
 
+        now = datetime.utcnow()
+        
+        # get current month
+        start_of_month = datetime(now.year, now.month, 1)
+
+        # get next month
+        if now.month == 12:
+            end_of_month = datetime(now.year + 1, 1, 1)
+        else:
+            end_of_month = datetime(now.year, now.month + 1, 1)
+
         for doc in docs:
             data = doc.to_dict() or {}
             data["id"] = doc.id
+
+            # date filtering logic
+            date_in_range = False
+            has_dates = False
+            for date_field in ["createdAt", "updatedAt"]:
+                date_str = data.get(date_field)
+                if date_str:
+                    has_dates = True
+                    try:
+                        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00").split("+")[0])
+                        if start_of_month <= dt < end_of_month:
+                            date_in_range = True
+                            break
+                    except:
+                        pass
+            if has_dates and not date_in_range:
+                continue
 
             assignments = data.get("kpiAssignments", [])
 
@@ -452,10 +503,10 @@ async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadF
             manager_id = kpi.get("createdBy")
             manager = get_user_info(manager_id)
 
-            print("👤 Staff:", staff)
-            print("👤 Manager:", manager)
+            print("Staff:", staff)
+            print("Manager:", manager)
 
-            # 📩 email manager
+            # email manager
             if manager:
                 send_email(
                     manager["email"],
@@ -475,7 +526,7 @@ async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadF
                     """
                 )
 
-            # 📩 email staff (confirmation)
+            # email staff (confirmation)
             if staff:
                 send_email(
                     staff["email"],
@@ -512,7 +563,7 @@ def send_email(to_email, subject, content):
     msg.set_content(content)
 
     try:
-        print("📩 Connecting to SMTP...")
+        print("Connecting to SMTP...")
 
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
             if SMTP_USE_TLS:
@@ -521,7 +572,7 @@ def send_email(to_email, subject, content):
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
 
-        print("✅ Email sent to", to_email)
+        print("Email sent to", to_email)
 
     except Exception as e:
         print("❌ EMAIL ERROR:", e)

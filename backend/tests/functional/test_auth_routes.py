@@ -93,7 +93,7 @@ def test_verify_code_route_success(mock_verify_code, client):
     mock_verify_code.assert_called_once()
 
 
-# FT-auth-05: Logout Route Tests
+# FT-06: Logout Route Tests
 @patch("routes.auth_routes.logout_user")
 def test_logout_auth_route_success(mock_logout, client):
     mock_logout.return_value = {

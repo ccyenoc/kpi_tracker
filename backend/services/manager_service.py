@@ -1,7 +1,8 @@
 from firebase_admin import firestore
 from datetime import datetime, timezone
-from typing import List, Dict, Optional
 from models.kpi_model import KPIStaffAssignment, AssignKPIRequest, VerifySubmissionRequest
+from pydantic import BaseModel
+from services.kpi_service import send_email
 
 UNDERPERFORMED_GAP = -25
 AT_RISK_GAP = -10
@@ -105,7 +106,6 @@ def get_kpi_assignments(kpi_id: str) -> Dict:
             "assignments": assignments,
             "totalAssigned": len(assignments)
         }
-
     except Exception as e:
         return {"success": False, "message": str(e)}
 
@@ -193,6 +193,18 @@ def verify_submission(submission_id: str, kpi_id: str, status: str, comments: st
 
             if kpi_doc.exists:
                 kpi_data = kpi_doc.to_dict() or {}
+
+                deadline = kpi_data.get("deadline")
+                created_at = kpi_data.get("createdAt")
+
+                now = datetime.now()
+
+                if isinstance(deadline, str):
+                    deadline = datetime.fromisoformat(deadline)
+
+                if isinstance(created_at, str):
+                    created_at = datetime.fromisoformat(created_at)
+                
                 kpi_assignments = kpi_data.get("kpiAssignments", [])
 
                 # Update assignment for the staff member who submitted
@@ -204,30 +216,84 @@ def verify_submission(submission_id: str, kpi_id: str, status: str, comments: st
                         updated = True
                         break
                 
-                if not updated:
-                    return {
-                        "success": False,
-                        "message": "Staff assignment not found for this KPI"
-                    }
+                # Check if all assigned staff have approved submissions
+                all_submissions = list(db.collection("kpiSubmissions")
+                    .where("kpiId", "==", kpi_id)
+                    .stream())
+                assigned_staff = set(a.get("userId") for a in kpi_assignments)
+                approved_staff = set()
+                
+                for sub_doc in all_submissions:
+                    sub_data = sub_doc.to_dict()
+                    sub_status = sub_data.get("status")
+                    sub_submitted_by = sub_data.get("submittedBy")
 
-                # Mark KPI as completed only when every assigned staff reaches 100%
-                all_staff_completed = (
-                    len(kpi_assignments) > 0 and
-                    all(
-                        float(assignment.get("target", 0) or 0) > 0 and
-                        float(assignment.get("current", 0) or 0) >=
-                        float(assignment.get("target", 0) or 0)
-                        for assignment in kpi_assignments
-                    )
-                )
+                    if sub_doc.id == submission_id or sub_status == "approved":
+                        approved_staff.add(sub_submitted_by)
 
-                new_status = "completed" if all_staff_completed else "active"
-
+                # Mark KPI as completed if all assigned staff have approved
+                all_approved = assigned_staff.issubset(approved_staff) if assigned_staff else False
+                new_status = "completed" if all_approved else "active"
+                
                 kpi_ref.update({
                     "kpiAssignments": kpi_assignments,
                     "status": new_status,
                     "updatedAt": datetime.now().isoformat()
                 })
+
+        # Send notification email to the staff member who made the submission
+        print("✉️ [EMAIL DEBUG] Starting verification email dispatch flow...")
+        print(f"✉️ [EMAIL DEBUG] submitted_by: {submitted_by}, kpi_id: {kpi_id}")
+        staff_email = None
+        staff_name = "Staff Member"
+        if submitted_by:
+            staff_doc = db.collection("userData").document(submitted_by).get()
+            print(f"✉️ [EMAIL DEBUG] staff_doc.exists: {staff_doc.exists}")
+            if staff_doc.exists:
+                staff_data = staff_doc.to_dict() or {}
+                staff_email = staff_data.get("email")
+                staff_name = staff_data.get("name", "Staff Member")
+                print(f"✉️ [EMAIL DEBUG] Retrieved staff_name: {staff_name}, staff_email: {staff_email}")
+            else:
+                print("✉️ [EMAIL DEBUG] staff_doc does not exist in userData collection!")
+        else:
+            print("✉️ [EMAIL DEBUG] No submittedBy user ID found in submission!")
+
+        kpi_title = "KPI"
+        if kpi_id:
+            kpi_doc = db.collection("kpiData").document(kpi_id).get()
+            print(f"✉️ [EMAIL DEBUG] kpi_doc.exists: {kpi_doc.exists}")
+            if kpi_doc.exists:
+                kpi_data = kpi_doc.to_dict() or {}
+                kpi_title = kpi_data.get("title", "KPI")
+                print(f"✉️ [EMAIL DEBUG] Retrieved kpi_title: {kpi_title}")
+            else:
+                print("✉️ [EMAIL DEBUG] kpi_doc does not exist in kpiData collection!")
+
+        if staff_email:
+            try:
+                from services.kpi_service import send_email
+                status_str = status.upper()
+                subject = f"KPI Submission {status_str}"
+                body = f"""Hi {staff_name},
+
+Your KPI submission for "{kpi_title}" has been {status_str}.
+
+Manager's Comments:
+{comments if comments else "No comments provided."}
+
+Thank you,
+KPI System"""
+                print(f"✉️ [EMAIL DEBUG] Calling send_email with parameters:")
+                print(f"  To: {staff_email}")
+                print(f"  Subject: {subject}")
+                print(f"  Body:\n{body}")
+                send_email(staff_email, subject, body)
+                print("✉️ [EMAIL DEBUG] send_email function execution finished.")
+            except Exception as email_err:
+                print("❌ [EMAIL DEBUG] Error sending submission verification email:", email_err)
+        else:
+            print("✉️ [EMAIL DEBUG] Skipping send_email because staff_email is not set/found.")
 
         return {
             "success": True,
