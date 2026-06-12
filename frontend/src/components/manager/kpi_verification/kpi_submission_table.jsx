@@ -13,6 +13,7 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationTitle, setConfirmationTitle] = useState("");
+  const [error, setError] = useState("");
 
   const headerStyle = {
     display: "flex",
@@ -53,12 +54,14 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
   const handleApprove = async (submission) => {
     setSelectedSubmission(submission);
     setComments("");
+    setError("");
     setShowModal(true);
   };
 
   const handleReject = async (submission) => {
     setSelectedSubmission(submission);
     setComments("");
+    setError("");
     setShowModal(true);
   };
 
@@ -66,9 +69,8 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
     if (!selectedSubmission) return;
     
     setIsProcessing(true);
-        try {
-      setIsProcessing(true);
-
+    setError("");
+    try {
       const data = await kpi.verifySubmission({
         submissionId: selectedSubmission.id,
         kpiId: selectedSubmission.kpiId,
@@ -84,13 +86,13 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
         setSelectedSubmission(null);
         setComments("");
       } else {
-        alert(`Error: ${data.message}`);
+        setError(`Error: ${data.message}`);
       }
 
     } catch (err) {
       console.error(err);
 
-      alert(
+      setError(
         err.message ||
         "Failed to verify submission"
       );
@@ -357,6 +359,30 @@ console.log("FIRST KPI", kpis[0]);
             boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
           }}>
             <h2 style={{ marginTop: 0, marginBottom: "20px" }}>Verify Submission</h2>
+            
+            {error && (
+              <div style={{
+                background: "#fef2f2",
+                border: "1px solid #fee2e2",
+                borderRadius: "8px",
+                padding: "10px 14px",
+                color: "#b91c1c",
+                fontSize: "14px",
+                marginBottom: "15px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
+              }}>
+                <span style={{ fontSize: "16px" }}>⚠️</span>
+                <div style={{ flex: 1 }}>{error}</div>
+                <span 
+                  style={{ cursor: "pointer", fontWeight: "bold", opacity: 0.7 }} 
+                  onClick={() => setError("")}
+                >
+                  ✕
+                </span>
+              </div>
+            )}
             
             <div style={{ marginBottom: "20px", backgroundColor: "#f3f4f6", padding: "15px", borderRadius: "8px" }}>
               <p style={{ margin: "5px 0" }}><strong>KPI:</strong> {kpiMap[selectedSubmission.kpiId]?.title || "Unknown"}</p>

@@ -4,12 +4,16 @@ const UpdateKpiModal = ({ kpi, onClose, onSubmit, history = []}) => {
   const [currentValue, setCurrentValue] = useState("");
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState([]);
+  const [error, setError] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
     if (kpi) {
       setCurrentValue(kpi.current || 0);
       setNotes("");
       setFiles([]);
+      setError("");
+      setIsSuccess(false);
     }
   }, [kpi]);
 
@@ -58,18 +62,19 @@ const uploadBox = {
 };
 
 const handleSubmit = async () => {
+  setError("");
   if (currentValue === "") {
-    alert("Please enter current value");
+    setError("Please enter current value");
     return;
   }
 
   if (Number(currentValue) < 0) {
-    alert("Current value cannot be negative");
+    setError("Current value cannot be negative");
     return;
   }
 
   if (Number(currentValue) > Number(kpi.target)) {
-    alert(`Current value cannot be more than target (${kpi.target})`);
+    setError(`Current value cannot be more than target (${kpi.target})`);
     return;
   }
 
@@ -85,14 +90,84 @@ const handleSubmit = async () => {
     });
 
     await onSubmit(formData);
-
-    alert("Submission successful!");
-    onClose();
+    setIsSuccess(true);
   } catch (err) {
     console.error("Error submitting KPI update:", err);
-    alert(err.message || "Failed to submit KPI progress.");
+    setError(err.message || "Failed to submit KPI progress.");
   }
 };
+
+  if (isSuccess) {
+    return (
+      <div style={overlayStyle}>
+        <div style={{
+          ...modalStyle,
+          textAlign: "center",
+          padding: "40px 30px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "20px",
+          border: "none",
+          boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+        }}>
+          <div style={{
+            width: "70px",
+            height: "70px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #4ade80, #22c55e)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            boxShadow: "0 10px 20px rgba(34, 197, 94, 0.3)"
+          }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          
+          <div>
+            <h3 style={{
+              fontSize: "22px",
+              fontWeight: "bold",
+              color: "#1f2937",
+              margin: "0 0 8px 0"
+            }}>Submission Successful!</h3>
+            <p style={{
+              fontSize: "14px",
+              color: "#4b5563",
+              lineHeight: "1.5",
+              margin: 0
+            }}>
+              Your progress update for <strong>{kpi.title}</strong> has been successfully submitted and is awaiting verification.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setIsSuccess(false);
+              onClose();
+            }}
+            style={{
+              marginTop: "10px",
+              width: "100%",
+              padding: "12px",
+              background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "12px",
+              fontWeight: "600",
+              fontSize: "15px",
+              cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)"
+            }}
+          >
+            Okay, got it
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={overlayStyle}>
@@ -114,9 +189,35 @@ const handleSubmit = async () => {
         <p style={{
              fontWeight:"bold",
              color: "#6b7280",
-             fontSize:"16px", }}>
+             fontSize:"16px",
+             marginBottom: "15px" }}>
           Update your progress for: {kpi.title}
         </p>
+
+        {/* Error Alert Box */}
+        {error && (
+          <div style={{
+            background: "#fef2f2",
+            border: "1px solid #fee2e2",
+            borderRadius: "8px",
+            padding: "10px 14px",
+            color: "#b91c1c",
+            fontSize: "14px",
+            marginBottom: "15px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+          }}>
+            <span style={{ fontSize: "16px" }}>⚠️</span>
+            <div style={{ flex: 1 }}>{error}</div>
+            <span 
+              style={{ cursor: "pointer", fontWeight: "bold", opacity: 0.7 }} 
+              onClick={() => setError("")}
+            >
+              ✕
+            </span>
+          </div>
+        )}
 
         {/* Input */}
         <div>
