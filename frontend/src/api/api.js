@@ -169,6 +169,19 @@ export const kpi = {
     return await res.json();
   },
 
+  fetchStaffKpiPredictions: async () => {
+    const res = await fetch("/api/staff/kpi-prediction", {
+      method: "GET",
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("KPI API error:", res.status, errText);
+      throw new Error(`Failed to fetch KPI data. Status: ${res.status}`);
+    }
+    return await res.json();
+  },
+
   fetchStaffKPISubmissions: async (kpiId) => {
     const res = await fetch(`/api/staff/kpi/submissions`, {
       method: "GET",
@@ -184,6 +197,8 @@ export const kpi = {
 
   // ── KPI Prediction ────────────────────────────────────────────────────────────
   fetchKPIPrediction: (kpiId) => request("GET", `/api/manager/kpi/${kpiId}/predict`),
+
+  fetchStaffKPIPrediction: (kpiId) => request("GET", `/api/staff/kpi/`),
 
   // ── KPI Status (at-risk and underperformed) ───────────────────────────────────
   fetchAtRiskKPIs: () => request("GET", "/api/kpi/at-risk"),
@@ -216,11 +231,11 @@ export const util = {
     rankings: d.staffRankings || [],
   })),
 
-  getWeeklyReport: async () => requestBlob("GET", "/report/weekly"),
+  getWeeklyReport: async () => requestBlob("GET", "/api/report/weekly"),
 
-  getMonthlyReport: async () => requestBlob("GET", "/report/monthly"),
+  getMonthlyReport: async () => requestBlob("GET", "/api/report/monthly"),
 
-  getMyWeeklyReport: async () => requestBlob("GET", "/report/weekly/me"),
+  getMyWeeklyReport: async () => requestBlob("GET", "/api/report/weekly/me"),
 
-  getMyMonthlyReport: async () => requestBlob("GET", "/report/monthly/me"),
+  getMyMonthlyReport: async () => requestBlob("GET", "/api/report/monthly/me"),
 };
