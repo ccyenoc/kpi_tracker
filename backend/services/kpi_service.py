@@ -786,3 +786,81 @@ def get_staff_kpi_submissions(request: Request):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def get_staff_monthly_performance_service(request: Request):
+    from services.auth_service import get_current_user_from_request
+    current_user = get_current_user_from_request(request)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    user_id = current_user.get("id")
+    
+    from config.firebase_config import db
+    from firebase_secure import KPI_COLLECTION
+    from datetime import datetime
+    
+    try:
+        # Get all KPIs assigned to this staff member
+        kpis_ref = db.collection(KPI_COLLECTION).stream()
+        monthly_data = {}
+        
+        for doc in kpis_ref:
+            kpi_data = doc.to_dict()
+            
+            # Check if current user is in the assigned staff
+            assignments = kpi_data.get("kpiAssignments", [])
+            user_assignment = next((a for a in assignments if a.get("userId") == user_id), None)
+            
+            if not user_assignment:
+                continue
+            
+            # Get submissions for this KPI from this user
+            submissions_ref = db.collection("kpiSubmissions").where("kpiId", "==", doc.id).where("submittedBy", "==", user_id).stream()
+            
+            for submission_doc in submissions_ref:
+                submission = submission_doc.to_dict()
+                submitted_date = submission.get("submittedAt")
+                
+                if isinstance(submitted_date, str):
+                    try:
+                        submitted_date = datetime.fromisoformat(submitted_date.replace('Z', '+00:00'))
+                    except:
+                        submitted_date = datetime.now()
+                
+                month = submitted_date.strftime("%b")
+                week = (submitted_date.day - 1) // 7 + 1
+                key = f"{month}-W{week}"
+                
+                if key not in monthly_data:
+                    monthly_data[key] = {
+                        "month": month,
+                        "time": f"Week {week}",
+                        "kpi": 0,
+                        "progress": 0,
+                        "prediction": 0,
+                        "name": kpi_data.get("title", "")
+                    }
+                
+                target = user_assignment.get("target", 0)
+                current = submission.get("current", 0)
+                
+                from services.prediction_service import calculate_trajectory_prediction
+                predicted_percentage = calculate_trajectory_prediction(
+                    current,
+                    target,
+                    kpi_data.get("createdAt"),
+                    kpi_data.get("deadline")
+                )
+                predicted_absolute = (predicted_percentage / 100) * target if target > 0 else 0
+                
+                monthly_data[key]["kpi"] += target
+                monthly_data[key]["progress"] += current
+                monthly_data[key]["prediction"] += predicted_absolute
+        
+        return {
+            "success": True,
+            "data": list(monthly_data.values())
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

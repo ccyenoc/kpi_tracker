@@ -14,6 +14,7 @@ const StaffDashboard = () => {
   const [activityLogs, setActivityLogs] = useState([]);
 
   const [predictions, setPredictions] = useState({});
+  const [monthlyPerformance, setMonthlyPerformance] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -401,45 +402,74 @@ const StaffDashboard = () => {
       totalAssignedKpi > 0
         ? Math.round(item.totalProgressPercent / totalAssignedKpi)
         : 0;
-
-    item.prediction = Math.min(100, item.progress + 5);
   });
 
   useEffect(() => {
     let mounted = true;
 
-    const fetchPredictions = async () => {
+    const fetchPredictionsAndPerformance = async () => {
       try {
-        await kpi.fetchStaffKpiPredictions();
-        if (mounted && Array.isArray(predictions.predictions)) {
-          const map = Object.fromEntries(
-            predictions.predictions.map((p) => [
-              String(p.kpi_id),
-              Number(p.predicted_current || 0)
-            ])
-          );
-          setPredictions(map);
+        const [predData, perfData] = await Promise.all([
+          kpi.fetchStaffKpiPredictions(),
+          kpi.fetchStaffMonthlyPerformance()
+        ]);
+
+        if (mounted) {
+          if (predData && Array.isArray(predData.predictions)) {
+            const map = Object.fromEntries(
+              predData.predictions.map((p) => [
+                String(p.kpi_id),
+                Number(p.predicted_progress || 0)
+              ])
+            );
+            setPredictions(map);
+          }
+
+          if (perfData && perfData.success && Array.isArray(perfData.data)) {
+            setMonthlyPerformance(perfData.data);
+          }
         }
       } catch (err) {
-        console.error("Error loading KPI predictions", err);
+        console.error("Error loading predictions or performance data", err);
       }
     };
 
-    fetchPredictions();
+    fetchPredictionsAndPerformance();
     return () => { mounted = false; };
-  }, []);
+  }, [userKpis]);
 
   let graphData;
 
+  // Map backend monthly performance records to Recharts compatible percentage keys
+  const backendMap = {};
+  monthlyPerformance.forEach(item => {
+    const key = `${item.month}-${item.time.replace("Week ", "W")}`;
+    const targetVal = Number(item.kpi || 0);
+    const progressVal = Number(item.progress || 0);
+    const predictionVal = Number(item.prediction || 0);
+
+    const progressPct = targetVal > 0 ? Math.min(100, Math.round((progressVal / targetVal) * 100)) : 0;
+    const predictionPct = targetVal > 0 ? Math.min(100, Math.round((predictionVal / targetVal) * 100)) : 0;
+
+    backendMap[key] = {
+      ...item,
+      kpi: 100,
+      progress: progressPct,
+      prediction: predictionPct
+    };
+  });
+
   if (selectedMonth === "All") {
-    graphData = Object.values(weeklyMap);
+    graphData = monthlyPerformance.length > 0 
+      ? Object.values(backendMap) 
+      : Object.values(weeklyMap);
   } else {
     const weeks = getWeeksInMonth(selectedMonth);
 
     graphData = weeks.map((weekLabel, index) => {
       const weekNumber = index + 1;
       const key = `${selectedMonth}-W${weekNumber}`;
-      const matched = weeklyMap[key];
+      const matched = backendMap[key] || weeklyMap[key];
 
       return matched || {
         name: "Average KPI Progress",
@@ -448,6 +478,32 @@ const StaffDashboard = () => {
         kpi: 100,
         progress: 0,
         prediction: 0
+      };
+    });
+  }
+
+  // Calculate average predicted progress for all assigned KPIs from prediction service
+  let totalPredictedPercent = 0;
+  userKpis.forEach(kpi => {
+    const predVal = predictions[String(kpi.id)];
+    if (predVal !== undefined) {
+      totalPredictedPercent += predVal;
+    } else {
+      const targetVal = Number(kpi.target || 0);
+      const currentVal = Number(kpi.current || 0);
+      const progressPercent = targetVal > 0 ? Math.min(100, Math.round((currentVal / targetVal) * 100)) : 0;
+      totalPredictedPercent += Math.min(100, progressPercent + 5);
+    }
+  });
+  const averagePrediction = totalAssignedKpi > 0 ? Math.round(totalPredictedPercent / totalAssignedKpi) : 0;
+
+  // Apply smooth linear prediction trajectory across all graph points (prevents drop-offs to 0 on empty weeks)
+  if (graphData && graphData.length > 0) {
+    graphData = graphData.map((item, index) => {
+      const pointNumber = index + 1;
+      return {
+        ...item,
+        prediction: Math.min(100, Math.round((averagePrediction / graphData.length) * pointNumber))
       };
     });
   }

@@ -181,7 +181,18 @@ export const kpi = {
     }
     return await res.json();
   },
-
+  fetchStaffMonthlyPerformance: async () => {
+    const res = await fetch("/api/staff/monthly-performance", {
+      method: "GET",
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Monthly performance API error:", res.status, errText);
+      throw new Error(`Failed to fetch monthly performance. Status: ${res.status}`);
+    }
+    return await res.json();
+  },
   fetchStaffKPISubmissions: async (kpiId) => {
     const res = await fetch(`/api/staff/kpi/submissions`, {
       method: "GET",
