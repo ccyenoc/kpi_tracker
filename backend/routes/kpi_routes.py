@@ -11,6 +11,7 @@ from services.kpi_service import (
     update_kpi_progress_service,
     get_kpi_history
 )
+from services.prediction_service import get_staff_predictions
 from utils.auth_utils import require_manager
 from fastapi import Form, File, UploadFile
 from typing import List
@@ -28,7 +29,7 @@ from services.manager_service import (
     get_kpi_assignments,
     generate_report,
     export_report_data,
-    predict_kpi_outcome
+    predict_kpi_outcome as predict_kpi
 )
 
 router = APIRouter()
@@ -150,6 +151,15 @@ def get_staff_kpis_route(request: Request):
     except Exception as e:
         return {"success": False, "message": str(e)}
 
+@router.get("/staff/kpi-prediction")
+def staff_prediction(
+    request: Request
+):
+    return get_staff_predictions(
+        request
+    )
+
+
 
 # Get staff's monthly performance data
 @router.get("/staff/monthly-performance")
@@ -242,7 +252,7 @@ def predict(
     request: Request
 ):
     require_manager(request)
-    return predict_kpi_outcome(kpi_id)
+    return predict_kpi(kpi_id)
 
 
 # Download evidence files
