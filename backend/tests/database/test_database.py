@@ -148,7 +148,7 @@ async def test_crud_08_create_kpi_submission(mock_require_user, db_mock):
     mock_request = MagicMock()
     
     mock_sub_ref = MagicMock()
-    db_mock.collection("kpiSubmissions").document.return_value = mock_sub_ref
+    db_mock.collection("kpiSubmissions").document = MagicMock(return_value=mock_sub_ref)
     
     from services.kpi_service import update_kpi_progress_service
     res = await update_kpi_progress_service("kpi_123", 5.0, "Progress note", [], mock_request)
@@ -239,12 +239,14 @@ def test_di_04_kpi_completion_state_transition(db_mock):
     from services.manager_service import verify_submission
     mock_sub_doc = MagicMock()
     mock_sub_doc.exists = True
+    mock_sub_doc.id = "sub_1"
     mock_sub_doc.to_dict.return_value = {
         "submittedBy": "staff_101",
         "current": 100.0,
         "kpiId": "kpi_123"
     }
     db_mock.collection("kpiSubmissions").document("sub_1").get.return_value = mock_sub_doc
+    db_mock.collection("kpiSubmissions").where("kpiId", "==", "kpi_123").stream.return_value = [mock_sub_doc]
     
     mock_kpi_doc = MagicMock()
     mock_kpi_doc.exists = True

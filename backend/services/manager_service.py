@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from models.kpi_model import KPIStaffAssignment, AssignKPIRequest, VerifySubmissionRequest
 from pydantic import BaseModel
 from services.kpi_service import send_email
+from typing import List, Dict, Optional
+from services.prediction_service import calculate_trajectory_prediction, parse_dt
 
 UNDERPERFORMED_GAP = -25
 AT_RISK_GAP = -10
@@ -399,30 +401,11 @@ def predict_kpi_outcome(kpi_id: str) -> Dict:
         deadline = kpi_data.get("deadline")
         kpi_assignments = kpi_data.get("kpiAssignments", [])
 
-        def parse_dt(value, fallback=None):
-            """Parse any date value from Firestore into a naive datetime."""
-            if value is None:
-                return fallback
-            if isinstance(value, str):
-                # Handle Z-suffix (UTC) which fromisoformat can't parse pre-3.11
-                normalised = value.replace("Z", "+00:00").replace(".000+00:00", "+00:00")
-                try:
-                    dt = datetime.fromisoformat(normalised)
-                except ValueError:
-                    return fallback
-            elif hasattr(value, 'timestamp'):
-                dt = datetime.fromtimestamp(value.timestamp())
-            else:
-                return fallback
-            return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
-
         now = datetime.now()
-        deadline = parse_dt(deadline, now)
-        created_at = parse_dt(kpi_data.get("createdAt"), now)
+        deadline_dt = parse_dt(deadline, now)
+        created_at_dt = parse_dt(kpi_data.get("createdAt"), now)
 
-        days_remaining = max((deadline - now).days, 0)
-        total_days = max((deadline - created_at).days, 1)
-
+        days_remaining = max((deadline_dt - now).days, 0)
 
         staff_predictions = []
         overall_prediction = 0
@@ -432,11 +415,12 @@ def predict_kpi_outcome(kpi_id: str) -> Dict:
             target = assignment.get("target", 1)
             current_rate = current_progress / target if target > 0 else 0
 
-            if days_remaining > 0:
-                daily_rate = (current_rate / (total_days - days_remaining)) if (total_days - days_remaining) > 0 else 0
-                predicted_progress = min(100, (daily_rate * total_days) * 100)
-            else:
-                predicted_progress = min(100, current_rate * 100)
+            predicted_progress = calculate_trajectory_prediction(
+                current_progress,
+                target,
+                kpi_data.get("createdAt"),
+                deadline
+            )
 
             user_id = assignment.get("userId")
             user_doc = db.collection("userData").document(user_id).get()
@@ -457,14 +441,34 @@ def predict_kpi_outcome(kpi_id: str) -> Dict:
 
         average_prediction = (overall_prediction / len(staff_predictions)) if staff_predictions else 0
 
+        # Calculate weekly prediction progression data for Recharts compatibility
+        chart = []
+        overall_current = sum(a.get("current", 0.0) for a in kpi_assignments)
+        overall_target = sum(a.get("target", 1.0) for a in kpi_assignments)
+        
+        # Calculate current average progress rate (0 to 100)
+        current_rate_pct = (overall_current / overall_target * 100) if overall_target > 0 else 0
+        
+        for w in range(1, 5):
+            week_kpi = 25 * w
+            week_progress = (current_rate_pct / 4) * w
+            week_prediction = (average_prediction / 4) * w
+            chart.append({
+                "time": f"Week {w}",
+                "kpi": week_kpi,
+                "progress": round(week_progress, 2),
+                "prediction": round(week_prediction, 2)
+            })
+
         return {
             "success": True,
             "kpiId": kpi_id,
             "kpiTitle": kpi_data.get("title"),
-            "deadline": deadline.isoformat() if deadline else None,
+            "deadline": deadline_dt.isoformat() if deadline_dt else None,
             "daysRemaining": max(0, days_remaining),
             "overallPredictedProgress": round(average_prediction, 2),
             "staffPredictions": staff_predictions,
+            "chart": chart,
             "predictionGeneratedAt": datetime.now().isoformat()
         }
 
@@ -779,3 +783,20 @@ def get_underperform_kpis() -> Dict:
             "message": str(e),
             "kpis": []
         }
+
+
+# Class wrappers for unit test compatibility
+class ManagerDashboardService:
+    @staticmethod
+    def get_dashboard_stats() -> Dict:
+        return get_dashboard_stats()
+
+class SubmissionVerificationService:
+    @staticmethod
+    def verify_submission(submission_id: str, kpi_id: str, status: str, comments: str, manager_id: str) -> Dict:
+        return verify_submission(submission_id, kpi_id, status, comments, manager_id)
+
+class KPIPredictionService:
+    @staticmethod
+    def predict_kpi_outcome(kpi_id: str) -> Dict:
+        return predict_kpi_outcome(kpi_id)

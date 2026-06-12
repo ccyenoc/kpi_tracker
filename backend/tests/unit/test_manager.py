@@ -167,7 +167,7 @@ def test_get_kpis_with_filters(mock_db, mock_require_manager):
     assert result["kpis"][0]["id"] == "kpi_777"
 
 # UT-MM-10: Dashboard Stats Aggregation Calculation
-@patch('manager_service.get_db')
+@patch('services.manager_service.get_db')
 def test_get_dashboard_stats_success(mock_get_db):
     mock_db = MagicMock()
     mock_get_db.return_value = mock_db
@@ -221,7 +221,7 @@ def test_get_dashboard_stats_success(mock_get_db):
 
 # UT-MM-13: Successful Submission Approval (Updates KPI Progress)
 @patch('services.kpi_service.send_email')
-@patch('manager_service.get_db')
+@patch('services.manager_service.get_db')
 def test_verify_submission_approval_success(mock_get_db, mock_send_email):
     mock_db = MagicMock()
     mock_get_db.return_value = mock_db
@@ -287,7 +287,7 @@ def test_verify_submission_approval_success(mock_get_db, mock_send_email):
 
 # UT-MM-14: Successful Submission Rejection (Maintains Current Progress)
 @patch('services.kpi_service.send_email')
-@patch('manager_service.get_db')
+@patch('services.manager_service.get_db')
 def test_verify_submission_rejection_success(mock_get_db, mock_send_email):
     mock_db = MagicMock()
     mock_get_db.return_value = mock_db
@@ -349,7 +349,7 @@ def test_verify_submission_rejection_success(mock_get_db, mock_send_email):
 
 # UT-MM-14b: Verification Fail-safe for SMTP failures
 @patch('services.kpi_service.send_email')
-@patch('manager_service.get_db')
+@patch('services.manager_service.get_db')
 def test_verify_submission_email_failure_fail_safe(mock_get_db, mock_send_email):
     mock_send_email.side_effect = Exception("SMTP Error")
     mock_db = MagicMock()

@@ -584,14 +584,10 @@ from datetime import datetime
 def get_kpi_history(request: Request):
 
     data = get_kpis(request)
-
     kpis = data["kpis"]
 
     if not kpis:
-        return {
-            "success": True,
-            "chart": []
-        }
+        return { "success": True, "chart": [] }
 
     total_expected = 0
     total_progress = 0
@@ -665,23 +661,13 @@ def get_kpi_history(request: Request):
                 target
             ) * 100
 
-
-            gap = (
-                progress -
-                expected
+            from services.prediction_service import calculate_trajectory_prediction
+            prediction = calculate_trajectory_prediction(
+                current,
+                target,
+                kpi.get("createdAt"),
+                deadline
             )
-
-
-            prediction = max(
-    0,
-    min(
-        progress +
-        (
-            gap * 0.5
-        ),
-        100
-    )
-)
 
 
             total_expected += expected
