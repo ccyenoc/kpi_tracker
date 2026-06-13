@@ -41,7 +41,7 @@ The prediction engine analyzes historic velocity to forecast future performance 
   * **Manager Endpoint** (`GET /api/manager/kpi/{kpi_id}/predict`): Retrieves prediction metrics for all staff members assigned to a specific KPI, returning week-by-week scaled trajectory lines.
   * **Staff Endpoint** (`GET /api/staff/kpi-prediction`): Returns the current actual and predicted trajectory values for all KPIs assigned to the currently authenticated staff member.
 * **Algorithmic Logic**:
-  * The trajectory calculations determine elapsed time and compute daily progress velocity ($\text{velocity} = \text{progress} / \text{days\_elapsed}$), projecting this rate across the total assignment duration to forecast expected progress at the deadline.
+  * The trajectory calculations determine elapsed time and compute daily progress velocity , projecting this rate across the total assignment duration to forecast expected progress at the deadline.
   * To prevent division-by-zero errors on the start date of an assignment, a fallback projection multiplier of $1.1 \times \text{current}$ progress is automatically applied.
 
 ---
