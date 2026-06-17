@@ -39,9 +39,10 @@ def get_user_name(user_id):
 @router.get("/report/weekly")
 def weekly_report():
     try:
-        buffer = io.BytesIO()
-        p = canvas.Canvas(buffer, pagesize=letter)
+        # initialize the pdf canvas 
+        buffer, p = create_pdf()
 
+        # get the kpi data this week 
         data = get_weekly_kpi()
         summary = data.get("summary", {})
         kpis = data.get("kpis", [])
@@ -49,15 +50,13 @@ def weekly_report():
         width, height = letter
 
         title = "Weekly KPI Report"
-
         p.setFont("Helvetica-Bold", 16)
 
+        # get the string width 
         text_width = p.stringWidth(title, "Helvetica-Bold", 16)
-
         p.drawString((width - text_width) / 2, 750, title)
 
         p.setFont("Helvetica", 12)
-
         p.drawString(
             50,
             700,
@@ -76,75 +75,23 @@ def weekly_report():
             f"Average Progress: {summary.get('averageProgress', 0)}%"
         )
 
+        # Starting vertical coordinate (Y) for drawing individual KPI detail tables.
         y = 620
 
         p.setFont("Helvetica-Bold", 13)
         p.drawString(50, y, "KPI Details")
         y -= 25
 
+        # draw table for each kpi
         for kpi in kpis:
-            title = kpi.get("title", "No Title")
-
-            p.setFont("Helvetica-Bold", 12)
-            p.drawString(50, y, f"KPI: {title}")
-            y -= 15
-
-            p.setFont("Helvetica", 10)
-
-            description = kpi.get("description", "No description")
-
-            p.drawString(50, y, f"Description: {description}")
-            y -= 12
-
-            target = kpi.get("target", 0)
-            unit = kpi.get("unit", "")
-
-            p.drawString(50, y, f"Target: {target} {unit}")
-            y -= 12
-
-            progress = kpi.get("progress", 0)
-
-            p.drawString(50, y, f"Overall Progress: {progress}%")
-            y -= 18
-
-            p.setFont("Helvetica-Bold", 10)
-
-            p.drawString(50, y, "Staff")
-            p.drawString(200, y, "Target")
-            p.drawString(260, y, "Current")
-            p.drawString(330, y, "Progress %")
-
+            y = draw_kpi_header(p, y, kpi)
+            y = draw_staff_header(p, y)
+            y = draw_staff_rows(p, y, kpi.get("kpiAssignments", []))
             y -= 10
 
-            p.line(50, y, 400, y)
-
-            y -= 15
-
-            p.setFont("Helvetica", 10)
-
-            for a in kpi.get("kpiAssignments", []):
-                user_id = a.get("userId", "")
-                name = get_user_name(user_id)
-
-                target = a.get("target", 0)
-                current = a.get("current", 0)
-                progress = a.get("progress", 0)
-
-                p.drawString(50, y, name)
-                p.drawString(200, y, str(target))
-                p.drawString(260, y, str(current))
-                p.drawString(330, y, f"{progress}%")
-
-                y -= 15
-
-                if y < 50:
-                    p.showPage()
-                    p.setFont("Helvetica", 10)
-                    y = 750
-
-            y -= 10
-
+        # finish with this page 
         p.showPage()
+        # save everyting into a buffer
         p.save()
 
         buffer.seek(0)
@@ -165,11 +112,12 @@ def weekly_report():
 @router.get("/report/monthly")
 def monthly_report():
     try:
-        buffer = io.BytesIO()
-        p = canvas.Canvas(buffer, pagesize=letter)
+        # initialize pdf canvas
+        buffer, p = create_pdf()
 
         width, height = letter
 
+        # get the monthly kpi data 
         data = get_monthly_kpi()
 
         summary = data.get("summary", {})
@@ -210,6 +158,7 @@ def monthly_report():
             f"Average Progress: {summary.get('averageProgress', 0)}%"
         )
 
+        # starting height
         y = 600
 
         p.setFont("Helvetica-Bold", 13)
@@ -233,6 +182,7 @@ def monthly_report():
             p.drawString(320, y, f"{kpi.get('progress', 100)}%")
             y -= 15
 
+            # if it is too long then a new page
             if y < 50:
                 p.showPage()
                 y = 750
@@ -244,60 +194,9 @@ def monthly_report():
         y -= 20
 
         for kpi in active:
-            title = kpi.get("title", "No Title")
-
-            p.setFont("Helvetica-Bold", 12)
-            p.drawString(50, y, f"KPI: {title}")
-            y -= 15
-
-            p.setFont("Helvetica", 10)
-
-            description = kpi.get("description", "")
-            p.drawString(50, y, f"Description: {description}")
-            y -= 12
-
-            target = kpi.get("target", 0)
-            unit = kpi.get("unit", "")
-
-            p.drawString(50, y, f"Target: {target} {unit}")
-            y -= 12
-
-            progress = kpi.get("progress", 0)
-            p.drawString(50, y, f"Overall Progress: {progress}%")
-            y -= 18
-
-            p.setFont("Helvetica-Bold", 10)
-
-            p.drawString(50, y, "Staff")
-            p.drawString(200, y, "Target")
-            p.drawString(260, y, "Current")
-            p.drawString(330, y, "Progress %")
-
-            y -= 10
-            p.line(50, y, 400, y)
-            y -= 15
-
-            p.setFont("Helvetica", 10)
-
-            for a in kpi.get("kpiAssignments", []):
-                user_id = a.get("userId", "")
-                name = get_user_name(user_id)
-
-                target = a.get("target", 0)
-                current = a.get("current", 0)
-                progress = a.get("progress", 0)
-
-                p.drawString(50, y, name)
-                p.drawString(200, y, str(target))
-                p.drawString(260, y, str(current))
-                p.drawString(330, y, f"{progress}%")
-
-                y -= 15
-
-                if y < 50:
-                    p.showPage()
-                    y = 750
-
+            y = draw_kpi_header(p, y, kpi)
+            y = draw_staff_header(p, y)
+            y = draw_staff_rows(p, y, kpi.get("kpiAssignments", []))
             y -= 15
 
         p.showPage()
@@ -318,151 +217,78 @@ def monthly_report():
         return {"error": str(e)}
 
 
-@router.get("/report/monthly/me")
-def my_monthly_report(request: Request):
-    try:
-        current_user = get_current_user_from_request(request)
+def draw_kpi_header(p, y, kpi):
 
-        if not current_user:
-            return {"error": "Unauthorized"}
+    title = kpi.get("title", "No Title")
+    description = kpi.get("description", "")
+    target = kpi.get("target", 0)
+    unit = kpi.get("unit", "")
+    progress = kpi.get("progress", 0)
 
-        user_id = current_user.get("id")
-        user_name = get_user_name(user_id)
-        if user_name == user_id:
-            user_name = "Staff"
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, y, f"KPI: {title}")
+    y -= 15
 
-        kpi_docs = db.collection(KPI_COLLECTION).stream()
+    p.setFont("Helvetica", 10)
+    p.drawString(50, y, f"Description: {description}")
+    y -= 12
 
-        completed_kpis = []
-        active_kpis = []
+    p.drawString(50, y, f"Target: {target} {unit}")
+    y -= 12
 
-        for doc in kpi_docs:
-            data = doc.to_dict() or {}
-            data["id"] = doc.id
+    p.drawString(50, y, f"Overall Progress: {progress}%")
+    y -= 18
 
-            assignments = data.get("kpiAssignments", [])
+    return y
 
-            user_assignment = next(
-                (a for a in assignments if a.get("userId") == user_id),
-                None
-            )
+def draw_staff_header(p, y):
 
-            if not user_assignment:
-                continue
+    p.setFont("Helvetica-Bold", 10)
 
-            target = user_assignment.get("target", 1)
-            current_val = user_assignment.get("current", 0)
+    p.drawString(50, y, "Staff")
+    p.drawString(200, y, "Target")
+    p.drawString(260, y, "Current")
+    p.drawString(330, y, "Progress %")
 
-            progress = round(
-                (current_val / target) * 100,
-                2
-            ) if target > 0 else 0
+    y -= 10
 
-            kpi_entry = {
-                "title": data.get("title", ""),
-                "description": data.get("description", ""),
-                "target": target,
-                "unit": data.get("unit", ""),
-                "current": current_val,
-                "progress": progress,
-                "status": data.get("status", ""),
-                "deadline": data.get("deadline", ""),
-            }
+    p.line(50, y, 400, y)
 
-            if data.get("status") == "completed":
-                completed_kpis.append(kpi_entry)
-            else:
-                active_kpis.append(kpi_entry)
+    y -= 15
 
-        buffer = io.BytesIO()
-        p = canvas.Canvas(buffer, pagesize=letter)
+    return y
 
-        width, height = letter
+def draw_staff_rows(p, y, assignments):
 
-        title_text = f"Monthly Performance Report - {user_name}"
+    p.setFont("Helvetica", 10)
 
-        p.setFont("Helvetica-Bold", 15)
+    for a in assignments:
 
-        text_width = p.stringWidth(
-            title_text,
-            "Helvetica-Bold",
-            15
-        )
+        user_id = a.get("userId", "")
+        name = get_user_name(user_id)
 
-        p.drawString((width - text_width) / 2, 750, title_text)
+        target = a.get("target", 0)
+        current = a.get("current", 0)
+        progress = a.get("progress", 0)
 
-        total = len(completed_kpis) + len(active_kpis)
+        p.drawString(50, y, name)
+        p.drawString(200, y, str(target))
+        p.drawString(260, y, str(current))
+        p.drawString(330, y, f"{progress}%")
 
-        avg = round(
-            sum(
-                k["progress"]
-                for k in completed_kpis + active_kpis
-            ) / total,
-            2
-        ) if total else 0
+        y -= 15
 
-        p.setFont("Helvetica", 12)
+        if y < 50:
+            p.showPage()
+            y = 750
 
-        p.drawString(50, 710, f"Total KPIs: {total}")
-        p.drawString(50, 692, f"Completed: {len(completed_kpis)}")
-        p.drawString(50, 674, f"Active: {len(active_kpis)}")
-        p.drawString(50, 656, f"Average Progress: {avg}%")
+    return y
 
-        y = 625
+def create_pdf():
+    buffer = io.BytesIO() # in-memory byte buffer 
+    pdf= canvas.Canvas(
+        buffer, 
+        pagesize=letter # letter size
+    )
 
-        def draw_kpi_table(kpi_list, section_title):
-            nonlocal y
-
-            p.setFont("Helvetica-Bold", 13)
-            p.drawString(50, y, section_title)
-
-            y -= 20
-
-            p.setFont("Helvetica-Bold", 10)
-
-            p.drawString(50, y, "KPI Title")
-            p.drawString(260, y, "Target")
-            p.drawString(320, y, "Current")
-            p.drawString(390, y, "Progress %")
-
-            y -= 10
-
-            p.line(50, y, 480, y)
-
-            y -= 15
-
-            p.setFont("Helvetica", 10)
-
-            for kpi in kpi_list:
-                p.drawString(50, y, kpi["title"][:30])
-                p.drawString(260, y, f"{kpi['target']} {kpi['unit']}")
-                p.drawString(320, y, str(kpi["current"]))
-                p.drawString(390, y, f"{kpi['progress']}%")
-
-                y -= 15
-
-                if y < 60:
-                    p.showPage()
-                    y = 750
-
-            y -= 15
-
-        draw_kpi_table(completed_kpis, "Completed KPIs")
-        draw_kpi_table(active_kpis, "Active KPIs")
-
-        p.showPage()
-        p.save()
-
-        buffer.seek(0)
-
-        return StreamingResponse(
-            buffer,
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"attachment; filename=monthly_report_{user_name.replace(' ', '_')}.pdf"
-            }
-        )
-
-    except Exception as e:
-        print("ERROR:", e)
-        return {"error": str(e)}
+    return buffer, pdf
