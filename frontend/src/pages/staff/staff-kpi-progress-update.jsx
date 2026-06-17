@@ -77,7 +77,7 @@ const StaffKPIUpdate = () => {
     deadline,
     latestSubmissionStatus
   }) => {
-   // show pending approval first
+   //show pending approval first
     if (latestSubmissionStatus === "pending") {
       return {
         status: "pending",
@@ -85,7 +85,7 @@ const StaffKPIUpdate = () => {
       };
     }
 
-    // target completed by this staff
+    //target completed by this staff
     if (progress >= 100) {
       return {
         status: "completed",
@@ -97,7 +97,7 @@ const StaffKPIUpdate = () => {
     const deadlineDate = toDate(deadline);
     const today = new Date();
 
-    // handle missing dates
+    //handle missing dates
     if (!startDate || !deadlineDate || deadlineDate <= startDate) {
       return {
         status: progress > 0 ? "in_progress" : "in_progress",
@@ -116,7 +116,7 @@ const StaffKPIUpdate = () => {
       Math.round((elapsedDuration / totalDuration) * 100)
     );
 
-   // overdue and still incomplete
+   //overdue and still incomplete
     if (today > deadlineDate) {
       return {
         status: "underperformed",
@@ -165,7 +165,7 @@ const StaffKPIUpdate = () => {
     categories.map((c) => [c.id, c])
   );
 
-  // group submissions by KPI instead of keeping only one
+  //group submissions by KPI instead of keeping only one
   const submissionMap = submissions.reduce((map, submission) => {
     const key = submission.kpiId;
     if (!key) return map;

@@ -1,23 +1,27 @@
 from fastapi import APIRouter, Request
 from models.kpi_model import KPICreate, KPIUpdate, AssignKPIRequest
-from services.kpi_service import ( get_kpis, get_kpi, get_staff_kpis, get_staff_kpi_submissions, create_kpi, update_kpi, delete_kpi, update_kpi_progress_service, get_kpi_history )
+from services.kpi_service import (
+    get_kpis,
+    get_kpi,
+    get_staff_kpis,
+    get_staff_kpi_submissions,
+    create_kpi,
+    update_kpi,
+    delete_kpi,
+    update_kpi_progress_service,
+    get_kpi_history
+)
 from services.prediction_service import get_staff_predictions
-from services.auth_service import get_current_user_from_request
 from utils.auth_utils import require_manager
 from fastapi import Form, File, UploadFile
 from typing import List
 import sys
 import os
-from config.firebase_config import db
-from firebase_secure import KPI_COLLECTION
-from datetime import datetime, timedelta
-
+import json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from services.manager_service import (
     get_dashboard_stats as get_dashboard_stats_service,
     get_all_submissions,
-    get_pending_submissions,
     verify_submission as verify_submission_service,
     get_at_risk_kpis as get_at_risk_kpis_service,
     get_underperform_kpis as get_underperform_kpis_service,
@@ -27,18 +31,25 @@ from services.manager_service import (
     export_report_data,
     predict_kpi_outcome as predict_kpi
 )
+from config.firebase_config import db
+from firebase_secure import KPI_COLLECTION
+from datetime import datetime, timedelta
+from services.auth_service import get_current_user_from_request
 
 router = APIRouter()
 
-# get all manager's created kpi
+# get all kpis
 @router.get("/manager/kpis")
 def view_all_kpis(request: Request):
     return get_kpis(request)
 
 
+# get single kpi endpoint
+from fastapi import Form, File, UploadFile
+from typing import List
 
 
-# get a single kpi created by manager
+# get single kpi endpoint
 @router.get("/manager/kpi")
 def view_kpis(request: Request):
     return get_kpis(request)
@@ -72,12 +83,14 @@ def delete(kpi_id: str, request: Request):
     return delete_kpi(kpi_id, request)
 
 
+# Manager Dashboard Stats (aggregated KPI data and staff rankings)
 @router.get("/manager/dashboard/stats")
 def get_dashboard_stats(request: Request):
     result = get_dashboard_stats_service()
     return result
 
 
+# get all kpi submissions
 @router.get("/kpi/submissions")
 def get_submissions(request: Request):
     result = get_all_submissions()
@@ -90,39 +103,38 @@ def get_submissions(request: Request):
     return result
 
 
+#at-risk kpi: 50% to 80% 
 @router.get("/kpi/at-risk")
 def get_at_risk_kpis(request: Request):
     result = get_at_risk_kpis_service()
     return result
 
 
+#underperforming kpi: below 50%
 @router.get("/kpi/underperform")
 def get_underperform_kpis(request: Request):
     result = get_underperform_kpis_service()
     return result
 
+# staff assigned kpis
 @router.get("/staff/kpis")
 def get_staff_kpis_route(request: Request):
-    
+    from services.auth_service import get_current_user_from_request
     try:
         current_user = get_current_user_from_request(request)
         if not current_user:
             return {"success": False, "message": "Unauthorized"}
         
         user_id = current_user.get("id")
-    
-        
         kpis_ref = db.collection(KPI_COLLECTION).stream()
         staff_kpis = []
-        
+
         for doc in kpis_ref:
             kpi_data = doc.to_dict()
             kpi_data["id"] = doc.id
-            
-            # Check if current user is in the assigned staff
             assignments = kpi_data.get("kpiAssignments", [])
             user_assignment = next((a for a in assignments if a.get("userId") == user_id), None)
-            
+    
             if user_assignment:
                 kpi_data["userAssignment"] = user_assignment
                 kpi_data["userTarget"] = user_assignment.get("target", 0)
@@ -136,6 +148,7 @@ def get_staff_kpis_route(request: Request):
     except Exception as e:
         return {"success": False, "message": str(e)}
 
+
 @router.get("/staff/kpi-prediction")
 def staff_prediction(
     request: Request
@@ -145,32 +158,26 @@ def staff_prediction(
     )
 
 
-
-# Get staff's monthly performance data
+#staff monthly performance data
 @router.get("/staff/monthly-performance")
 def get_staff_monthly_performance(request: Request):
-    from services.auth_service import get_current_user_from_request
     try:
         current_user = get_current_user_from_request(request)
         if not current_user:
             return {"success": False, "message": "Unauthorized"}
         
         user_id = current_user.get("id")
-        
         kpis_ref = db.collection(KPI_COLLECTION).stream()
         monthly_data = {}
-        
         for doc in kpis_ref:
             kpi_data = doc.to_dict()
-            
             assignments = kpi_data.get("kpiAssignments", [])
             user_assignment = next((a for a in assignments if a.get("userId") == user_id), None)
             
             if not user_assignment:
                 continue
-        
-            submissions_ref = db.collection("kpiSubmissions").where("kpiId", "==", doc.id).where("userId", "==", user_id).stream()
             
+            submissions_ref = db.collection("kpiSubmissions").where("kpiId", "==", doc.id).where("userId", "==", user_id).stream()
             for submission_doc in submissions_ref:
                 submission = submission_doc.to_dict()
                 submitted_date = submission.get("submittedAt")
@@ -197,7 +204,6 @@ def get_staff_monthly_performance(request: Request):
                 
                 target = user_assignment.get("target", 0)
                 current = submission.get("current", 0)
-                
                 monthly_data[key]["kpi"] += target
                 monthly_data[key]["progress"] += current
                 monthly_data[key]["prediction"] += current + 5  # Simple prediction
@@ -233,12 +239,11 @@ def predict(
     return predict_kpi(kpi_id)
 
 
-# Download evidence files
+# download evidence files
 @router.get("/kpi/evidence/{file_name}")
 def download_evidence(file_name: str):
     from fastapi.responses import FileResponse
     try:
-        # Ensure file_name doesn't contain path traversal attacks
         if ".." in file_name or "/" in file_name or "\\" in file_name:
             return {"success": False, "message": "Invalid file name"}
         
@@ -263,12 +268,11 @@ def list_evidence_files():
     except Exception as e:
         return {"success": False, "message": str(e)}
 
+
+# approve or reject a submission
 @router.post("/kpi/verify-submission")
 async def verify_submission(request: Request):
     try:
-        from services.auth_service import get_current_user_from_request
-        import json
-        
         try:
             decoded = get_current_user_from_request(request)
             manager_id = decoded.get("id") or decoded.get("user_id")
@@ -286,7 +290,7 @@ async def verify_submission(request: Request):
         
         if status not in ["approved", "rejected"]:
             return {"success": False, "message": "Invalid status"}
-        
+ 
         result = verify_submission_service(
             submission_id, kpi_id, status, comments, manager_id
         )
@@ -300,6 +304,8 @@ async def verify_submission(request: Request):
 def view_staff_kpi_submissions(request: Request):
     return get_staff_kpi_submissions(request)
 
+
+# assign kpi to staff 
 @router.post("/manager/kpi/{kpi_id}/assign")
 def assign_kpi(kpi_id: str, assign_data: AssignKPIRequest, request: Request):
     decoded = require_manager(request)
@@ -307,16 +313,21 @@ def assign_kpi(kpi_id: str, assign_data: AssignKPIRequest, request: Request):
     return assign_kpi_to_staff(kpi_id, assign_data.assignments, manager_id)
 
 
+# get kpi assignment details
 @router.get("/manager/kpi/{kpi_id}/assignments")
 def get_assignments(kpi_id: str, request: Request):
     require_manager(request)
     return get_kpi_assignments(kpi_id)
 
+
+# generate pi performance report as JSON
 @router.get("/manager/kpi/{kpi_id}/report")
 def get_kpi_report(kpi_id: str, request: Request):
     require_manager(request)
     return generate_report(kpi_id)
 
+
+# export kpi performance report as CSV
 @router.get("/manager/kpi/{kpi_id}/report/csv")
 def export_kpi_report(kpi_id: str, request: Request):
     require_manager(request)

@@ -50,7 +50,7 @@ const StaffDashboard = () => {
     deadline,
     latestSubmissionStatus
   }) => {
-    // Pending submission should be shown first
+    // pending submission shown first
     if (latestSubmissionStatus === "pending") {
       return {
         status: "pending",
@@ -58,7 +58,7 @@ const StaffDashboard = () => {
       };
     }
 
-   // Staff has completed their assigned target
+   // staff completed assigned target
     if (progress >= 100) {
       return {
         status: "completed",
@@ -70,7 +70,7 @@ const StaffDashboard = () => {
     const deadlineDate = toDate(deadline);
     const today = new Date();
 
-    // Use a default value if the date is missing
+    // use default value if date missing
     if (!startDate || !deadlineDate || deadlineDate <= startDate) {
       return {
         status: progress > 0 ? "in_progress" : "in_progress",
@@ -89,7 +89,7 @@ const StaffDashboard = () => {
       Math.round((elapsedDuration / totalDuration) * 100)
     );
 
-     // KPI is overdue and still not completed
+     // kpi overdue and still not completed
     if (today > deadlineDate) {
       return {
         status: "underperformed",
@@ -200,7 +200,7 @@ const StaffDashboard = () => {
     return map;
   }, {});
 
-  const assignedKpis = kpis
+  const userKpis = kpis
     .filter(kpi => {
       const assignedUserIds = kpi.assignedUserIds || [];
       const kpiAssignments = kpi.kpiAssignments || [];
@@ -281,15 +281,15 @@ const StaffDashboard = () => {
     });
 
   const kpiTitleMap = Object.fromEntries(
-    assignedKpis.map((kpi) => [
+    userKpis.map((kpi) => [
       String(kpi.id),
       kpi.title || kpi.name || kpi.kpiName || "KPI Activity"
     ])
   );
 
-  const recentActivities = submissions
+  const userActivities = submissions
     .filter((submission) => {
-      return assignedKpis.some(
+      return userKpis.some(
         (kpi) => String(kpi.id) === String(submission.kpiId)
       );
     })
@@ -343,12 +343,12 @@ const StaffDashboard = () => {
     return Math.ceil(day / 7);
   };
 
-  const dashboardKpis = assignedKpis;
+  const dashboardKpis = userKpis;
   const totalAssignedKpi = dashboardKpis.length;
 
   const weeklyMap = {};
 
-  assignedKpis.forEach(kpi => {
+  userKpis.forEach(kpi => {
     const history = submissionMap[kpi.id] || [];
 
     const sortedHistory = [...history].sort(
@@ -585,7 +585,7 @@ const StaffDashboard = () => {
               minWidth: 0,
               maxHeight: "500px",
             }}>
-            <StaffKPIAssignedCard kpis={assignedKpis} onUpdate={goUpdate} />
+            <StaffKPIAssignedCard kpis={userKpis} onUpdate={goUpdate} />
           </div>
         </div>
 
@@ -598,7 +598,7 @@ const StaffDashboard = () => {
             marginBottom: "40px",
             position: "relative"
           }}>
-          <StaffRecentActivity recentActivities={recentActivities} />
+          <StaffRecentActivity userActivities={userActivities} />
         </div>
 
       </div>
