@@ -45,10 +45,6 @@ router = APIRouter()
 def view_all_kpis(request: Request):
     return get_kpis(request)
 
-
-# get single kpi endpoin
-
-
 # get single kpi endpoint
 @router.get("/manager/kpi")
 def view_kpis(request: Request):
