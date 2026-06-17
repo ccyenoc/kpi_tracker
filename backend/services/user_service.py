@@ -112,5 +112,5 @@ def get_all_staff():
         return staff
 
     except Exception as e:
-        print("🔥 ERROR in /staff:", e)
+        print("ERROR in /staff:", e)
         raise e

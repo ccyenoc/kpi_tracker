@@ -102,7 +102,7 @@ def test_logout_auth_route_success(mock_logout, client):
     }
     
     headers = {"Authorization": "Bearer mock_jwt_token"}
-    response = client.post("/api/auth/logout", headers=headers)
+    response = client.post("/api/logout", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True

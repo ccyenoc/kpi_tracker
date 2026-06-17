@@ -4,7 +4,7 @@ AchievePro is a Key Performance Indicator (KPI) monitoring and analytics platfor
 
 ---
 
-## 🏗️ System Architecture & Data Flow Pipelines
+## System Architecture & Data Flow Pipelines
 
 ### 1. Email Notification Pipeline
 This pipeline notifies users when progress updates are submitted or verified. It relies on standard SMTP configuration settings stored in environment variables.
@@ -46,7 +46,7 @@ The prediction engine analyzes historic velocity to forecast future performance 
 
 ---
 
-## 🔒 Security & Authorization Model
+## Security & Authorization Model
 
 ### 1. Stateful Session Management
 * During JWT verification, `verify_jwt_token` checks the token's unique identifier (`jti`) against a live Firestore document in the `sessions` collection.
@@ -58,18 +58,18 @@ The prediction engine analyzes historic velocity to forecast future performance 
 
 ---
 
-## 📋 API Endpoints Specification
+## API Endpoints Specification
 
 | Method | Endpoint | Access Role | Description |
 | :--- | :--- | :--- | :--- |
-| **POST** | `/api/auth/register` | Public | Registers a new user (`staff` or `manager`). |
-| **POST** | `/api/auth/login` | Public | Authenticates credentials, generates JWT token, and registers session. |
-| **POST** | `/api/auth/logout` | Authenticated | Revokes current JWT session. |
+| **POST** | `/api/register` | Public | Registers a new user (`staff` or `manager`). |
+| **POST** | `/api/login` | Public | Authenticates credentials, generates JWT token, and registers session. |
+| **POST** | `/api/logout` | Authenticated | Revokes current JWT session. |
 | **GET** | `/api/manager/kpis` | Manager | Retrieves all KPI records with filters. |
-| **GET** | `/api/manager/kpi` | Manager | Retrieves a single KPI document. |
-| **POST** | `/api/manager/kpi/create` | Manager | Creates a new KPI and sends assignment notifications. |
-| **PUT** | `/api/manager/kpi/update/{kpi_id}` | Manager | Updates fields of a specific KPI document. |
-| **DELETE** | `/api/manager/kpi/delete/{kpi_id}` | Manager | Deletes a KPI and cascades assignments. |
+| **GET** | `/api/manager/kpi/{kpi_id}` | Manager | Retrieves a single KPI document. |
+| **POST** | `/api/manager/kpi` | Manager | Creates a new KPI and sends assignment notifications. |
+| **PUT** | `/api/manager/kpi/{kpi_id}` | Manager | Updates fields of a specific KPI document. |
+| **DELETE** | `/api/manager/kpi/{kpi_id}` | Manager | Deletes a KPI and cascades assignments. |
 | **GET** | `/api/manager/kpi/{kpi_id}/predict` | Manager | Estimates KPI trajectory and status mapping for assigned staff. |
 | **GET** | `/api/staff/kpi` | Staff | Retrieves KPIs assigned to the authenticated staff member. |
 | **GET** | `/api/staff/kpi-prediction` | Staff | Gets current and predicted outcomes for staff KPIs. |
@@ -81,12 +81,40 @@ The prediction engine analyzes historic velocity to forecast future performance 
 
 ---
 
-## ⚙️ Installation & Setup
+## Installation & Setup
 
-### Prerequisite Environment
-Create a `.env` configuration file in the `backend/` directory:
+### Prerequisite 1: Firebase & Firestore Database Setup
+AchievePro uses Firebase Firestore for data storage. You need to configure a Firebase Project:
+1. Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
+2. Enable **Firestore Database** in your project.
+3. Register a new **Web App** in the project settings.
+4. Download the **Service Account Credentials file**:
+   * Navigate to **Project Settings** > **Service Accounts**.
+   * Click **Generate New Private Key**.
+   * Save the downloaded `.json` file as `serviceAccountKey.json` inside the `backend/` directory. (This file is mandatory for backend Firebase Admin SDK initialization).
+
+---
+
+### Prerequisite 2: Environment Configurations (.env)
+
+#### 1. Backend Environment Variables (`backend/.env`)
+Create a `.env` file in the `backend/` directory (you can copy from `backend/.env.example`) and fill in the values:
 ```env
-JWT_SECRET_KEY=your_jwt_secret_key
+# Firebase settings (REQUIRED - copy from Firebase web app SDK config)
+FIREBASE_API_KEY=your_firebase_api_key_here
+FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+FIREBASE_DATABASE_URL=https://your-project-rtdb.region.firebasedatabase.app
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+FIREBASE_APP_ID=your_firebase_app_id
+FIREBASE_MEASUREMENT_ID=your_measurement_id
+SERVICE_ACCOUNT_KEY_PATH=serviceAccountKey.json
+
+# Session secret
+JWT_SECRET_KEY=your_jwt_secret_key_here
+
+# SMTP Email settings (REQUIRED for system notifications & email verification)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
@@ -95,7 +123,50 @@ SMTP_FROM=your_email@gmail.com
 SMTP_USE_TLS=true
 ```
 
-### 1. Running the Backend Server
+#### 2. Frontend Environment Variables (`frontend/.env`)
+Create a `.env` file in the `frontend/` directory (you can copy from `frontend/.env.example`) and fill in the Firebase public API values:
+```env
+# Firebase settings for frontend
+VITE_FIREBASE_API_KEY=your_firebase_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_DATABASE_URL=https://your-project-rtdb.region.firebasedatabase.app
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_firebase_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+---
+
+### Prerequisite 3: CORS & Network Configuration (IP Addresses)
+
+* **Localhost Development (Default)**:
+  * Backend runs on `http://localhost:8000`.
+  * Frontend runs on `http://localhost:5173`.
+  * The frontend uses Vite's built-in dev proxy (`frontend/vite.config.js`) to route `/api` to the backend. This proxies calls locally and avoids CORS issues.
+  * In the backend, the CORS middleware (`backend/main.py`) allows requests from standard React/Vite development ports (`5173`, `5174`, `3000`).
+
+* **Network Sharing / Testing on Other Devices (IP Setup)**:
+  If you want to access the frontend from other devices on the same Wi-Fi network (e.g., testing on a mobile device at `http://192.168.x.x:5173`):
+  1. **Expose the Frontend**: Start the Vite server binding to all interfaces:
+     ```bash
+     npm run dev -- --host
+     ```
+  2. **Allow Network Access in Backend CORS**: If your frontend calls the backend IP directly (instead of through the relative `/api` proxy), you must update the `allow_origins` list in `backend/main.py` to include your computer's local IP address:
+     ```python
+     allow_origins=[
+         "http://192.168.x.x:5173", # Add your local network IP here
+         "http://localhost:5173",
+         ...
+     ]
+     ```
+
+---
+
+### Running the System
+
+#### 1. Running the Backend Server
 1. Navigate to the backend directory:
    ```bash
    cd backend
@@ -113,8 +184,9 @@ SMTP_USE_TLS=true
    ```bash
    python main.py
    ```
+   *Note: The backend automatically creates an `uploads/` directory inside `backend/` to save evidence files submitted by staff members. Ensure the backend process has write permissions.*
 
-### 2. Running the Frontend Client
+#### 2. Running the Frontend Client
 1. Navigate to the frontend directory:
    ```bash
    cd frontend

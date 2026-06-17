@@ -1,12 +1,13 @@
+# this is a helper file that helps in testing 
+# this does not involve in the project logic
+
 from fastapi import Request
 from typing import Dict
 
 def get_kpi(kpi_id: str, request: Request):
-    """Retrieve KPI data. This is typically mocked in tests."""
     pass
 
 def predict_kpi(kpi_id: str, request: Request) -> Dict:
-    """Predict KPI outcome based on progress."""
     kpi_response = get_kpi(kpi_id, request)
     if not kpi_response or "kpi" not in kpi_response:
         return {"success": False, "message": "KPI not found"}

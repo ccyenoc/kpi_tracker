@@ -36,7 +36,7 @@ async function requestBlob(method, path) {
   return blob;
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// Auth
 export const auth = {
   sendVerificationEmail: async (email) => {
     const response = await fetch(`${BASE}/api/verify-email`, {
@@ -118,7 +118,7 @@ export const auth = {
   fetchCurrentUser: () => request("GET", "/api/user"),
 };
 
-// ── Users ─────────────────────────────────────────────────────────────────────
+// Users
 export const user = {
   fetchAll: () => request("GET", "/api/users"),
 
@@ -133,9 +133,9 @@ export const user = {
   getAllStaff: () => request("GET", "/api/staff"),
 }
 
-// ── KPIs ─────────────────────────────────────────────────────────────────────
+// KPIs
 export const kpi = {
-  // ── Manager ──────────────────────────────────────────────────────────────────
+  // Manager
   fetchManagerKPIs: () => request("GET", "/api/manager/kpis"),
 
   fetchKPIById: (kpiId) => request("GET", `/api/manager/kpi/${kpiId}`),
@@ -155,7 +155,7 @@ export const kpi = {
 
   fetchKPIHistory: () => request("GET", `/api/manager/kpi/history`),
 
-  // ── Staff ──────────────────────────────────────────────────────────────────
+  // Staff
   fetchStaffKPIs: async () => {
     const res = await fetch("/api/staff/kpi", {
       method: "GET",
@@ -195,17 +195,17 @@ export const kpi = {
     return await res.json();
   },
 
-  // ── KPI Prediction ────────────────────────────────────────────────────────────
+  // KPI Prediction
   fetchKPIPrediction: (kpiId) => request("GET", `/api/manager/kpi/${kpiId}/predict`),
 
   fetchStaffKPIPrediction: (kpiId) => request("GET", `/api/staff/kpi/`),
 
-  // ── KPI Status (at-risk and underperformed) ───────────────────────────────────
+  // KPI Status (at-risk and underperformed)
   fetchAtRiskKPIs: () => request("GET", "/api/kpi/at-risk"),
 
   fetchUnderperformKPIs: () => request("GET", "/api/kpi/underperform"),
 
-  // ── Submissions ───────────────────────────────────────────────────────────────
+  // Submissions
   fetchSubmissions: () => request("GET", "/api/kpi/submissions"),
 
   approveSubmission: (submissionId, note = "") =>
@@ -214,18 +214,18 @@ export const kpi = {
   returnSubmission: (submissionId, note = "") =>
     request("POST", `/api/kpi/submissions/${submissionId}/return`, { note }),
 
-  // ── Staff KPI progress update (multipart) ─────────────────────────────────────
+  // Staff KPI progress update (multipart)
   submitKPIProgress: async (form) => request("POST", "/api/kpi/update", form),
 };
 
 export const util = {
-  // ── Categories ────────────────────────────────────────────────────────────────
+  // Categories
   fetchCategories: () => request("GET", "/api/categories"),
 
-  // ── Manager dashboard aggregated stats ────────────────────────────────────────
+  // Manager dashboard aggregated stats
   fetchManagerDashboardStats: () => request("GET", "/api/manager/dashboard/stats"),
 
-  // ── Staff ranking (computed from dashboard stats) ─────────────────────────────
+  // Staff ranking (computed from dashboard stats)
   fetchStaffRankings: () => util.fetchManagerDashboardStats().then((d) => ({
     success: true,
     rankings: d.staffRankings || [],

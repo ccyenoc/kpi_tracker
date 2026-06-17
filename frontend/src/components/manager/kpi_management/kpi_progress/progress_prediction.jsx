@@ -1,7 +1,7 @@
 function ProgressKPIPrediction({ overallPredictedProgress, daysRemaining, staffPredictions }) {
   if (overallPredictedProgress === undefined || overallPredictedProgress === null) return null;
 
-  // Compute overall status message
+  //  overall status message
   let overall = "";
   if (overallPredictedProgress >= 80) {
     overall = `Overall KPI status is On Track! (Prediction: ${overallPredictedProgress}%)`;
@@ -27,7 +27,7 @@ function ProgressKPIPrediction({ overallPredictedProgress, daysRemaining, staffP
   const isYellow = overallPredictedProgress >= 50 && overallPredictedProgress < 80;
 
   return (
-    <div style={{ width: "100%", marginBottom: "20px" }}>
+    <div style={{ flex: 1, minWidth: 0, paddingRight: "20px" }}>
       {/* Title */}
       <h3 style={{ fontSize: "16px", fontWeight: "bold" }}>
         KPI Progress Prediction
@@ -36,7 +36,7 @@ function ProgressKPIPrediction({ overallPredictedProgress, daysRemaining, staffP
         Prediction of KPI Status ({daysRemaining} days remaining)
       </p>
 
-      {/* ✅ OVERALL STATUS */}
+      {/* OVERALL STATUS */}
       {overall && (
         <div style={{
           display: "flex",
@@ -57,7 +57,7 @@ function ProgressKPIPrediction({ overallPredictedProgress, daysRemaining, staffP
         </div>
       )}
 
-      {/* ⚠️ WARNINGS LIST */}
+      {/* WARNINGS LIST */}
       {warnings.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {warnings.map((warn, index) => (
@@ -82,7 +82,7 @@ function ProgressKPIPrediction({ overallPredictedProgress, daysRemaining, staffP
         </div>
       )}
 
-      {/* 🎉 No warnings fallback */}
+      {/* No warnings fallback */}
       {warnings.length === 0 && (
         <div style={{
           fontSize: "13px",
