@@ -16,12 +16,12 @@ from services.prediction_service import calculate_trajectory_prediction
 
 import os , smtplib , threading
 
-SMTP_HOST = os.getenv("SMTP_HOST", "")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
-SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() in ("1", "true", "yes", "on")
+SMTP_HOST = os.getenv("SMTP_HOST", "") # address of mail server
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587")) # port number 
+SMTP_USER = os.getenv("SMTP_USER", "") # login details of system's email submission
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "") # login details of system's email submission
+SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER) # sender's email address
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() in ("1", "true", "yes", "on") # to determine the connection should be encrypted or not 
 
 
 def get_kpis(request: Request):
@@ -398,18 +398,9 @@ def get_monthly_kpi():
         raise HTTPException(status_code=500, detail=str(e))
     
 def send_kpi_assignment_email(to_email, staff_name, kpi_title, deadline):
-    if not SMTP_HOST or not SMTP_USER or not SMTP_PASSWORD or not SMTP_FROM:
-        raise HTTPException(
-            status_code=500,
-            detail="SMTP not configured properly"
-        )
 
-    msg = EmailMessage()
-    msg["Subject"] = f"New KPI Assigned: {kpi_title}"
-    msg["From"] = SMTP_FROM
-    msg["To"] = to_email
-
-    msg.set_content(
+    subject = f"New KPI Assigned: {kpi_title}"
+    content = (
         f"Hi {staff_name},\n\n"
         f"You have been assigned a new KPI:\n\n"
         f"Title: {kpi_title}\n"
@@ -417,26 +408,9 @@ def send_kpi_assignment_email(to_email, staff_name, kpi_title, deadline):
         f"Please log in to view details.\n\n"
         f"Best regards,\nKPI System"
     )
-
-    try:
-        print("Connecting to SMTP...")
-
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-            if SMTP_USE_TLS:
-                server.starttls()
-
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
-
-        print("Email sent to", to_email)
-
-    except Exception as e:
-        print("Email error:", e)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to send KPI email: {str(e)}"
-        )
     
+    send_email(to_email, subject, content)
+
 #for the staff submission
 def get_kpi_by_id(kpi_id):
     doc = db.collection(KPI_COLLECTION).document(kpi_id).get()
@@ -564,11 +538,14 @@ def send_email(to_email, subject, content):
     try:
         print("Connecting to SMTP...")
 
+        # open network connection to te email server (port 587)
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+            
             if SMTP_USE_TLS:
-                server.starttls()
-
-            server.login(SMTP_USER, SMTP_PASSWORD)
+                server.starttls() #upgrade connection to use encrypted tls encryption 
+            
+            # login into the account
+            server.login(SMTP_USER, SMTP_PASSWORD) 
             server.send_message(msg)
 
         print("Email sent to", to_email)
