@@ -77,7 +77,7 @@ const StaffKPIUpdate = () => {
     deadline,
     latestSubmissionStatus
   }) => {
-    // A submitted update waiting for manager approval has priority
+   // show pending approval first
     if (latestSubmissionStatus === "pending") {
       return {
         status: "pending",
@@ -85,7 +85,7 @@ const StaffKPIUpdate = () => {
       };
     }
 
-    // Individual staff completed their own assigned target
+    // target completed by this staff
     if (progress >= 100) {
       return {
         status: "completed",
@@ -97,7 +97,7 @@ const StaffKPIUpdate = () => {
     const deadlineDate = toDate(deadline);
     const today = new Date();
 
-    // Fallback when dates are unavailable
+    // handle missing dates
     if (!startDate || !deadlineDate || deadlineDate <= startDate) {
       return {
         status: progress > 0 ? "in_progress" : "in_progress",
@@ -116,7 +116,7 @@ const StaffKPIUpdate = () => {
       Math.round((elapsedDuration / totalDuration) * 100)
     );
 
-    // Deadline already passed but this staff member is not completed
+   // overdue and still incomplete
     if (today > deadlineDate) {
       return {
         status: "underperformed",
