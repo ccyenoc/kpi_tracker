@@ -78,7 +78,7 @@ function RectangleGraphCard() {
           fontSize: "14px",
         }}
       >
-        Expected vs Actual vs Forecast
+        Actual vs Forecast
       </h5>
 
 
@@ -95,36 +95,17 @@ function RectangleGraphCard() {
           height="100%"
         >
 
-          <LineChart
-            data={data}
-          >
+          <LineChart data={data} >
 
-            <CartesianGrid
-              strokeDasharray="3 3"
-            />
+            <CartesianGrid strokeDasharray="3 3" />
 
-            <XAxis
-              dataKey="time"
-            />
+            <XAxis dataKey="time" />
 
-            <YAxis
-              domain={[0, 100]}
-            />
+            <YAxis domain={[0, 100]} />
 
             <Tooltip />
 
             <Legend />
-
-
-
-            <Line
-              type="monotone"
-              dataKey="kpi"
-              stroke="#2563eb"
-              name="Expected"
-            />
-
-
 
             <Line
               type="monotone"

@@ -2,6 +2,7 @@ from firebase_admin import firestore
 from datetime import datetime, timezone
 from models.kpi_model import KPIStaffAssignment, AssignKPIRequest, VerifySubmissionRequest
 from pydantic import BaseModel
+from firebase_secure import KPI_COLLECTION
 from services.kpi_service import send_email
 from typing import List, Dict, Optional
 from services.prediction_service import calculate_trajectory_prediction, parse_dt
@@ -406,14 +407,26 @@ def predict_kpi_outcome(kpi_id: str) -> Dict:
         created_at_dt = parse_dt(kpi_data.get("createdAt"), now)
 
         days_remaining = max((deadline_dt - now).days, 0)
+        elapsed_day = max((now - created_at_dt).days,0)
 
-        staff_predictions = []
+        total_days = max((deadline_dt - created_at_dt).days,0)
+        expected_pct = min( (elapsed_day / total_days) * 100, 100 )
+
+        staff_predictions = [] # this is for the status prediction purpose
         overall_prediction = 0
+        overall_current = 0.0  
+        overall_target = 0.0 
+
 
         for assignment in kpi_assignments:
             current_progress = assignment.get("current", 0)
             target = assignment.get("target", 1)
-            current_rate = current_progress / target if target > 0 else 0
+            overall_current += current_progress
+            overall_target += target
+            if target > 0 :
+                current_rate = current_progress/target
+            else :
+                current_rate = 0
 
             predicted_progress = calculate_trajectory_prediction(
                 current_progress,
@@ -426,7 +439,12 @@ def predict_kpi_outcome(kpi_id: str) -> Dict:
             user_doc = db.collection("userData").document(user_id).get()
             user_data = user_doc.to_dict() or {}
 
-            status = "On Track" if predicted_progress >= 80 else "At Risk" if predicted_progress >= 50 else "Off Track"
+            if (predicted_progress >= 80) :
+                status = "On Track"
+            elif (predicted_progress >= 50):
+                status = "At Risk"
+            else :
+                status = "Off Track"
 
             staff_predictions.append({
                 "staffId": user_id,
@@ -439,23 +457,25 @@ def predict_kpi_outcome(kpi_id: str) -> Dict:
 
             overall_prediction += predicted_progress
 
-        average_prediction = (overall_prediction / len(staff_predictions)) if staff_predictions else 0
+        if staff_predictions:
+            average_prediction = (overall_prediction / len(staff_predictions)) 
+        else :
+            average_prediction = 0
 
-        # Calculate weekly prediction progression data for Recharts compatibility
         chart = []
-        overall_current = sum(a.get("current", 0.0) for a in kpi_assignments)
-        overall_target = sum(a.get("target", 1.0) for a in kpi_assignments)
         
-        # Calculate current average progress rate (0 to 100)
-        current_rate_pct = (overall_current / overall_target * 100) if overall_target > 0 else 0
+        if overall_target > 0:
+            current_rate_pct = (overall_current / overall_target * 100) 
+        else:
+            current_rate_pct = 0 
         
         for w in range(1, 5):
-            week_kpi = 25 * w
+            week_expected = expected_pct * (w / 4)
             week_progress = (current_rate_pct / 4) * w
             week_prediction = (average_prediction / 4) * w
             chart.append({
                 "time": f"Week {w}",
-                "kpi": week_kpi,
+                "expected": week_expected,
                 "progress": round(week_progress, 2),
                 "prediction": round(week_prediction, 2)
             })

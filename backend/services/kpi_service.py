@@ -12,6 +12,7 @@ import uuid
 from utils.auth_utils import require_user
 from collections import defaultdict
 from datetime import datetime
+from services.prediction_service import calculate_trajectory_prediction
 
 import os , smtplib , threading
 
@@ -65,9 +66,7 @@ def get_staff_kpis(request: Request):
     try:
         kpi_ref = db.collection(KPI_COLLECTION)
 
-        query = kpi_ref.where(
-            filter=FieldFilter("assignedUserIds", "array_contains", staff_id)
-        )
+        query = kpi_ref.where( filter=FieldFilter("assignedUserIds", "array_contains", staff_id) )
 
         kpis = []
 
@@ -210,7 +209,7 @@ def delete_kpi(kpi_id: str, request: Request):
     # Delete the main KPI document
     kpi_ref.delete()
 
-    # Clean up assignedKpis references inside userData
+    # Clean up assignedKpis references inside userData (DI-01)
     for user_id in assigned_user_ids:
         user_ref = db.collection("userData").document(user_id)
         user_doc = user_ref.get()
@@ -221,7 +220,7 @@ def delete_kpi(kpi_id: str, request: Request):
                 assigned_kpis.remove(kpi_id)
                 user_ref.update({"assignedKpis": assigned_kpis})
 
-    # Clean up associated submissions
+    # Clean up associated submissions (DI-05)
     submissions = db.collection("kpiSubmissions").where("kpiId", "==", kpi_id).stream()
     for sub in submissions:
         sub.reference.delete()
@@ -610,30 +609,16 @@ def get_kpi_history(request: Request):
         if deadline:
 
             try:
+                due = datetime.fromisoformat( deadline.replace("Z", "+00:00") )
+                created = datetime.fromisoformat(kpi["createdAt"])
 
-                due = datetime.fromisoformat(
-                    deadline
-                )
-
-                total_days = 30
-
-                days_elapsed = max(
-                    0,
-                    total_days -
-                    (
-                        due -
-                        today
-                    ).days
-                )
-
-                expected = min(
-                    (
-                        days_elapsed
-                        /
-                        total_days
-                    ) * 100,
-                    100
-                )
+                total_days = (due - created).days
+                days_elapsed = (today - created).days
+                
+                if total_days <= 0:
+                    expected = 100
+                else:
+                    expected = min(( days_elapsed / total_days ) * 100, 100 )
 
             except:
                 expected = 50
@@ -641,34 +626,21 @@ def get_kpi_history(request: Request):
 
         for a in assignments:
 
-            current = a.get(
-                "current",
-                0
-            )
+            current = a.get("current", 0 )
 
-            target = a.get(
-                "target",
-                1
-            )
+            target = a.get( "target",1 )
 
             if target <= 0:
                 continue
 
-
-            progress = (
-                current
-                /
-                target
-            ) * 100
-
-            from services.prediction_service import calculate_trajectory_prediction
+            progress = ( current / target ) * 100
+            
             prediction = calculate_trajectory_prediction(
                 current,
                 target,
                 kpi.get("createdAt"),
                 deadline
             )
-
 
             total_expected += expected
             total_progress += progress
@@ -685,76 +657,25 @@ def get_kpi_history(request: Request):
         }
 
 
-    avg_expected = (
-        total_expected
-        /
-        count
-    )
-
-    avg_progress = (
-        total_progress
-        /
-        count
-    )
-
-    avg_prediction = (
-        total_prediction
-        /
-        count
-    )
+    avg_expected = ( total_expected / count )
+    avg_progress = ( total_progress / count )
+    avg_prediction = ( total_prediction / count )
 
 
     chart = []
 
     for week in range(1, 5):
-
-        ratio = week / 4
-
+        week_ratio = week / 5
         chart.append({
-
-            "time":
-            f"Week {week}",
-
-            "kpi":
-            round(
-                avg_expected *
-                (
-                    0.7 +
-                    ratio * 0.3
-                ),
-                1
-            ),
-
-            "progress":
-            round(
-                avg_progress *
-                (
-                    0.7 +
-                    ratio * 0.3
-                ),
-                1
-            ),
-
-            "prediction":
-            round(
-                avg_prediction *
-                (
-                    0.7 +
-                    ratio * 0.3
-                ),
-                1
-            )
-
+            "time": f"Week {week}",
+            "expected": round(avg_expected * week_ratio, 1),
+            "progress": round(avg_progress * week_ratio, 1),
+            "prediction": round(avg_prediction * week_ratio, 1)
         })
 
     return {
-
-        "success":
-        True,
-
-        "chart":
-        chart
-
+        "success" : True,
+        "chart" : chart
     }
 
 def get_staff_kpi_submissions(request: Request):

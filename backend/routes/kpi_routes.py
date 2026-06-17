@@ -18,6 +18,8 @@ from typing import List
 import sys
 import os
 import json
+from fastapi import Form, File, UploadFile
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services.manager_service import (
     get_dashboard_stats as get_dashboard_stats_service,
@@ -44,9 +46,7 @@ def view_all_kpis(request: Request):
     return get_kpis(request)
 
 
-# get single kpi endpoint
-from fastapi import Form, File, UploadFile
-from typing import List
+# get single kpi endpoin
 
 
 # get single kpi endpoint

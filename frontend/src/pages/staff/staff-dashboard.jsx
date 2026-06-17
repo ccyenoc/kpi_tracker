@@ -58,7 +58,7 @@ const StaffDashboard = () => {
       };
     }
 
-   // staff completed assigned target
+    // staff completed assigned target
     if (progress >= 100) {
       return {
         status: "completed",
@@ -89,7 +89,7 @@ const StaffDashboard = () => {
       Math.round((elapsedDuration / totalDuration) * 100)
     );
 
-     // kpi overdue and still not completed
+    // kpi overdue and still not completed
     if (today > deadlineDate) {
       return {
         status: "underperformed",

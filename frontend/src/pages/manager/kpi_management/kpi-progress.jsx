@@ -163,7 +163,7 @@ function KPIProgressPage() {
         className="mx-3 mb-4 d-flex"
         style={{
           padding: "24px",
-          flexDirection: "row",
+          flexDirection: "column",
           borderRadius: "12px",
           boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
         }}

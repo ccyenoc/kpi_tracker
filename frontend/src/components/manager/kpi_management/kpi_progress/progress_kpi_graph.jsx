@@ -150,13 +150,9 @@ function ProgressKPIGraph({ kpiId }) {
               strokeDasharray="3 3"
             />
 
-            <XAxis
-              dataKey="time"
-            />
+            <XAxis dataKey="time" />
 
-            <YAxis
-              domain={[0, 100]}
-            />
+            <YAxis domain={[0, 100]} />
 
             <Tooltip />
 
@@ -167,7 +163,7 @@ function ProgressKPIGraph({ kpiId }) {
 
             <Line
               type="monotone"
-              dataKey="kpi"
+              dataKey="expected"
               stroke="#2563eb"
               strokeWidth={3}
               name="Expected"

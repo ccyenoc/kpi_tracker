@@ -4,7 +4,6 @@ import time
 import pytest
 from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
-from main import app
 
 
 # ==========================================================
@@ -17,6 +16,7 @@ backend_dir = os.path.dirname(
 
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
+
 
 
 # ==========================================================
@@ -369,6 +369,7 @@ def clean_mock_db():
 
 @pytest.fixture
 def client():
+    from main import app
     return TestClient(app)
 
 
