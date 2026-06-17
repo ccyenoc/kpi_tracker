@@ -18,7 +18,7 @@ from utils.user_utils import build_user_profile_document
 from utils.security import verify_jwt_token
 
 
-# ── AUTH HASH ─────────────────────────────────────────
+# Auth Hash Helpers
 
 def get_user_auth_hash(user_id: str) -> str:
     auth_doc = db.collection(USERAUTH_COLLECTION).document(user_id).get()
@@ -40,7 +40,7 @@ def save_user_auth_document(user_id: str, email: str, password_hash: str) -> Non
     })
 
 
-# ── USER CREATION ─────────────────────────────────────
+# User Creation Helpers
 
 def create_user_documents(users_ref, user_data, hashed_password: str):
     base_profile = build_user_profile_document(user_data)
@@ -80,7 +80,7 @@ def create_user_documents(users_ref, user_data, hashed_password: str):
             continue
 
 
-# ── USER ID ALLOCATION ───────────────────────────────
+# User ID Allocation
 
 def allocate_next_user_id(users_ref):
     @firestore.transactional
@@ -101,7 +101,7 @@ def allocate_next_user_id(users_ref):
     return allocate_tx(transaction, users_ref)
 
 
-# ── AUTH HELPER ─────────────────────────────────────
+# Authentication Helpers
 
 def require_manager(request: Request):
     auth_header = request.headers.get("Authorization")

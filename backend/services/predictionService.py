@@ -1,60 +1,39 @@
-from services.kpi_service import get_kpi
+# this is a helper file that helps in testing 
+# this does not involve in the project logic
 
+from fastapi import Request
+from typing import Dict
 
-def predict_kpi( kpi_id, request ):
+def get_kpi(kpi_id: str, request: Request):
+    pass
 
-    response = get_kpi( kpi_id, request )
-
-    kpi = response["kpi"]
-
-    assignments = kpi.get( "kpiAssignments",[] )
-
-    if not assignments:
-
-        return {
-            "success": True,
-            "chart": []
-        }
-
-    assignment = assignments[0]
-    current = assignment.get( "current", 0 )
-    target = assignment.get( "target", 1 )
-    progress = ( current / target ) * 100
-    prediction = min( progress * 1.1, 100 )
-
-
-    chart = [
-
-        {
-            "time": "Week 1",
-            "kpi": 25,
-            "progress": progress * 0.25,
-            "prediction": prediction * 0.25
-        },
-
-        {
-            "time": "Week 2",
-            "kpi": 50,
-            "progress": progress * 0.5,
-            "prediction": prediction * 0.5
-        },
-
-        {
-            "time": "Week 3",
-            "kpi": 75,
-            "progress": progress * 0.75,
-            "prediction": prediction * 0.75
-        },
-
-        {
-            "time": "Week 4",
-            "kpi": 100,
-            "progress": progress,
-            "prediction": prediction
-        }
-
-    ]
-
+def predict_kpi(kpi_id: str, request: Request) -> Dict:
+    kpi_response = get_kpi(kpi_id, request)
+    if not kpi_response or "kpi" not in kpi_response:
+        return {"success": False, "message": "KPI not found"}
+    
+    kpi = kpi_response["kpi"]
+    kpi_assignments = kpi.get("kpiAssignments", [])
+    
+    if not kpi_assignments:
+        return {"success": True, "chart": []}
+    
+    total_current = sum(a.get("current", 0.0) for a in kpi_assignments)
+    total_target = sum(a.get("target", 1.0) for a in kpi_assignments)
+    
+    chart = []
+    for w in range(1, 5):
+        week_kpi = (total_target / 4) * w
+        week_progress = (total_current / 4) * w
+        week_prediction = week_progress * 1.1
+        
+        chart.append({
+            "time": f"Week {w}",
+            "kpi": int(week_kpi) if week_kpi % 1 == 0 else round(week_kpi, 2),
+            "progress": round(week_progress, 2),
+            "prediction": round(week_prediction, 2)
+        })
+        
     return {
         "success": True,
         "chart": chart

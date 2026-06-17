@@ -1,656 +1,800 @@
 from firebase_admin import firestore
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from datetime import datetime, timezone
+from models.kpi_model import KPIStaffAssignment, AssignKPIRequest, VerifySubmissionRequest
 from pydantic import BaseModel
+from services.kpi_service import send_email
+from typing import List, Dict, Optional
+from services.prediction_service import calculate_trajectory_prediction, parse_dt
+
+UNDERPERFORMED_GAP = -25
+AT_RISK_GAP = -10
 
 
 def get_db():
     return firestore.client()
 
 
-class KPIStaffAssignment(BaseModel):
-    staffId: str
-    staffName: str
-    staffEmail: str
-    targetValue: float
+def assign_kpi_to_staff(kpi_id: str, assignments: List[KPIStaffAssignment], manager_id: str) -> Dict:
+    try:
+        db = get_db()
+        kpi_ref = db.collection("kpiData").document(kpi_id)
+        kpi_doc = kpi_ref.get()
 
+        if not kpi_doc.exists:
+            return {"success": False, "message": "KPI not found"}
 
-class AssignKPIRequest(BaseModel):
-    kpiId: str
-    assignments: List[KPIStaffAssignment]
+        kpi_data = kpi_doc.to_dict()
 
+        assigned_users = kpi_data.get("assignedUserIds", [])
+        kpi_assignments = kpi_data.get("kpiAssignments", [])
 
-class VerifySubmissionRequest(BaseModel):
-    submissionId: str
-    kpiId: str
-    status: str
-    comments: Optional[str] = None
+        for assignment in assignments:
+            if assignment.staffId not in assigned_users:
+                assigned_users.append(assignment.staffId)
 
+            existing_assignment = next(
+                (a for a in kpi_assignments if a.get("userId") == assignment.staffId),
+                None
+            )
 
-class KPIAssignmentService:
-    @staticmethod
-    def assign_kpi_to_staff(kpi_id: str, assignments: List[KPIStaffAssignment], manager_id: str) -> Dict:
-        try:
-            db = get_db()
-            kpi_ref = db.collection("kpiData").document(kpi_id)
-            kpi_doc = kpi_ref.get()
+            if existing_assignment:
+                existing_assignment["target"] = assignment.targetValue
+            else:
+                kpi_assignments.append({
+                    "userId": assignment.staffId,
+                    "target": assignment.targetValue,
+                    "current": 0,
+                    "assignedBy": manager_id,
+                    "assignedAt": datetime.now().isoformat()
+                })
 
-            if not kpi_doc.exists:
-                return {"success": False, "message": "KPI not found"}
-
-            kpi_data = kpi_doc.to_dict()
-
-            assigned_users = kpi_data.get("assignedUserIds", [])
-            kpi_assignments = kpi_data.get("kpiAssignments", [])
-
-            for assignment in assignments:
-                if assignment.staffId not in assigned_users:
-                    assigned_users.append(assignment.staffId)
-
-                existing_assignment = next(
-                    (a for a in kpi_assignments if a.get("userId") == assignment.staffId),
-                    None
-                )
-
-                if existing_assignment:
-                    existing_assignment["target"] = assignment.targetValue
-                else:
-                    kpi_assignments.append({
-                        "userId": assignment.staffId,
-                        "target": assignment.targetValue,
-                        "current": 0,
-                        "assignedBy": manager_id,
-                        "assignedAt": datetime.now()
-                    })
-
-            kpi_ref.update({
-                "assignedUserIds": assigned_users,
-                "kpiAssignments": kpi_assignments,
-                "updatedAt": datetime.now()
-            })
-
+            # Update the userData collection for this specific staff member
             user_ref = db.collection("userData").document(assignment.staffId)
-            user_data = user_ref.get().to_dict() or {}
+            user_doc = user_ref.get()
+            user_data = user_doc.to_dict() if user_doc.exists else {}
             assigned_kpis = user_data.get("assignedKpis", [])
 
             if kpi_id not in assigned_kpis:
                 assigned_kpis.append(kpi_id)
                 user_ref.update({"assignedKpis": assigned_kpis})
 
-            return {
-                "success": True,
-                "message": "KPI assigned to staff successfully",
-                "kpiId": kpi_id,
-                "assignedCount": len(assignments)
-            }
+        kpi_ref.update({
+            "assignedUserIds": assigned_users,
+            "kpiAssignments": kpi_assignments,
+            "updatedAt": datetime.now().isoformat()
+        })
 
-        except Exception as e:
-            return {"success": False, "message": str(e)}
+        return {
+            "success": True,
+            "message": "KPI assigned to staff successfully",
+            "kpiId": kpi_id,
+            "assignedCount": len(assignments)
+        }
 
-    @staticmethod
-    def get_kpi_assignments(kpi_id: str) -> Dict:
-        try:
-            db = get_db()
-            kpi_ref = db.collection("kpiData").document(kpi_id)
-            kpi_doc = kpi_ref.get()
-
-            if not kpi_doc.exists:
-                return {"success": False, "message": "KPI not found"}
-
-            kpi_data = kpi_doc.to_dict()
-            kpi_assignments = kpi_data.get("kpiAssignments", [])
-
-            assignments = []
-            for assignment in kpi_assignments:
-                user_id = assignment.get("userId")
-                user_doc = db.collection("userData").document(user_id).get()
-                user_data = user_doc.to_dict() or {}
-
-                assignments.append({
-                    "staffId": user_id,
-                    "staffName": user_data.get("name", "Unknown"),
-                    "staffEmail": user_data.get("email", "Unknown"),
-                    "targetValue": assignment.get("target", 0),
-                    "progress": assignment.get("current", 0),
-                    "assignedAt": assignment.get("assignedAt")
-                })
-
-            return {
-                "success": True,
-                "kpiId": kpi_id,
-                "assignments": assignments,
-                "totalAssigned": len(assignments)
-            }
-
-        except Exception as e:
-            return {"success": False, "message": str(e)}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
 
 
-class SubmissionVerificationService:
-    @staticmethod
-    def get_all_submissions(kpi_id: Optional[str] = None) -> Dict:
-        try:
-            db = get_db()
-            query = db.collection("kpiSubmissions")
+def get_kpi_assignments(kpi_id: str) -> Dict:
+    try:
+        db = get_db()
+        kpi_ref = db.collection("kpiData").document(kpi_id)
+        kpi_doc = kpi_ref.get()
 
-            if kpi_id:
-                query = query.where("kpiId", "==", kpi_id)
+        if not kpi_doc.exists:
+            return {"success": False, "message": "KPI not found"}
 
-            docs = query.stream()
-            submissions = []
+        kpi_data = kpi_doc.to_dict()
+        kpi_assignments = kpi_data.get("kpiAssignments", [])
 
-            for doc in docs:
-                data = doc.to_dict()
-                data["id"] = doc.id
-                submissions.append(data)
+        assignments = []
+        for assignment in kpi_assignments:
+            user_id = assignment.get("userId")
+            user_doc = db.collection("userData").document(user_id).get()
+            user_data = user_doc.to_dict() or {}
 
-            return {
-                "success": True,
-                "submissions": submissions,
-                "count": len(submissions)
-            }
-
-        except Exception as e:
-            return {"success": False, "message": str(e)}
-
-    @staticmethod
-    def get_pending_submissions(kpi_id: Optional[str] = None) -> Dict:
-        try:
-            db = get_db()
-            query = db.collection("kpiSubmissions").where("status", "==", "pending")
-
-            if kpi_id:
-                query = query.where("kpiId", "==", kpi_id)
-
-            docs = query.stream()
-            submissions = []
-
-            for doc in docs:
-                data = doc.to_dict()
-                data["id"] = doc.id
-                submissions.append(data)
-
-            return {
-                "success": True,
-                "submissions": submissions,
-                "count": len(submissions)
-            }
-
-        except Exception as e:
-            return {"success": False, "message": str(e)}
-
-    @staticmethod
-    def verify_submission(submission_id: str, kpi_id: str, status: str, comments: str, manager_id: str) -> Dict:
-        try:
-            if status not in ["approved", "rejected"]:
-                return {"success": False, "message": "Invalid status. Use 'approved' or 'rejected'"}
-
-            db = get_db()
-            submission_ref = db.collection("kpiSubmissions").document(submission_id)
-            submission_doc = submission_ref.get()
-
-            if not submission_doc.exists:
-                return {"success": False, "message": "Submission not found"}
-
-            submission_data = submission_doc.to_dict()
-            submitted_by = submission_data.get("submittedBy")
-            submission_current = submission_data.get("current", 0)
-
-            # Update submission status
-            submission_ref.update({
-                "status": status,
-                "approvedBy": manager_id,
-                "comments": comments,
-                "verifiedAt": datetime.now().isoformat()
+            assignments.append({
+                "staffId": user_id,
+                "staffName": user_data.get("name", "Unknown"),
+                "staffEmail": user_data.get("email", "Unknown"),
+                "targetValue": assignment.get("target", 0),
+                "progress": assignment.get("current", 0),
+                "assignedAt": assignment.get("assignedAt")
             })
 
-            # If approved, update the KPI assignment with submission data
-            if status == "approved":
-                kpi_ref = db.collection("kpiData").document(kpi_id)
-                kpi_doc = kpi_ref.get()
-
-                if kpi_doc.exists:
-                    kpi_data = kpi_doc.to_dict() or {}
-
-                    deadline = kpi_data.get("deadline")
-                    created_at = kpi_data.get("createdAt")
-
-                    now = datetime.now()
-
-                    if isinstance(deadline, str):
-                        deadline = datetime.fromisoformat(deadline)
-
-                    if isinstance(created_at, str):
-                        created_at = datetime.fromisoformat(created_at)
-                        kpi_assignments = kpi_data.get("kpiAssignments", [])
-
-                    # Update assignment for the staff member who submitted
-                    updated = False
-                    for assignment in kpi_assignments:
-                        if assignment.get("userId") == submitted_by:
-                            assignment["current"] = submission_current
-                            assignment["lastUpdated"] = datetime.now().isoformat()
-                            updated = True
-                            break
-                    
-                    # Check if all assigned staff have approved submissions
-                    all_submissions = list(db.collection("kpiSubmissions")
-                        .where("kpiId", "==", kpi_id)
-                        .stream())
-                    assigned_staff = set(a.get("userId") for a in kpi_assignments)
-                    approved_staff = set()
-                    
-                    for sub_doc in all_submissions:
-                        sub_data = sub_doc.to_dict()
-                        sub_status = sub_data.get("status")
-                        sub_submitted_by = sub_data.get("submittedBy")
-
-                        if sub_doc.id == submission_id or sub_status == "approved":
-                            approved_staff.add(sub_submitted_by)
-
-                    # Mark KPI as completed if all assigned staff have approved
-                    all_approved = assigned_staff.issubset(approved_staff) if assigned_staff else False
-                    new_status = "completed" if all_approved else "active"
-                    
-                    kpi_ref.update({
-                        "kpiAssignments": kpi_assignments,
-                        "status": new_status,
-                        "updatedAt": datetime.now().isoformat()
-                    })
-
-            return {
-                "success": True,
-                "message": f"Submission {status} successfully",
-                "submissionId": submission_id,
-                "status": status
-            }
-
-        except Exception as e:
-            return {"success": False, "message": str(e)}
+        return {
+            "success": True,
+            "kpiId": kpi_id,
+            "assignments": assignments,
+            "totalAssigned": len(assignments)
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
 
 
-class KPIReportService:
-    @staticmethod
-    def generate_report(kpi_id: str) -> Dict:
-        try:
-            db = get_db()
+def get_all_submissions(kpi_id: Optional[str] = None) -> Dict:
+    try:
+        db = get_db()
+        query = db.collection("kpiSubmissions")
+
+        if kpi_id:
+            query = query.where("kpiId", "==", kpi_id)
+
+        docs = query.stream()
+        submissions = []
+
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            submissions.append(data)
+
+        return {
+            "success": True,
+            "submissions": submissions,
+            "count": len(submissions)
+        }
+
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+def get_pending_submissions(kpi_id: Optional[str] = None) -> Dict:
+    try:
+        db = get_db()
+        query = db.collection("kpiSubmissions").where("status", "==", "pending")
+
+        if kpi_id:
+            query = query.where("kpiId", "==", kpi_id)
+
+        docs = query.stream()
+        submissions = []
+
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            submissions.append(data)
+
+        return {
+            "success": True,
+            "submissions": submissions,
+            "count": len(submissions)
+        }
+
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+def verify_submission(submission_id: str, kpi_id: str, status: str, comments: str, manager_id: str) -> Dict:
+    try:
+        if status not in ["approved", "rejected"]:
+            return {"success": False, "message": "Invalid status. Use 'approved' or 'rejected'"}
+
+        db = get_db()
+        submission_ref = db.collection("kpiSubmissions").document(submission_id)
+        submission_doc = submission_ref.get()
+
+        if not submission_doc.exists:
+            return {"success": False, "message": "Submission not found"}
+
+        submission_data = submission_doc.to_dict()
+        submitted_by = submission_data.get("submittedBy")
+        submission_current = submission_data.get("current", 0)
+
+        # Update submission status
+        submission_ref.update({
+            "status": status,
+            "approvedBy": manager_id,
+            "comments": comments,
+            "verifiedAt": datetime.now().isoformat()
+        })
+
+        # If approved, update the KPI assignment with submission data
+        if status == "approved":
             kpi_ref = db.collection("kpiData").document(kpi_id)
             kpi_doc = kpi_ref.get()
 
-            if not kpi_doc.exists:
-                return {"success": False, "message": "KPI not found"}
+            if kpi_doc.exists:
+                kpi_data = kpi_doc.to_dict() or {}
 
-            kpi_data = kpi_doc.to_dict()
+                deadline = kpi_data.get("deadline")
+                created_at = kpi_data.get("createdAt")
+
+                now = datetime.now()
+
+                if isinstance(deadline, str):
+                    deadline = datetime.fromisoformat(deadline)
+
+                if isinstance(created_at, str):
+                    created_at = datetime.fromisoformat(created_at)
+                
+                kpi_assignments = kpi_data.get("kpiAssignments", [])
+
+                # Update assignment for the staff member who submitted
+                updated = False
+                for assignment in kpi_assignments:
+                    if assignment.get("userId") == submitted_by:
+                        assignment["current"] = submission_current
+                        assignment["lastUpdated"] = datetime.now().isoformat()
+                        updated = True
+                        break
+                
+                # Check if all assigned staff have approved submissions
+                all_submissions = list(db.collection("kpiSubmissions")
+                    .where("kpiId", "==", kpi_id)
+                    .stream())
+                assigned_staff = set(a.get("userId") for a in kpi_assignments)
+                approved_staff = set()
+                
+                for sub_doc in all_submissions:
+                    sub_data = sub_doc.to_dict()
+                    sub_status = sub_data.get("status")
+                    sub_submitted_by = sub_data.get("submittedBy")
+
+                    if sub_doc.id == submission_id or sub_status == "approved":
+                        approved_staff.add(sub_submitted_by)
+
+                # Mark KPI as completed if all assigned staff have approved
+                all_approved = assigned_staff.issubset(approved_staff) if assigned_staff else False
+                new_status = "completed" if all_approved else "active"
+                
+                kpi_ref.update({
+                    "kpiAssignments": kpi_assignments,
+                    "status": new_status,
+                    "updatedAt": datetime.now().isoformat()
+                })
+
+        # Send notification email to the staff member who made the submission
+        print("[EMAIL DEBUG] Starting verification email dispatch flow...")
+        print(f"[EMAIL DEBUG] submitted_by: {submitted_by}, kpi_id: {kpi_id}")
+        staff_email = None
+        staff_name = "Staff Member"
+        if submitted_by:
+            staff_doc = db.collection("userData").document(submitted_by).get()
+            print(f"[EMAIL DEBUG] staff_doc.exists: {staff_doc.exists}")
+            if staff_doc.exists:
+                staff_data = staff_doc.to_dict() or {}
+                staff_email = staff_data.get("email")
+                staff_name = staff_data.get("name", "Staff Member")
+                print(f"[EMAIL DEBUG] Retrieved staff_name: {staff_name}, staff_email: {staff_email}")
+            else:
+                print("[EMAIL DEBUG] staff_doc does not exist in userData collection!")
+        else:
+            print("[EMAIL DEBUG] No submittedBy user ID found in submission!")
+
+        kpi_title = "KPI"
+        if kpi_id:
+            kpi_doc = db.collection("kpiData").document(kpi_id).get()
+            print(f"[EMAIL DEBUG] kpi_doc.exists: {kpi_doc.exists}")
+            if kpi_doc.exists:
+                kpi_data = kpi_doc.to_dict() or {}
+                kpi_title = kpi_data.get("title", "KPI")
+                print(f"[EMAIL DEBUG] Retrieved kpi_title: {kpi_title}")
+            else:
+                print("[EMAIL DEBUG] kpi_doc does not exist in kpiData collection!")
+
+        if staff_email:
+            try:
+                from services.kpi_service import send_email
+                status_str = status.upper()
+                subject = f"KPI Submission {status_str}"
+                body = f"""Hi {staff_name},
+
+Your KPI submission for "{kpi_title}" has been {status_str}.
+
+Manager's Comments:
+{comments if comments else "No comments provided."}
+
+Thank you,
+KPI System"""
+                print(f"[EMAIL DEBUG] Calling send_email with parameters:")
+                print(f"  To: {staff_email}")
+                print(f"  Subject: {subject}")
+                print(f"  Body:\n{body}")
+                send_email(staff_email, subject, body)
+                print("[EMAIL DEBUG] send_email function execution finished.")
+            except Exception as email_err:
+                print("[EMAIL DEBUG] Error sending submission verification email:", email_err)
+        else:
+            print("[EMAIL DEBUG] Skipping send_email because staff_email is not set/found.")
+
+        return {
+            "success": True,
+            "message": f"Submission {status} successfully",
+            "submissionId": submission_id,
+            "status": status
+        }
+
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+def generate_report(kpi_id: str) -> Dict:
+    try:
+        db = get_db()
+        kpi_ref = db.collection("kpiData").document(kpi_id)
+        kpi_doc = kpi_ref.get()
+
+        if not kpi_doc.exists:
+            return {"success": False, "message": "KPI not found"}
+
+        kpi_data = kpi_doc.to_dict()
+        kpi_assignments = kpi_data.get("kpiAssignments", [])
+
+        staff_performance = []
+        for assignment in kpi_assignments:
+            user_id = assignment.get("userId")
+            user_doc = db.collection("userData").document(user_id).get()
+            user_data = user_doc.to_dict() or {}
+
+            target = assignment.get("target", 1)
+            current = assignment.get("current", 0)
+            achievement_rate = (current / target * 100) if target > 0 else 0
+
+            staff_performance.append({
+                "staffId": user_id,
+                "staffName": user_data.get("name"),
+                "staffEmail": user_data.get("email"),
+                "target": target,
+                "progress": current,
+                "achievementRate": round(achievement_rate, 2),
+                "status": "On Track" if achievement_rate >= 80 else "At Risk" if achievement_rate >= 50 else "Off Track",
+                "assignedAt": assignment.get("assignedAt"),
+                "lastUpdated": assignment.get("lastUpdated")
+            })
+
+        report_data = {
+            "kpiId": kpi_id,
+            "kpiTitle": kpi_data.get("title"),
+            "category": kpi_data.get("category"),
+            "deadline": kpi_data.get("deadline"),
+            "overallProgress": kpi_data.get("current_progress", 0),
+            "overallTarget": kpi_data.get("target_kpi", 0),
+            "staffPerformance": staff_performance,
+            "reportGeneratedAt": datetime.now().isoformat(),
+            "totalAssignedStaff": len(staff_performance)
+        }
+
+        return {
+            "success": True,
+            "report": report_data
+        }
+
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+def export_report_data(kpi_id: str) -> Dict:
+    try:
+        report_result = generate_report(kpi_id)
+
+        if not report_result["success"]:
+            return report_result
+
+        report = report_result["report"]
+
+        csv_content = "Staff Name,Email,Target,Progress,Achievement Rate (%),Status,Last Updated\n"
+
+        for staff in report["staffPerformance"]:
+            last_updated = staff.get("lastUpdated") or "Never"
+            csv_content += f"{staff['staffName']},{staff['staffEmail']},{staff['target']},{staff['progress']},{staff['achievementRate']},{staff['status']},{last_updated}\n"
+
+        return {
+            "success": True,
+            "csvContent": csv_content,
+            "fileName": f"KPI_Report_{kpi_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        }
+
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+def predict_kpi_outcome(kpi_id: str) -> Dict:
+    try:
+        db = get_db()
+        kpi_ref = db.collection("kpiData").document(kpi_id)
+        kpi_doc = kpi_ref.get()
+
+        if not kpi_doc.exists:
+            return {"success": False, "message": "KPI not found"}
+
+        kpi_data = kpi_doc.to_dict()
+        deadline = kpi_data.get("deadline")
+        kpi_assignments = kpi_data.get("kpiAssignments", [])
+
+        now = datetime.now()
+        deadline_dt = parse_dt(deadline, now)
+        created_at_dt = parse_dt(kpi_data.get("createdAt"), now)
+
+        days_remaining = max((deadline_dt - now).days, 0)
+
+        staff_predictions = []
+        overall_prediction = 0
+
+        for assignment in kpi_assignments:
+            current_progress = assignment.get("current", 0)
+            target = assignment.get("target", 1)
+            current_rate = current_progress / target if target > 0 else 0
+
+            predicted_progress = calculate_trajectory_prediction(
+                current_progress,
+                target,
+                kpi_data.get("createdAt"),
+                deadline
+            )
+
+            user_id = assignment.get("userId")
+            user_doc = db.collection("userData").document(user_id).get()
+            user_data = user_doc.to_dict() or {}
+
+            status = "On Track" if predicted_progress >= 80 else "At Risk" if predicted_progress >= 50 else "Off Track"
+
+            staff_predictions.append({
+                "staffId": user_id,
+                "staffName": user_data.get("name"),
+                "currentProgress": round(current_rate * 100, 2),
+                "predictedProgress": round(predicted_progress, 2),
+                "predictedStatus": status,
+                "daysRemaining": max(0, days_remaining)
+            })
+
+            overall_prediction += predicted_progress
+
+        average_prediction = (overall_prediction / len(staff_predictions)) if staff_predictions else 0
+
+        # Calculate weekly prediction progression data for Recharts compatibility
+        chart = []
+        overall_current = sum(a.get("current", 0.0) for a in kpi_assignments)
+        overall_target = sum(a.get("target", 1.0) for a in kpi_assignments)
+        
+        # Calculate current average progress rate (0 to 100)
+        current_rate_pct = (overall_current / overall_target * 100) if overall_target > 0 else 0
+        
+        for w in range(1, 5):
+            week_kpi = 25 * w
+            week_progress = (current_rate_pct / 4) * w
+            week_prediction = (average_prediction / 4) * w
+            chart.append({
+                "time": f"Week {w}",
+                "kpi": week_kpi,
+                "progress": round(week_progress, 2),
+                "prediction": round(week_prediction, 2)
+            })
+
+        return {
+            "success": True,
+            "kpiId": kpi_id,
+            "kpiTitle": kpi_data.get("title"),
+            "deadline": deadline_dt.isoformat() if deadline_dt else None,
+            "daysRemaining": max(0, days_remaining),
+            "overallPredictedProgress": round(average_prediction, 2),
+            "staffPredictions": staff_predictions,
+            "chart": chart,
+            "predictionGeneratedAt": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+def get_dashboard_stats() -> Dict:
+    try:
+        db = get_db()
+        staff_stats = {}
+
+        # Aggregate stats for each staff member across all their KPIs
+        kpi_docs = db.collection("kpiData").stream()
+        total_kpis = 0
+        active_kpis = 0
+        completed_kpis = 0
+        
+        for kpi_doc in kpi_docs:
+            total_kpis += 1
+            kpi_data = kpi_doc.to_dict() or {}
+            kpi_status = kpi_data.get("status", "pending")
+            
+            if kpi_status in ["active", "in_progress"]:
+                active_kpis += 1
+            elif kpi_status == "completed":
+                completed_kpis += 1
+            
+            # Process each staff assignment for this KPI
             kpi_assignments = kpi_data.get("kpiAssignments", [])
-
-            staff_performance = []
             for assignment in kpi_assignments:
-                user_id = assignment.get("userId")
-                user_doc = db.collection("userData").document(user_id).get()
-                user_data = user_doc.to_dict() or {}
+                staff_id = assignment.get("userId")
+                if not staff_id:
+                    continue
 
-                target = assignment.get("target", 1)
+                # Initialize staff entry if not exists
+                if staff_id not in staff_stats:
+                    user_doc = db.collection("userData").document(staff_id).get()
+                    user_data = user_doc.to_dict() or {}
+                    staff_stats[staff_id] = {
+                        "staffId": staff_id,
+                        "name": user_data.get("name", "Unknown"),
+                        "department": user_data.get("department", "Unknown"),
+                        "email": user_data.get("email", "Unknown"),
+                        "totalTarget": 0,
+                        "totalCurrent": 0,
+                        "kpiCount": 0,
+                        "achievementRate": 0
+                    }
+
+                # Accumulate KPI metrics
+                target = assignment.get("target", 0)
                 current = assignment.get("current", 0)
-                achievement_rate = (current / target * 100) if target > 0 else 0
+                staff_stats[staff_id]["totalTarget"] += target
+                staff_stats[staff_id]["totalCurrent"] += current
+                staff_stats[staff_id]["kpiCount"] += 1
 
-                staff_performance.append({
-                    "staffId": user_id,
-                    "staffName": user_data.get("name"),
-                    "staffEmail": user_data.get("email"),
-                    "target": target,
-                    "progress": current,
-                    "achievementRate": round(achievement_rate, 2),
-                    "status": "On Track" if achievement_rate >= 80 else "At Risk" if achievement_rate >= 50 else "Off Track",
-                    "assignedAt": assignment.get("assignedAt")
-                })
+        # Calculate achievement rates
+        staff_rankings = []
+        for staff_id, stats in staff_stats.items():
+            if stats["totalTarget"] > 0:
+                stats["achievementRate"] = round((stats["totalCurrent"] / stats["totalTarget"]) * 100, 2)
+            else:
+                stats["achievementRate"] = 0
+            staff_rankings.append(stats)
 
-            report_data = {
-                "kpiId": kpi_id,
-                "kpiTitle": kpi_data.get("title"),
-                "category": kpi_data.get("category"),
-                "deadline": kpi_data.get("deadline"),
-                "overallProgress": kpi_data.get("current_progress", 0),
-                "overallTarget": kpi_data.get("target_kpi", 0),
-                "staffPerformance": staff_performance,
-                "reportGeneratedAt": datetime.now(),
-                "totalAssignedStaff": len(staff_performance)
-            }
-
-            return {
-                "success": True,
-                "report": report_data
-            }
-
-        except Exception as e:
-            return {"success": False, "message": str(e)}
-
-    @staticmethod
-    def export_report_data(kpi_id: str) -> Dict:
-        try:
-            report_result = KPIReportService.generate_report(kpi_id)
-
-            if not report_result["success"]:
-                return report_result
-
-            report = report_result["report"]
-
-            csv_content = "Staff Name,Email,Target,Progress,Achievement Rate (%),Status,Last Updated\n"
-
-            for staff in report["staffPerformance"]:
-                csv_content += f"{staff['staffName']},{staff['staffEmail']},{staff['target']},{staff['progress']},{staff['achievementRate']},{staff['status']},{staff['lastUpdated']}\n"
-
-            return {
-                "success": True,
-                "csvContent": csv_content,
-                "fileName": f"KPI_Report_{kpi_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            }
-
-        except Exception as e:
-            return {"success": False, "message": str(e)}
+        # Get top performers
+        staff_rankings.sort(key=lambda x: x["achievementRate"], reverse=True)
+        top_rankings = staff_rankings[:10]
+        
+        return {
+            "success": True,
+            "dashboardStats": {
+                "totalKPIs": total_kpis,
+                "activeKPIs": active_kpis,
+                "completedKPIs": completed_kpis,
+                "totalStaff": len(staff_stats)
+            },
+            "staffRankings": top_rankings,
+            "generatedAt": datetime.now().isoformat()
+        }
+    
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e),
+            "dashboardStats": {},
+            "staffRankings": []
+        }
 
 
-class KPIPredictionService:
-    @staticmethod
-    def predict_kpi_outcome(kpi_id: str) -> Dict:
-        try:
-            db = get_db()
-            kpi_ref = db.collection("kpiData").document(kpi_id)
-            kpi_doc = kpi_ref.get()
+def _to_datetime(value):
+    if not value:
+        return None
 
-            if not kpi_doc.exists:
-                return {"success": False, "message": "KPI not found"}
+    try:
+        if isinstance(value, datetime):
+            if value.tzinfo is None:
+                return value.replace(tzinfo=timezone.utc)
+            return value.astimezone(timezone.utc)
 
-            kpi_data = kpi_doc.to_dict()
-            deadline = kpi_data.get("deadline")
-            kpi_assignments = kpi_data.get("kpiAssignments", [])
+        if hasattr(value, "to_datetime"):
+            parsed = value.to_datetime()
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc)
 
-            now = datetime.now()
-            if isinstance(deadline, str):
-                deadline = datetime.fromisoformat(deadline)
-            elif hasattr(deadline, 'timestamp'):
-                deadline = datetime.fromtimestamp(deadline.timestamp())
+        if isinstance(value, str):
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc)
 
-            days_remaining = (deadline - now).days if deadline > now else 0
-            total_days = (deadline - datetime.fromisoformat(kpi_data.get("createdAt", now.isoformat()))).days if isinstance(kpi_data.get("createdAt"), str) else 30
+    except Exception:
+        return None
 
-            staff_predictions = []
-            overall_prediction = 0
+    return None
 
-            for assignment in kpi_assignments:
-                current_progress = assignment.get("current", 0)
-                target = assignment.get("target", 1)
-                current_rate = current_progress / target if target > 0 else 0
 
-                if days_remaining > 0:
-                    daily_rate = (current_rate / (total_days - days_remaining)) if (total_days - days_remaining) > 0 else 0
-                    predicted_progress = min(100, (daily_rate * total_days) * 100)
-                else:
-                    predicted_progress = min(100, current_rate * 100)
+def _calculate_kpi_performance(kpi_doc) -> Optional[Dict]:
+    kpi_data = kpi_doc.to_dict() or {}
 
-                user_id = assignment.get("userId")
-                user_doc = db.collection("userData").document(user_id).get()
-                user_data = user_doc.to_dict() or {}
+    # Completed KPI should not appear in At Risk or Underperformed cards
+    if str(kpi_data.get("status", "")).lower() == "completed":
+        return None
 
-                status = "On Track" if predicted_progress >= 80 else "At Risk" if predicted_progress >= 50 else "Off Track"
+    kpi_assignments = kpi_data.get("kpiAssignments", [])
 
-                staff_predictions.append({
-                    "staffId": user_id,
-                    "staffName": user_data.get("name"),
-                    "currentProgress": round(current_rate * 100, 2),
-                    "predictedProgress": round(predicted_progress, 2),
-                    "predictedStatus": status,
-                    "daysRemaining": max(0, days_remaining)
-                })
+    if not kpi_assignments:
+        return None
 
-                overall_prediction += predicted_progress
+    deadline = _to_datetime(kpi_data.get("deadline"))
+    created_at = _to_datetime(kpi_data.get("createdAt"))
+    now = datetime.now(timezone.utc)
 
-            average_prediction = (overall_prediction / len(staff_predictions)) if staff_predictions else 0
+    total_target = 0.0
+    credited_current = 0.0
+    total_expected_value = 0.0
+    valid_assignment_count = 0
+    schedule_available = deadline is not None
 
-            return {
-                "success": True,
-                "kpiId": kpi_id,
-                "kpiTitle": kpi_data.get("title"),
-                "deadline": deadline.isoformat() if deadline else None,
-                "daysRemaining": max(0, days_remaining),
-                "overallPredictedProgress": round(average_prediction, 2),
-                "staffPredictions": staff_predictions,
-                "predictionGeneratedAt": datetime.now().isoformat()
-            }
+    all_staff_completed = True
 
-        except Exception as e:
-            return {"success": False, "message": str(e)}
+    for assignment in kpi_assignments:
+        target = float(assignment.get("target", 0) or 0)
+        current = float(assignment.get("current", 0) or 0)
 
+        if target <= 0:
+            all_staff_completed = False
+            continue
+
+        valid_assignment_count += 1
+        total_target += target
+
+        # Do not allow overachievement by one staff to cover another staff
+        credited_current += min(max(current, 0), target)
+
+        if current < target:
+            all_staff_completed = False
+
+        assigned_at = _to_datetime(
+            assignment.get("assignedAt")
+        )
+
+        start_date = assigned_at or created_at
+
+        if not start_date or not deadline or deadline <= start_date:
+            schedule_available = False
+            continue
+
+        if now <= start_date:
+            expected_percentage = 0
+        elif now >= deadline:
+            expected_percentage = 100
+        else:
+            elapsed_duration = (now - start_date).total_seconds()
+            total_duration = (deadline - start_date).total_seconds()
+
+            expected_percentage = (
+                elapsed_duration / total_duration
+            ) * 100
+
+        total_expected_value += target * (expected_percentage / 100)
+
+    if valid_assignment_count == 0 or total_target <= 0:
+        return None
+
+    actual_progress = round((credited_current / total_target) * 100, 2)
+
+    # If every assigned staff reaches their own target, do not show risk status
+    if all_staff_completed:
+        return {
+            **kpi_data,
+            "id": kpi_doc.id,
+            "current": credited_current,
+            "target": total_target,
+            "achievementRate": 100,
+            "expectedProgress": 100,
+            "progressGap": 0,
+            "calculatedStatus": "completed"
+        }
+
+    # If old KPI data has no usable dates, fall back to percentage calculation
+    if not schedule_available:
+        if actual_progress < 50:
+            calculated_status = "underperformed"
+        elif actual_progress < 80:
+            calculated_status = "at_risk"
+        else:
+            calculated_status = "in_progress"
+
+        return {
+            **kpi_data,
+            "id": kpi_doc.id,
+            "current": credited_current,
+            "target": total_target,
+            "achievementRate": actual_progress,
+            "expectedProgress": None,
+            "progressGap": None,
+            "calculatedStatus": calculated_status
+        }
+
+    expected_progress = round(
+        (total_expected_value / total_target) * 100,
+        2
+    )
+
+    progress_gap = round(actual_progress - expected_progress, 2)
+
+    if now > deadline:
+        calculated_status = "underperformed"
+    elif progress_gap < UNDERPERFORMED_GAP:
+        calculated_status = "underperformed"
+    elif progress_gap < AT_RISK_GAP:
+        calculated_status = "at_risk"
+    else:
+        calculated_status = "in_progress"
+
+    return {
+        **kpi_data,
+        "id": kpi_doc.id,
+        "current": credited_current,
+        "target": total_target,
+        "achievementRate": actual_progress,
+        "expectedProgress": expected_progress,
+        "progressGap": progress_gap,
+        "calculatedStatus": calculated_status
+    }
+
+
+def get_at_risk_kpis() -> Dict:
+    try:
+        db = get_db()
+        at_risk_kpis = []
+
+        kpi_docs = db.collection("kpiData").stream()
+
+        for kpi_doc in kpi_docs:
+            performance = _calculate_kpi_performance(
+                kpi_doc
+            )
+
+            if (
+                performance and
+                performance.get("calculatedStatus") == "at_risk"
+            ):
+                performance["status"] = "at_risk"
+                at_risk_kpis.append(performance)
+
+        return {
+            "success": True,
+            "kpis": at_risk_kpis,
+            "count": len(at_risk_kpis)
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e),
+            "kpis": []
+        }
+
+
+def get_underperform_kpis() -> Dict:
+    try:
+        db = get_db()
+        underperform_kpis = []
+
+        kpi_docs = db.collection("kpiData").stream()
+
+        for kpi_doc in kpi_docs:
+            performance = _calculate_kpi_performance(
+                kpi_doc
+            )
+
+            if (
+                performance and
+                performance.get("calculatedStatus") == "underperformed"
+            ):
+                performance["status"] = "underperformed"
+                underperform_kpis.append(performance)
+
+        return {
+            "success": True,
+            "kpis": underperform_kpis,
+            "count": len(underperform_kpis)
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e),
+            "kpis": []
+        }
 
 class ManagerDashboardService:
     @staticmethod
     def get_dashboard_stats() -> Dict:
-        try:
-            db = get_db()
-            staff_stats = {}
+        return get_dashboard_stats()
 
-            # Aggregate stats for each staff member across all their KPIs
-            kpi_docs = db.collection("kpiData").stream()
-            total_kpis = 0
-            active_kpis = 0
-            completed_kpis = 0
-            
-            for kpi_doc in kpi_docs:
-                total_kpis += 1
-                kpi_data = kpi_doc.to_dict() or {}
-
-                deadline = kpi_data.get("deadline")
-                created_at = kpi_data.get("createdAt")
-
-                now = datetime.now()
-
-                if isinstance(deadline, str):
-                    deadline = datetime.fromisoformat(deadline)
-
-                if isinstance(created_at, str):
-                    created_at = datetime.fromisoformat(created_at)
-
-                kpi_status = kpi_data.get("status", "pending")
-                
-                if kpi_status in ["active", "in_progress"]:
-                    active_kpis += 1
-                elif kpi_status == "completed":
-                    completed_kpis += 1
-                
-                # Process each staff assignment for this KPI
-                kpi_assignments = kpi_data.get("kpiAssignments", [])
-                for assignment in kpi_assignments:
-                    staff_id = assignment.get("userId")
-                    if not staff_id:
-                        continue
-
-                    # Initialize staff entry if not exists
-                    if staff_id not in staff_stats:
-                        user_doc = db.collection("userData").document(staff_id).get()
-                        user_data = user_doc.to_dict() or {}
-                        staff_stats[staff_id] = {
-                            "staffId": staff_id,
-                            "name": user_data.get("name", "Unknown"),
-                            "department": user_data.get("department", "Unknown"),
-                            "email": user_data.get("email", "Unknown"),
-                            "totalTarget": 0,
-                            "totalCurrent": 0,
-                            "kpiCount": 0,
-                            "achievementRate": 0
-                        }
-
-                    # Accumulate KPI metrics
-                    target = assignment.get("target", 0)
-                    current = assignment.get("current", 0)
-                    staff_stats[staff_id]["totalTarget"] += target
-                    staff_stats[staff_id]["totalCurrent"] += current
-                    staff_stats[staff_id]["kpiCount"] += 1
-
-            # Calculate achievement rates
-            staff_rankings = []
-            for staff_id, stats in staff_stats.items():
-                if stats["totalTarget"] > 0:
-                    stats["achievementRate"] = round((stats["totalCurrent"] / stats["totalTarget"]) * 100, 2)
-                else:
-                    stats["achievementRate"] = 0
-                staff_rankings.append(stats)
-
-            # Get top performers
-            staff_rankings.sort(key=lambda x: x["achievementRate"], reverse=True)
-            top_rankings = staff_rankings[:10]
-            
-            return {
-                "success": True,
-                "dashboardStats": {
-                    "totalKPIs": total_kpis,
-                    "activeKPIs": active_kpis,
-                    "completedKPIs": completed_kpis,
-                    "totalStaff": len(staff_stats)
-                },
-                "staffRankings": top_rankings,
-                "generatedAt": datetime.now().isoformat()
-            }
-        
-        except Exception as e:
-            return {
-                "success": False,
-                "message": str(e),
-                "dashboardStats": {},
-                "staffRankings": []
-            }
-
-
-class KPIStatusService:
+class SubmissionVerificationService:
     @staticmethod
-    def get_at_risk_kpis() -> Dict:
-        try:
-            db = get_db()
-            at_risk_kpis = []
-            
-            kpi_docs = db.collection("kpiData").stream()
-            for kpi_doc in kpi_docs:
-                kpi_data = kpi_doc.to_dict() or {}
+    def verify_submission(submission_id: str, kpi_id: str, status: str, comments: str, manager_id: str) -> Dict:
+        return verify_submission(submission_id, kpi_id, status, comments, manager_id)
 
-                deadline = kpi_data.get("deadline")
-                created_at = kpi_data.get("createdAt")
-
-                now = datetime.now()
-
-                if isinstance(deadline, str):
-                    deadline = datetime.fromisoformat(deadline)
-
-                if isinstance(created_at, str):
-                    created_at = datetime.fromisoformat(created_at)
-                
-                # Skip if already completed
-                status = kpi_data.get("status", "")
-
-                if status == "completed":
-                    continue
-                
-                kpi_assignments = kpi_data.get("kpiAssignments", [])
-                
-                if not kpi_assignments:
-                    continue
-                
-                # Calculate average achievement rate for this KPI
-                total_target = 0
-                total_current = 0
-                for assignment in kpi_assignments:
-                    total_target += assignment.get("target", 0)
-                    total_current += assignment.get("current", 0)
-                
-                if total_target > 0:
-                    achievement_rate = (total_current / total_target) * 100
-
-                    # Calculate expected progress based on deadline
-                    total_days = max((deadline - created_at).days, 1)
-                    elapsed_days = max((now - created_at).days, 0)
-
-                    expected_progress = (
-                        elapsed_days / total_days
-                    ) * 100
-                   # Newly created KPI → still in progress
-                    if elapsed_days <= 3:
-                        continue
-
-                    elif achievement_rate < expected_progress:
-                        kpi_data["id"] = kpi_doc.id
-                        kpi_data["achievementRate"] = round(achievement_rate, 2)
-                        kpi_data["status"] = "at_risk"
-                        at_risk_kpis.append(kpi_data)
-            
-            return {
-                "success": True,
-                "kpis": at_risk_kpis,
-                "count": len(at_risk_kpis)
-            }
-        except Exception as e:
-            return {"success": False, "message": str(e), "kpis": []}
-    
+class KPIPredictionService:
     @staticmethod
-    def get_underperform_kpis() -> Dict:
-        try:
-            db = get_db()
-            underperform_kpis = []
-            
-            kpi_docs = db.collection("kpiData").stream()
-            for kpi_doc in kpi_docs:
-                kpi_data = kpi_doc.to_dict() or {}
-
-                deadline = kpi_data.get("deadline")
-                created_at = kpi_data.get("createdAt")
-
-                now = datetime.now()
-
-                if isinstance(deadline, str):
-                    deadline = datetime.fromisoformat(deadline)
-
-                if isinstance(created_at, str):
-                    created_at = datetime.fromisoformat(created_at)
-                
-                # Skip if already completed
-                status = kpi_data.get("status", "")
-
-                if status == "completed":
-                    continue
-                
-                kpi_assignments = kpi_data.get("kpiAssignments", [])
-                
-                if not kpi_assignments:
-                    continue
-                
-                # Calculate average achievement rate for this KPI
-                total_target = 0
-                total_current = 0
-                for assignment in kpi_assignments:
-                    total_target += assignment.get("target", 0)
-                    total_current += assignment.get("current", 0)
-                
-                if total_target > 0:
-                    achievement_rate = (total_current / total_target) * 100
-
-                    # Calculate expected progress based on deadline
-                    total_days = max((deadline - created_at).days, 1)
-                    elapsed_days = max((now - created_at).days, 0)
-
-                    expected_progress = (
-                        elapsed_days / total_days
-                    ) * 100
-                    # Underperforming: below 50%
-                    # Newly created KPI → still in progress
-                    if elapsed_days <= 3:
-                        continue
-
-                    elif achievement_rate < expected_progress * 0.5:
-                        kpi_data["id"] = kpi_doc.id
-                        kpi_data["achievementRate"] = round(achievement_rate, 2)
-                        kpi_data["status"] = "underperformed"
-                        underperform_kpis.append(kpi_data)
-            
-            return {
-                "success": True,
-                "kpis": underperform_kpis,
-                "count": len(underperform_kpis)
-            }
-        except Exception as e:
-            return {"success": False, "message": str(e), "kpis": []}
+    def predict_kpi_outcome(kpi_id: str) -> Dict:
+        return predict_kpi_outcome(kpi_id)

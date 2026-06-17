@@ -305,7 +305,7 @@ const progress = kpi.target
         boxShadow: "0 8px 20px rgba(0,0,0,0.2)"
       }}
     >
-      {/* ✅ Icon */}
+      {/* Status Icon */}
       <div style={{ fontSize: "40px", color: "#22c55e" }}>✔</div>
 
       {/* Title */}
@@ -360,7 +360,7 @@ const progress = kpi.target
         boxShadow: "0 8px 20px rgba(0,0,0,0.2)"
       }}
     >
-      {/* ✅ Icon */}
+      {/* Status Icon */}
       <div style={{ fontSize: "40px", color: "#22c55e" }}>✔</div>
 
       {/* Title */}

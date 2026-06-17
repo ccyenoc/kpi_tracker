@@ -10,6 +10,7 @@ from utils.auth_utils import get_user_auth_hash, create_user_documents,allocate_
 from models.user_model import UserRegistration
 from models.auth_model import EmailVerificationRequest, EmailCodeVerificationRequest
 from email.message import EmailMessage
+from utils.security import verify_jwt_token
 import re, traceback, secrets, time , os , hashlib, smtplib
 
 
@@ -116,22 +117,22 @@ def save_user_profile_document(user_ref, user_profile: dict) -> None:
 
 def build_user_profile_document(user_data: UserRegistration | dict) -> dict:
     """Create the exact Firestore profile document shape for a user."""
+    is_dict = isinstance(user_data, dict)
     return {
-        "name": user_data["name"] if isinstance(user_data, dict) else user_data.name,
-        "email": user_data["email"] if isinstance(user_data, dict) else user_data.email,
-        "phone": (user_data["phone"] if isinstance(user_data, dict) else user_data.phone) or "",
-        "role": user_data["role"] if isinstance(user_data, dict) else user_data.role,
-        "department": user_data["department"] if isinstance(user_data, dict) else user_data.department,
+        "name": user_data.get("name") if is_dict else user_data.name,
+        "email": user_data.get("email") if is_dict else user_data.email,
+        "phone": (user_data.get("phone") if is_dict else user_data.phone) or "",
+        "role": user_data.get("role") if is_dict else user_data.role,
+        "department": user_data.get("department") if is_dict else user_data.department,
     }
 
 
 def normalize_email(email: str) -> str:
-    """Return canonical lower-cased email for comparisons and storage."""
     return (email or "").strip().lower()
 
 
 def generate_verification_code() -> str:
-    """Generate a random 6-digit code."""
+    # generate a random 6 digits code as the verification code
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
@@ -288,7 +289,7 @@ def verify_email_code_service(verification_data: EmailCodeVerificationRequest):
         if not db:
             raise HTTPException(status_code=500, detail="Firebase not configured")
 
-        # ✅ STEP 1: get input FIRST
+        # Normalize email
         target_email = normalize_email(verification_data.email)
         code = (verification_data.code or "").strip()
 
@@ -298,14 +299,14 @@ def verify_email_code_service(verification_data: EmailCodeVerificationRequest):
         if not re.match(r"^\d{6}$", code):
             raise HTTPException(status_code=400, detail="Verification code must be 6 digits")
 
-        # ✅ STEP 2: fetch from DB
+        # Fetch from database
         verification_ref = db.collection(EMAIL_VERIFICATION_COLLECTION).document(target_email)
         verification_doc = verification_ref.get()
 
         if not verification_doc.exists:
             raise HTTPException(status_code=404, detail="No verification code found")
 
-        # ✅ STEP 3: extract data
+        # Extract code details
         doc_data = verification_doc.to_dict() or {}
 
         expires_at = int(doc_data.get("expiresAt", 0))
@@ -315,20 +316,19 @@ def verify_email_code_service(verification_data: EmailCodeVerificationRequest):
         stored_salt = doc_data.get("codeSalt", "")
         stored_hash = doc_data.get("codeHash", "")
 
-        # ✅ STEP 4: generate hash
+        # Verify hash
         candidate_hash = hash_verification_code(target_email, code, stored_salt)
 
-        # ✅ DEBUG (optional)
         print("INPUT CODE:", code)
         print("EMAIL:", target_email)
         print("STORED HASH:", stored_hash)
         print("GENERATED HASH:", candidate_hash)
 
-        # ✅ STEP 5: compare
+        # Compare code hashes
         if not secrets.compare_digest(candidate_hash, stored_hash):
             raise HTTPException(status_code=400, detail="Invalid verification code")
 
-        # ✅ STEP 6: mark verified
+        # Set verification status to true
         verification_ref.set({
             "email": target_email,
             "verified": True,
@@ -346,16 +346,13 @@ def verify_email_code_service(verification_data: EmailCodeVerificationRequest):
 
 
 def get_current_user_from_request(request):
-    """Extract user information from JWT token in Authorization header."""
+    # get jwt token from request and check if it is the authenticated user
     try:
         auth_header = request.headers.get("Authorization", "")
         if not auth_header.startswith("Bearer "):
             return None
         
-        token = auth_header[7:]  # Remove "Bearer " prefix
-        
-        # Import verify_jwt_token from utils
-        from utils.security import verify_jwt_token
+        token = auth_header[7:]  # the input have a "Bearer" in front , we need to remove it 
         
         user_data = verify_jwt_token(token)
         if user_data:
@@ -390,7 +387,6 @@ def logout_user(request):
         session_ref = db.collection(SESSIONS_COLLECTION).document(jti)
         session_doc = session_ref.get()
         if not session_doc.exists:
-            # Nothing to revoke, but treat as success for idempotency
             return {"success": True, "message": "Logged out"}
 
         session_ref.update({"revoked": True})

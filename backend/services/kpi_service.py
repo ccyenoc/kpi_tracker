@@ -34,7 +34,7 @@ def get_kpis(request: Request):
         kpi_status  = request.query_params.get("status")
 
         if assigned_to:
-            query = query.where(filter=FieldFilter("assignedTo", "==", assigned_to))
+            query = query.where(filter=FieldFilter("assignedUserIds", "array_contains", assigned_to))
         if kpi_status:
             query = query.where(filter=FieldFilter("status", "==", kpi_status))
 
@@ -133,15 +133,18 @@ def create_kpi(kpi_data, request: Request):
     for user_id in kpi_data.assignedUserIds:
         user = get_user_info(user_id)
 
-        print("👤 User:", user)
+        print("User:", user)
 
         if user:
-         send_kpi_assignment_email(
-            to_email=user["email"],
-            staff_name=user["name"],
-            kpi_title=kpi_data.title,
-            deadline=kpi_data.deadline
-        )
+            try:
+                send_kpi_assignment_email(
+                    to_email=user["email"],
+                    staff_name=user["name"],
+                    kpi_title=kpi_data.title,
+                    deadline=kpi_data.deadline
+                )
+            except Exception as email_err:
+                print(f"Failed to send KPI assignment email to {user['email']}: {email_err}")
 
     return {"success": True, "kpi": doc_data}
 
@@ -200,7 +203,28 @@ def delete_kpi(kpi_id: str, request: Request):
     if not kpi_doc.exists:
         raise HTTPException(status_code=404, detail="KPI not found")
 
+    # Get assigned user IDs before deleting the document
+    kpi_data = kpi_doc.to_dict() or {}
+    assigned_user_ids = kpi_data.get("assignedUserIds", [])
+
+    # Delete the main KPI document
     kpi_ref.delete()
+
+    # Clean up assignedKpis references inside userData
+    for user_id in assigned_user_ids:
+        user_ref = db.collection("userData").document(user_id)
+        user_doc = user_ref.get()
+        if user_doc.exists:
+            user_data = user_doc.to_dict() or {}
+            assigned_kpis = user_data.get("assignedKpis", [])
+            if kpi_id in assigned_kpis:
+                assigned_kpis.remove(kpi_id)
+                user_ref.update({"assignedKpis": assigned_kpis})
+
+    # Clean up associated submissions
+    submissions = db.collection("kpiSubmissions").where("kpiId", "==", kpi_id).stream()
+    for sub in submissions:
+        sub.reference.delete()
 
     return {"success": True}
 
@@ -209,6 +233,7 @@ def delete_kpi(kpi_id: str, request: Request):
 # to generate weekly report
 def get_weekly_kpi():
     try:
+        from datetime import timedelta
         kpi_ref = db.collection(KPI_COLLECTION)
 
         query = kpi_ref.where("status", "!=", "completed")
@@ -217,9 +242,31 @@ def get_weekly_kpi():
         total_tasks = 0
         total_progress = 0
 
+        now = datetime.utcnow()
+        # get the date 7 days before
+        start_date = now - timedelta(days=7)
+        end_date = now
+
         for doc in query.stream():
             data = doc.to_dict() or {}
             data["id"] = doc.id
+
+             # date filtering logic
+            date_in_range = False
+            has_dates = False
+            for date_field in ["createdAt", "updatedAt"]:
+                date_str = data.get(date_field)
+                if date_str:
+                    has_dates = True
+                    try:
+                        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00").split("+")[0])
+                        if start_date <= dt <= end_date:
+                            date_in_range = True
+                            break
+                    except:
+                        pass
+            if has_dates and not date_in_range:
+                continue
 
             # calculate KPI-level progress
             assignments = data.get("kpiAssignments", [])
@@ -255,7 +302,7 @@ def get_weekly_kpi():
                 "totalAssignments": total_tasks,
                 "averageProgress": round(avg_progress, 2)
             },
-            "kpis": kpis   # 🔥 FULL DATA
+            "kpis": kpis
         }
 
     except Exception as e:
@@ -274,9 +321,37 @@ def get_monthly_kpi():
         total_tasks = 0
         total_progress = 0
 
+        now = datetime.utcnow()
+        
+        # get current month
+        start_of_month = datetime(now.year, now.month, 1)
+
+        # get next month
+        if now.month == 12:
+            end_of_month = datetime(now.year + 1, 1, 1)
+        else:
+            end_of_month = datetime(now.year, now.month + 1, 1)
+
         for doc in docs:
             data = doc.to_dict() or {}
             data["id"] = doc.id
+
+            # date filtering logic
+            date_in_range = False
+            has_dates = False
+            for date_field in ["createdAt", "updatedAt"]:
+                date_str = data.get(date_field)
+                if date_str:
+                    has_dates = True
+                    try:
+                        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00").split("+")[0])
+                        if start_of_month <= dt < end_of_month:
+                            date_in_range = True
+                            break
+                    except:
+                        pass
+            if has_dates and not date_in_range:
+                continue
 
             assignments = data.get("kpiAssignments", [])
 
@@ -300,7 +375,7 @@ def get_monthly_kpi():
             # KPI overall progress
             data["progress"] = round(kpi_total / kpi_count, 2) if kpi_count else 0
 
-            # 🔥 SPLIT LOGIC
+            # Categorize into completed or active
             if data.get("status") == "completed":
                 completed_kpis.append(data)
             else:
@@ -345,7 +420,7 @@ def send_kpi_assignment_email(to_email, staff_name, kpi_title, deadline):
     )
 
     try:
-        print("📩 Connecting to SMTP...")
+        print("Connecting to SMTP...")
 
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
             if SMTP_USE_TLS:
@@ -354,10 +429,10 @@ def send_kpi_assignment_email(to_email, staff_name, kpi_title, deadline):
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
 
-        print("✅ Email sent to", to_email)
+        print("Email sent to", to_email)
 
     except Exception as e:
-        print("❌ EMAIL ERROR:", e)
+        print("Email error:", e)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to send KPI email: {str(e)}"
@@ -403,7 +478,7 @@ async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadF
                 "path": file_path.replace("\\", "/")
             })
 
-        # 🔥 create submission
+        # Create submission
         submission_id = str(int(datetime.now().timestamp() * 1000))
 
         new_submission = {
@@ -418,21 +493,20 @@ async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadF
         }
 
         db.collection("kpiSubmissions").document(submission_id).set(new_submission)
-        print("🔥 Received KPI ID:", kpiId)
-        print("🔥 KPI doc exists:", get_kpi_by_id(kpiId))
+        print("Received KPI ID:", kpiId)
+        print("KPI doc exists:", get_kpi_by_id(kpiId))
 
-        # 🔥 GET KPI → manager
-        ###################### HARDCODE KPIID FOR EMAIL SENDING TESTING#########################
-        kpi = get_kpi_by_id("9UWLxM7bmLImC3wreUUK")
+        # Retrieve manager info
+        kpi = get_kpi_by_id(kpiId)
 
         if kpi:
             manager_id = kpi.get("createdBy")
             manager = get_user_info(manager_id)
 
-            print("👤 Staff:", staff)
-            print("👤 Manager:", manager)
+            print("Staff:", staff)
+            print("Manager:", manager)
 
-            # 📩 email manager
+            # email manager
             if manager:
                 send_email(
                     manager["email"],
@@ -452,7 +526,7 @@ async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadF
                     """
                 )
 
-            # 📩 email staff (confirmation)
+            # email staff (confirmation)
             if staff:
                 send_email(
                     staff["email"],
@@ -478,7 +552,7 @@ async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadF
         }
 
     except Exception as e:
-        print("🔥 ERROR:", e)
+        print("Error updating KPI progress:", e)
         raise HTTPException(status_code=500, detail=str(e))
     
 def send_email(to_email, subject, content):
@@ -489,7 +563,7 @@ def send_email(to_email, subject, content):
     msg.set_content(content)
 
     try:
-        print("📩 Connecting to SMTP...")
+        print("Connecting to SMTP...")
 
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
             if SMTP_USE_TLS:
@@ -498,10 +572,10 @@ def send_email(to_email, subject, content):
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
 
-        print("✅ Email sent to", to_email)
+        print("Email sent to", to_email)
 
     except Exception as e:
-        print("❌ EMAIL ERROR:", e)
+        print("Email error:", e)
 
 from collections import defaultdict
 from datetime import datetime
@@ -510,14 +584,10 @@ from datetime import datetime
 def get_kpi_history(request: Request):
 
     data = get_kpis(request)
-
     kpis = data["kpis"]
 
     if not kpis:
-        return {
-            "success": True,
-            "chart": []
-        }
+        return { "success": True, "chart": [] }
 
     total_expected = 0
     total_progress = 0
@@ -591,23 +661,13 @@ def get_kpi_history(request: Request):
                 target
             ) * 100
 
-
-            gap = (
-                progress -
-                expected
+            from services.prediction_service import calculate_trajectory_prediction
+            prediction = calculate_trajectory_prediction(
+                current,
+                target,
+                kpi.get("createdAt"),
+                deadline
             )
-
-
-            prediction = max(
-    0,
-    min(
-        progress +
-        (
-            gap * 0.5
-        ),
-        100
-    )
-)
 
 
             total_expected += expected

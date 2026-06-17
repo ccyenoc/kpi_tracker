@@ -12,193 +12,195 @@ import {
 import { useEffect, useState } from "react";
 import { kpi } from "../../../../api/api";
 
-function ProgressKPIGraph({kpiId }) {
+function ProgressKPIGraph({ kpiId }) {
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
 
-  console.log("kpiId =", kpiId);
+    console.log("kpiId =", kpiId);
 
-  if (!kpiId) {
-    setLoading(false);
-    return;
-  }
+    if (!kpiId) {
+      setLoading(false);
+      return;
+    }
 
-  async function loadGraph() {
+    async function loadGraph() {
 
-    try {
+      try {
 
-      console.log("START REQUEST");
+        console.log("START REQUEST");
 
-      setLoading(true);
+        setLoading(true);
 
-      const result =
-        await kpi.fetchKPIPrediction(
-          kpiId
+        const result =
+          await kpi.fetchKPIPrediction(
+            kpiId
+          );
+
+        console.log(
+          "RESULT:",
+          result
         );
 
-      console.log(
-        "RESULT:",
-        result
-      );
+        console.log("Chart =", result.chart);
+        console.log("Staff Predictions =", result.staffPredictions);
 
-      setData(
-        result.chart || []
-      );
+        const chartData = result.chart || [];
+        setData(chartData);
+
+      }
+
+      catch (err) {
+
+        console.log(
+          "ERROR:",
+          err
+        );
+
+      }
+
+      finally {
+
+        console.log(
+          "DONE"
+        );
+
+        setLoading(false);
+
+      }
 
     }
 
-    catch (err) {
+    loadGraph();
 
-      console.log(
-        "ERROR:",
-        err
-      );
-
-    }
-
-    finally {
-
-      console.log(
-        "DONE"
-      );
-
-      setLoading(false);
-
-    }
-
-  }
-
-  loadGraph();
-
-}, [kpiId]);
+  }, [kpiId]);
 
 
 
   if (loading) {
 
+    return (
+      <div
+        style={{
+          padding: "40px",
+          textAlign: "center"
+        }}
+      >
+        Loading KPI graph...
+      </div>
+    );
+
+  }
+
+
+
   return (
-    <div
-      style={{
-        padding: "40px",
-        textAlign: "center"
-      }}
-    >
-      Loading KPI graph...
-    </div>
-  );
-
-}
-
-
-
-return (
-
-  <div
-    style={{
-      marginTop: "20px",
-      width: "100%"
-    }}
-  >
-
-    <h3
-      style={{
-        fontSize: "18px",
-        fontWeight: "bold"
-      }}
-    >
-      KPI Progress Over Time
-    </h3>
-
-    <p
-      style={{
-        color: "#64748b",
-        marginBottom: "20px"
-      }}
-    >
-      Expected vs Actual vs Forecast
-    </p>
-
 
     <div
       style={{
         width: "100%",
-        height: "350px"
+        marginTop: "20px"
       }}
     >
 
-      <ResponsiveContainer
-        width="100%"
-        height="100%"
+      <h3
+        style={{
+          fontSize: "18px",
+          fontWeight: "bold"
+        }}
+      >
+        KPI Progress Over Time
+      </h3>
+
+      <p
+        style={{
+          color: "#64748b",
+          marginBottom: "20px"
+        }}
+      >
+        Expected vs Actual vs Forecast
+      </p>
+
+
+      <div
+        style={{
+          width: "100%",
+          height: "350px"
+        }}
       >
 
-        <LineChart
-          data={data}
-          margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 10
-          }}
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
         >
 
-          <CartesianGrid
-            strokeDasharray="3 3"
-          />
+          <LineChart
+            data={data}
+            margin={{
+              top: 20,
+              right: 30,
+              left: 20,
+              bottom: 10
+            }}
+          >
 
-          <XAxis
-            dataKey="time"
-          />
+            <CartesianGrid
+              strokeDasharray="3 3"
+            />
 
-          <YAxis
-            domain={[0, 100]}
-          />
+            <XAxis
+              dataKey="time"
+            />
 
-          <Tooltip />
+            <YAxis
+              domain={[0, 100]}
+            />
 
-          <Legend
-            verticalAlign="top"
-          />
+            <Tooltip />
 
-
-          <Line
-            type="monotone"
-            dataKey="kpi"
-            stroke="#2563eb"
-            strokeWidth={3}
-            name="Expected"
-          />
-
-
-          <Line
-            type="monotone"
-            dataKey="progress"
-            stroke="#f59e0b"
-            strokeWidth={3}
-            name="Actual"
-          />
+            <Legend
+              verticalAlign="top"
+            />
 
 
-          <Line
-            type="monotone"
-            dataKey="prediction"
-            stroke="#10b981"
-            strokeWidth={3}
-            strokeDasharray="5 5"
-            name="Forecast"
-          />
+            <Line
+              type="monotone"
+              dataKey="kpi"
+              stroke="#2563eb"
+              strokeWidth={3}
+              name="Expected"
+            />
 
-        </LineChart>
 
-      </ResponsiveContainer>
+            <Line
+              type="monotone"
+              dataKey="progress"
+              stroke="#f59e0b"
+              strokeWidth={3}
+              name="Actual"
+            />
+
+
+            <Line
+              type="monotone"
+              dataKey="prediction"
+              stroke="#10b981"
+              strokeWidth={3}
+              strokeDasharray="5 5"
+              name="Forecast"
+            />
+
+          </LineChart>
+
+        </ResponsiveContainer>
+
+      </div>
 
     </div>
 
-  </div>
-
-);
+  );
 }
 
 export default ProgressKPIGraph;

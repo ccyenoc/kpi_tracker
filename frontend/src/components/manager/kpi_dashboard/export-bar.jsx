@@ -1,6 +1,6 @@
 import { util } from "../../../api/api";
 
-function ExportBar({ onMonthlyReport }) {  
+function ExportBar({ onMonthlyReport }) {
   console.log("ExportBar loaded");
 
   const buttonStyle = {
@@ -32,6 +32,25 @@ function ExportBar({ onMonthlyReport }) {
     }
   };
 
+  const monthlyReport = async () => {
+    try {
+      const blob = await util.getMonthlyReport();
+      console.log("API DATA:", blob);
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "monthly_report.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url); // clean up the URL object
+    } catch (err) {
+      console.log("ERROR:", err);
+    }
+  };
+
   return (
     <div
       className="mx-3 mb-2 flex-grow-1"
@@ -53,8 +72,8 @@ function ExportBar({ onMonthlyReport }) {
         <button style={buttonStyle} onClick={weeklyReport}>
           Weekly Performance
         </button>
-       
-        <button style={buttonStyle} onClick={onMonthlyReport}>
+
+        <button style={buttonStyle} onClick={monthlyReport}>
           Monthly Performance
         </button>
       </div>
