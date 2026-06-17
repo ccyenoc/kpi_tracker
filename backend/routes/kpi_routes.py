@@ -1,23 +1,19 @@
 from fastapi import APIRouter, Request
 from models.kpi_model import KPICreate, KPIUpdate, AssignKPIRequest
-from services.kpi_service import (
-    get_kpis,
-    get_kpi,
-    get_staff_kpis,
-    get_staff_kpi_submissions,
-    create_kpi,
-    update_kpi,
-    delete_kpi,
-    update_kpi_progress_service,
-    get_kpi_history
-)
+from services.kpi_service import ( get_kpis, get_kpi, get_staff_kpis, get_staff_kpi_submissions, create_kpi, update_kpi, delete_kpi, update_kpi_progress_service, get_kpi_history )
 from services.prediction_service import get_staff_predictions
+from services.auth_service import get_current_user_from_request
 from utils.auth_utils import require_manager
 from fastapi import Form, File, UploadFile
 from typing import List
 import sys
 import os
+from config.firebase_config import db
+from firebase_secure import KPI_COLLECTION
+from datetime import datetime, timedelta
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from services.manager_service import (
     get_dashboard_stats as get_dashboard_stats_service,
     get_all_submissions,
@@ -34,18 +30,15 @@ from services.manager_service import (
 
 router = APIRouter()
 
-# Get all KPIs
+# get all manager's created kpi
 @router.get("/manager/kpis")
 def view_all_kpis(request: Request):
     return get_kpis(request)
 
 
-# Get single KPI endpoint
-from fastapi import Form, File, UploadFile
-from typing import List
 
 
-# Get single KPI endpoint
+# get a single kpi created by manager
 @router.get("/manager/kpi")
 def view_kpis(request: Request):
     return get_kpis(request)
@@ -79,14 +72,12 @@ def delete(kpi_id: str, request: Request):
     return delete_kpi(kpi_id, request)
 
 
-# Manager Dashboard Stats (aggregated KPI data and staff rankings)
 @router.get("/manager/dashboard/stats")
 def get_dashboard_stats(request: Request):
     result = get_dashboard_stats_service()
     return result
 
 
-# Get all KPI submissions (pending, approved, rejected)
 @router.get("/kpi/submissions")
 def get_submissions(request: Request):
     result = get_all_submissions()
@@ -99,33 +90,27 @@ def get_submissions(request: Request):
     return result
 
 
-# Get at-risk KPIs (achievement rate 50-80%)
 @router.get("/kpi/at-risk")
 def get_at_risk_kpis(request: Request):
     result = get_at_risk_kpis_service()
     return result
 
 
-# Get underperforming KPIs (achievement rate < 50%)
 @router.get("/kpi/underperform")
 def get_underperform_kpis(request: Request):
     result = get_underperform_kpis_service()
     return result
 
-# Get staff's assigned KPIs
 @router.get("/staff/kpis")
 def get_staff_kpis_route(request: Request):
-    from services.auth_service import get_current_user_from_request
+    
     try:
         current_user = get_current_user_from_request(request)
         if not current_user:
             return {"success": False, "message": "Unauthorized"}
         
         user_id = current_user.get("id")
-        
-        # Get all KPIs assigned to this staff member
-        from config.firebase_config import db
-        from firebase_secure import KPI_COLLECTION
+    
         
         kpis_ref = db.collection(KPI_COLLECTION).stream()
         staff_kpis = []
@@ -172,25 +157,18 @@ def get_staff_monthly_performance(request: Request):
         
         user_id = current_user.get("id")
         
-        from config.firebase_config import db
-        from firebase_secure import KPI_COLLECTION
-        from datetime import datetime, timedelta
-        
-        # Get all KPIs assigned to this staff member
         kpis_ref = db.collection(KPI_COLLECTION).stream()
         monthly_data = {}
         
         for doc in kpis_ref:
             kpi_data = doc.to_dict()
             
-            # Check if current user is in the assigned staff
             assignments = kpi_data.get("kpiAssignments", [])
             user_assignment = next((a for a in assignments if a.get("userId") == user_id), None)
             
             if not user_assignment:
                 continue
-            
-            # Get submissions for this KPI from this user
+        
             submissions_ref = db.collection("kpiSubmissions").where("kpiId", "==", doc.id).where("userId", "==", user_id).stream()
             
             for submission_doc in submissions_ref:
@@ -285,8 +263,6 @@ def list_evidence_files():
     except Exception as e:
         return {"success": False, "message": str(e)}
 
-
-# Verify (approve/reject) a submission
 @router.post("/kpi/verify-submission")
 async def verify_submission(request: Request):
     try:
@@ -299,7 +275,6 @@ async def verify_submission(request: Request):
         except:
             return {"success": False, "message": "Unauthorized"}
         
-        # Get request body
         body = await request.json()
         submission_id = body.get("submissionId")
         kpi_id = body.get("kpiId")
@@ -312,7 +287,6 @@ async def verify_submission(request: Request):
         if status not in ["approved", "rejected"]:
             return {"success": False, "message": "Invalid status"}
         
-        # Update submission in Firestore
         result = verify_submission_service(
             submission_id, kpi_id, status, comments, manager_id
         )
@@ -326,8 +300,6 @@ async def verify_submission(request: Request):
 def view_staff_kpi_submissions(request: Request):
     return get_staff_kpi_submissions(request)
 
-
-# Assign KPI to staff members
 @router.post("/manager/kpi/{kpi_id}/assign")
 def assign_kpi(kpi_id: str, assign_data: AssignKPIRequest, request: Request):
     decoded = require_manager(request)
@@ -335,21 +307,16 @@ def assign_kpi(kpi_id: str, assign_data: AssignKPIRequest, request: Request):
     return assign_kpi_to_staff(kpi_id, assign_data.assignments, manager_id)
 
 
-# Get KPI assignment details
 @router.get("/manager/kpi/{kpi_id}/assignments")
 def get_assignments(kpi_id: str, request: Request):
     require_manager(request)
     return get_kpi_assignments(kpi_id)
 
-
-# Generate JSON structured performance report for a KPI
 @router.get("/manager/kpi/{kpi_id}/report")
 def get_kpi_report(kpi_id: str, request: Request):
     require_manager(request)
     return generate_report(kpi_id)
 
-
-# Export KPI performance report data as CSV
 @router.get("/manager/kpi/{kpi_id}/report/csv")
 def export_kpi_report(kpi_id: str, request: Request):
     require_manager(request)

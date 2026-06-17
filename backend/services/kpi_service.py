@@ -133,7 +133,7 @@ def create_kpi(kpi_data, request: Request):
     for user_id in kpi_data.assignedUserIds:
         user = get_user_info(user_id)
 
-        print("👤 User:", user)
+        print("User:", user)
 
         if user:
             try:
@@ -144,7 +144,7 @@ def create_kpi(kpi_data, request: Request):
                     deadline=kpi_data.deadline
                 )
             except Exception as email_err:
-                print(f"❌ Failed to send KPI assignment email to {user['email']}: {email_err}")
+                print(f"Failed to send KPI assignment email to {user['email']}: {email_err}")
 
     return {"success": True, "kpi": doc_data}
 
@@ -210,7 +210,7 @@ def delete_kpi(kpi_id: str, request: Request):
     # Delete the main KPI document
     kpi_ref.delete()
 
-    # Clean up assignedKpis references inside userData (DI-01)
+    # Clean up assignedKpis references inside userData
     for user_id in assigned_user_ids:
         user_ref = db.collection("userData").document(user_id)
         user_doc = user_ref.get()
@@ -221,7 +221,7 @@ def delete_kpi(kpi_id: str, request: Request):
                 assigned_kpis.remove(kpi_id)
                 user_ref.update({"assignedKpis": assigned_kpis})
 
-    # Clean up associated submissions (DI-05)
+    # Clean up associated submissions
     submissions = db.collection("kpiSubmissions").where("kpiId", "==", kpi_id).stream()
     for sub in submissions:
         sub.reference.delete()
@@ -302,7 +302,7 @@ def get_weekly_kpi():
                 "totalAssignments": total_tasks,
                 "averageProgress": round(avg_progress, 2)
             },
-            "kpis": kpis   # 🔥 FULL DATA
+            "kpis": kpis
         }
 
     except Exception as e:
@@ -375,7 +375,7 @@ def get_monthly_kpi():
             # KPI overall progress
             data["progress"] = round(kpi_total / kpi_count, 2) if kpi_count else 0
 
-            # 🔥 SPLIT LOGIC
+            # Categorize into completed or active
             if data.get("status") == "completed":
                 completed_kpis.append(data)
             else:
@@ -420,7 +420,7 @@ def send_kpi_assignment_email(to_email, staff_name, kpi_title, deadline):
     )
 
     try:
-        print("📩 Connecting to SMTP...")
+        print("Connecting to SMTP...")
 
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
             if SMTP_USE_TLS:
@@ -429,10 +429,10 @@ def send_kpi_assignment_email(to_email, staff_name, kpi_title, deadline):
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
 
-        print("✅ Email sent to", to_email)
+        print("Email sent to", to_email)
 
     except Exception as e:
-        print("❌ EMAIL ERROR:", e)
+        print("Email error:", e)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to send KPI email: {str(e)}"
@@ -478,7 +478,7 @@ async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadF
                 "path": file_path.replace("\\", "/")
             })
 
-        # 🔥 create submission
+        # Create submission
         submission_id = str(int(datetime.now().timestamp() * 1000))
 
         new_submission = {
@@ -493,10 +493,10 @@ async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadF
         }
 
         db.collection("kpiSubmissions").document(submission_id).set(new_submission)
-        print("🔥 Received KPI ID:", kpiId)
-        print("🔥 KPI doc exists:", get_kpi_by_id(kpiId))
+        print("Received KPI ID:", kpiId)
+        print("KPI doc exists:", get_kpi_by_id(kpiId))
 
-        # 🔥 GET KPI → manager
+        # Retrieve manager info
         kpi = get_kpi_by_id(kpiId)
 
         if kpi:
@@ -552,7 +552,7 @@ async def update_kpi_progress_service(kpiId, current, notes, files: List[UploadF
         }
 
     except Exception as e:
-        print("🔥 ERROR:", e)
+        print("Error updating KPI progress:", e)
         raise HTTPException(status_code=500, detail=str(e))
     
 def send_email(to_email, subject, content):
@@ -575,7 +575,7 @@ def send_email(to_email, subject, content):
         print("Email sent to", to_email)
 
     except Exception as e:
-        print("❌ EMAIL ERROR:", e)
+        print("Email error:", e)
 
 from collections import defaultdict
 from datetime import datetime

@@ -14,10 +14,14 @@ router = APIRouter()
 
 def get_user_name(user_id):
     try:
+        # Check by document ID first
         doc = db.collection("userData").document(user_id).get()
         if doc.exists:
-            return doc.to_dict().get("name", user_id)
+            data = doc.to_dict()
+            if data and data.get("name"):
+                return data["name"]
 
+        # Fallback to field query
         users_ref = db.collection("userData")
         query = users_ref.where("userId", "==", user_id).limit(1).stream()
 
@@ -324,6 +328,8 @@ def my_monthly_report(request: Request):
 
         user_id = current_user.get("id")
         user_name = get_user_name(user_id)
+        if user_name == user_id:
+            user_name = "Staff"
 
         kpi_docs = db.collection(KPI_COLLECTION).stream()
 

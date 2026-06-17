@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from fastapi import HTTPException
 from fastapi import Request
+from services.predictionService import predict_kpi, get_kpi
 
 # UT-31: Prediction Engine Tests - Success
 def test_predict_kpi_service_success():
@@ -15,7 +16,7 @@ def test_predict_kpi_service_success():
     }
     
     with patch("services.predictionService.get_kpi", return_value=mock_kpi):
-        from services.predictionService import predict_kpi
+        
         result = predict_kpi("kpi_123", MagicMock(spec=Request))
         
         assert result["success"] is True
@@ -42,7 +43,7 @@ def test_predict_kpi_service_empty_assignments():
     }
     
     with patch("services.predictionService.get_kpi", return_value=mock_kpi):
-        from services.predictionService import predict_kpi
+    
         result = predict_kpi("kpi_123", MagicMock(spec=Request))
         
         assert result["success"] is True

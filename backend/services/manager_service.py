@@ -244,33 +244,33 @@ def verify_submission(submission_id: str, kpi_id: str, status: str, comments: st
                 })
 
         # Send notification email to the staff member who made the submission
-        print("✉️ [EMAIL DEBUG] Starting verification email dispatch flow...")
-        print(f"✉️ [EMAIL DEBUG] submitted_by: {submitted_by}, kpi_id: {kpi_id}")
+        print("[EMAIL DEBUG] Starting verification email dispatch flow...")
+        print(f"[EMAIL DEBUG] submitted_by: {submitted_by}, kpi_id: {kpi_id}")
         staff_email = None
         staff_name = "Staff Member"
         if submitted_by:
             staff_doc = db.collection("userData").document(submitted_by).get()
-            print(f"✉️ [EMAIL DEBUG] staff_doc.exists: {staff_doc.exists}")
+            print(f"[EMAIL DEBUG] staff_doc.exists: {staff_doc.exists}")
             if staff_doc.exists:
                 staff_data = staff_doc.to_dict() or {}
                 staff_email = staff_data.get("email")
                 staff_name = staff_data.get("name", "Staff Member")
-                print(f"✉️ [EMAIL DEBUG] Retrieved staff_name: {staff_name}, staff_email: {staff_email}")
+                print(f"[EMAIL DEBUG] Retrieved staff_name: {staff_name}, staff_email: {staff_email}")
             else:
-                print("✉️ [EMAIL DEBUG] staff_doc does not exist in userData collection!")
+                print("[EMAIL DEBUG] staff_doc does not exist in userData collection!")
         else:
-            print("✉️ [EMAIL DEBUG] No submittedBy user ID found in submission!")
+            print("[EMAIL DEBUG] No submittedBy user ID found in submission!")
 
         kpi_title = "KPI"
         if kpi_id:
             kpi_doc = db.collection("kpiData").document(kpi_id).get()
-            print(f"✉️ [EMAIL DEBUG] kpi_doc.exists: {kpi_doc.exists}")
+            print(f"[EMAIL DEBUG] kpi_doc.exists: {kpi_doc.exists}")
             if kpi_doc.exists:
                 kpi_data = kpi_doc.to_dict() or {}
                 kpi_title = kpi_data.get("title", "KPI")
-                print(f"✉️ [EMAIL DEBUG] Retrieved kpi_title: {kpi_title}")
+                print(f"[EMAIL DEBUG] Retrieved kpi_title: {kpi_title}")
             else:
-                print("✉️ [EMAIL DEBUG] kpi_doc does not exist in kpiData collection!")
+                print("[EMAIL DEBUG] kpi_doc does not exist in kpiData collection!")
 
         if staff_email:
             try:
@@ -286,16 +286,16 @@ Manager's Comments:
 
 Thank you,
 KPI System"""
-                print(f"✉️ [EMAIL DEBUG] Calling send_email with parameters:")
+                print(f"[EMAIL DEBUG] Calling send_email with parameters:")
                 print(f"  To: {staff_email}")
                 print(f"  Subject: {subject}")
                 print(f"  Body:\n{body}")
                 send_email(staff_email, subject, body)
-                print("✉️ [EMAIL DEBUG] send_email function execution finished.")
+                print("[EMAIL DEBUG] send_email function execution finished.")
             except Exception as email_err:
-                print("❌ [EMAIL DEBUG] Error sending submission verification email:", email_err)
+                print("[EMAIL DEBUG] Error sending submission verification email:", email_err)
         else:
-            print("✉️ [EMAIL DEBUG] Skipping send_email because staff_email is not set/found.")
+            print("[EMAIL DEBUG] Skipping send_email because staff_email is not set/found.")
 
         return {
             "success": True,
@@ -784,8 +784,6 @@ def get_underperform_kpis() -> Dict:
             "kpis": []
         }
 
-
-# Class wrappers for unit test compatibility
 class ManagerDashboardService:
     @staticmethod
     def get_dashboard_stats() -> Dict:
