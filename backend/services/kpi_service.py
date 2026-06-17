@@ -210,7 +210,7 @@ def delete_kpi(kpi_id: str, request: Request):
     # Delete the main KPI document
     kpi_ref.delete()
 
-    # Clean up assignedKpis references inside userData (DI-01)
+    # Clean up assignedKpis references inside userData
     for user_id in assigned_user_ids:
         user_ref = db.collection("userData").document(user_id)
         user_doc = user_ref.get()
@@ -221,7 +221,7 @@ def delete_kpi(kpi_id: str, request: Request):
                 assigned_kpis.remove(kpi_id)
                 user_ref.update({"assignedKpis": assigned_kpis})
 
-    # Clean up associated submissions (DI-05)
+    # Clean up associated submissions
     submissions = db.collection("kpiSubmissions").where("kpiId", "==", kpi_id).stream()
     for sub in submissions:
         sub.reference.delete()
