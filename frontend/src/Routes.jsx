@@ -5,7 +5,6 @@ import VerifyKPI from "./pages/manager/verify-kpi";
 import CreateKPI from "./pages/manager/kpi_management/create-kpi";
 import KPIProgressPage from "./pages/manager/kpi_management/kpi-progress";
 import ProfilePage from "./pages/common/ProfilePage";
-import StaffKPIUpdate from "./pages/staff/staff-kpi-progress-update";
 import UpdateKPI from "./pages/manager/kpi_management/update-kpi";
 import StaffKpiProgressUpdate from "./pages/staff/staff-kpi-progress-update";
 
