@@ -6,7 +6,7 @@ import datetime as real_datetime
 
 from models.kpi_model import KPICreate, KPIUpdate
 from services import kpi_service
-from manager_service import ManagerDashboardService, SubmissionVerificationService, KPIPredictionService
+from services.manager_service import ManagerDashboardService, SubmissionVerificationService, KPIPredictionService
 
 # UT-MM-01: Successful KPI Creation
 @patch('services.kpi_service.require_manager')
@@ -167,7 +167,7 @@ def test_get_kpis_with_filters(mock_db, mock_require_manager):
     assert result["kpis"][0]["id"] == "kpi_777"
 
 # UT-MM-10: Dashboard Stats Aggregation Calculation
-@patch('manager_service.get_db')
+@patch('services.manager_service.get_db')
 def test_get_dashboard_stats_success(mock_get_db):
     mock_db = MagicMock()
     mock_get_db.return_value = mock_db
@@ -220,8 +220,9 @@ def test_get_dashboard_stats_success(mock_get_db):
     assert result["dashboardStats"]["completedKPIs"] == 1
 
 # UT-MM-13: Successful Submission Approval (Updates KPI Progress)
-@patch('manager_service.get_db')
-def test_verify_submission_approval_success(mock_get_db):
+@patch('services.kpi_service.send_email')
+@patch('services.manager_service.get_db')
+def test_verify_submission_approval_success(mock_get_db, mock_send_email):
     mock_db = MagicMock()
     mock_get_db.return_value = mock_db
     
@@ -239,11 +240,21 @@ def test_verify_submission_approval_success(mock_get_db):
     mock_kpi_doc = MagicMock()
     mock_kpi_doc.exists = True
     mock_kpi_doc.to_dict.return_value = {
+        "title": "Sales Target",
         "kpiAssignments": [
             {"userId": "staff_1", "target": 100.0, "current": 50.0}
         ]
     }
     mock_kpi_ref.get.return_value = mock_kpi_doc
+
+    mock_user_ref = MagicMock()
+    mock_user_doc = MagicMock()
+    mock_user_doc.exists = True
+    mock_user_doc.to_dict.return_value = {
+        "name": "John Staff",
+        "email": "john@example.com"
+    }
+    mock_user_ref.get.return_value = mock_user_doc
     
     def collection_router(collection_name):
         mock_col = MagicMock()
@@ -251,6 +262,8 @@ def test_verify_submission_approval_success(mock_get_db):
             mock_col.document.return_value = mock_sub_ref
         elif collection_name == "kpiData":
             mock_col.document.return_value = mock_kpi_ref
+        elif collection_name == "userData":
+            mock_col.document.return_value = mock_user_ref
         return mock_col
         
     mock_db.collection.side_effect = collection_router
@@ -266,10 +279,16 @@ def test_verify_submission_approval_success(mock_get_db):
     assert result["status"] == "approved"
     mock_sub_ref.update.assert_called_once()
     mock_kpi_ref.update.assert_called_once()
+    mock_send_email.assert_called_once_with(
+        "john@example.com",
+        "KPI Submission APPROVED",
+        "Hi John Staff,\n\nYour KPI submission for \"Sales Target\" has been APPROVED.\n\nManager's Comments:\nGreat work\n\nThank you,\nKPI System"
+    )
 
 # UT-MM-14: Successful Submission Rejection (Maintains Current Progress)
-@patch('manager_service.get_db')
-def test_verify_submission_rejection_success(mock_get_db):
+@patch('services.kpi_service.send_email')
+@patch('services.manager_service.get_db')
+def test_verify_submission_rejection_success(mock_get_db, mock_send_email):
     mock_db = MagicMock()
     mock_get_db.return_value = mock_db
     
@@ -282,11 +301,32 @@ def test_verify_submission_rejection_success(mock_get_db):
         "kpiId": "kpi_123"
     }
     mock_sub_ref.get.return_value = mock_sub_doc
+
+    mock_kpi_ref = MagicMock()
+    mock_kpi_doc = MagicMock()
+    mock_kpi_doc.exists = True
+    mock_kpi_doc.to_dict.return_value = {
+        "title": "Sales Target"
+    }
+    mock_kpi_ref.get.return_value = mock_kpi_doc
+
+    mock_user_ref = MagicMock()
+    mock_user_doc = MagicMock()
+    mock_user_doc.exists = True
+    mock_user_doc.to_dict.return_value = {
+        "name": "John Staff",
+        "email": "john@example.com"
+    }
+    mock_user_ref.get.return_value = mock_user_doc
     
     def collection_router(collection_name):
         mock_col = MagicMock()
         if collection_name == "kpiSubmissions":
             mock_col.document.return_value = mock_sub_ref
+        elif collection_name == "kpiData":
+            mock_col.document.return_value = mock_kpi_ref
+        elif collection_name == "userData":
+            mock_col.document.return_value = mock_user_ref
         return mock_col
         
     mock_db.collection.side_effect = collection_router
@@ -301,6 +341,71 @@ def test_verify_submission_rejection_success(mock_get_db):
     assert result["success"] is True
     assert result["status"] == "rejected"
     mock_sub_ref.update.assert_called_once()
+    mock_send_email.assert_called_once_with(
+        "john@example.com",
+        "KPI Submission REJECTED",
+        "Hi John Staff,\n\nYour KPI submission for \"Sales Target\" has been REJECTED.\n\nManager's Comments:\nIncomplete evidence\n\nThank you,\nKPI System"
+    )
+
+# UT-MM-14b: Verification Fail-safe for SMTP failures
+@patch('services.kpi_service.send_email')
+@patch('services.manager_service.get_db')
+def test_verify_submission_email_failure_fail_safe(mock_get_db, mock_send_email):
+    mock_send_email.side_effect = Exception("SMTP Error")
+    mock_db = MagicMock()
+    mock_get_db.return_value = mock_db
+    
+    mock_sub_ref = MagicMock()
+    mock_sub_doc = MagicMock()
+    mock_sub_doc.exists = True
+    mock_sub_doc.to_dict.return_value = {
+        "submittedBy": "staff_1",
+        "current": 100.0,
+        "kpiId": "kpi_123"
+    }
+    mock_sub_ref.get.return_value = mock_sub_doc
+
+    mock_kpi_ref = MagicMock()
+    mock_kpi_doc = MagicMock()
+    mock_kpi_doc.exists = True
+    mock_kpi_doc.to_dict.return_value = {
+        "title": "Sales Target"
+    }
+    mock_kpi_ref.get.return_value = mock_kpi_doc
+
+    mock_user_ref = MagicMock()
+    mock_user_doc = MagicMock()
+    mock_user_doc.exists = True
+    mock_user_doc.to_dict.return_value = {
+        "name": "John Staff",
+        "email": "john@example.com"
+    }
+    mock_user_ref.get.return_value = mock_user_doc
+    
+    def collection_router(collection_name):
+        mock_col = MagicMock()
+        if collection_name == "kpiSubmissions":
+            mock_col.document.return_value = mock_sub_ref
+        elif collection_name == "kpiData":
+            mock_col.document.return_value = mock_kpi_ref
+        elif collection_name == "userData":
+            mock_col.document.return_value = mock_user_ref
+        return mock_col
+        
+    mock_db.collection.side_effect = collection_router
+    
+    result = SubmissionVerificationService.verify_submission(
+        submission_id="sub_999",
+        kpi_id="kpi_123",
+        status="rejected",
+        comments="Incomplete evidence",
+        manager_id="manager_1"
+    )
+    # Verification must succeed even if SMTP throws an exception (fail-safe)
+    assert result["success"] is True
+    assert result["status"] == "rejected"
+    mock_sub_ref.update.assert_called_once()
+    mock_send_email.assert_called_once()
 
 # UT-MM-15: Verification Rejection (Invalid Status String)
 def test_verify_submission_invalid_status():

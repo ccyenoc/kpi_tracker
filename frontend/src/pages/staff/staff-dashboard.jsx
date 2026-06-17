@@ -12,12 +12,14 @@ const StaffDashboard = () => {
   const [kpis, setKpis] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
-  
+
+  const [predictions, setPredictions] = useState({});
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
-  
+
   const auth = useAuth();
   const [currentUser, setCurrentUser] = useState(() => {
     return auth?.user || JSON.parse(localStorage.getItem("user")) || null;
@@ -48,7 +50,7 @@ const StaffDashboard = () => {
     deadline,
     latestSubmissionStatus
   }) => {
-    // A submitted update waiting for manager approval has priority
+    // Pending submission should be shown first
     if (latestSubmissionStatus === "pending") {
       return {
         status: "pending",
@@ -56,7 +58,7 @@ const StaffDashboard = () => {
       };
     }
 
-    // Individual staff completed their own assigned target
+   // Staff has completed their assigned target
     if (progress >= 100) {
       return {
         status: "completed",
@@ -68,7 +70,7 @@ const StaffDashboard = () => {
     const deadlineDate = toDate(deadline);
     const today = new Date();
 
-    // Fallback when dates are unavailable
+    // Use a default value if the date is missing
     if (!startDate || !deadlineDate || deadlineDate <= startDate) {
       return {
         status: progress > 0 ? "in_progress" : "in_progress",
@@ -87,7 +89,7 @@ const StaffDashboard = () => {
       Math.round((elapsedDuration / totalDuration) * 100)
     );
 
-    // Deadline already passed but this staff member is not completed
+     // KPI is overdue and still not completed
     if (today > deadlineDate) {
       return {
         status: "underperformed",
@@ -157,48 +159,48 @@ const StaffDashboard = () => {
         kpi.fetchStaffKPISubmissions()
       ]);
 
-    const realKpis = Array.isArray(kpiData)
-      ? kpiData
-      : kpiData.kpis || kpiData.data || [];
+      const realKpis = Array.isArray(kpiData)
+        ? kpiData
+        : kpiData.kpis || kpiData.data || [];
 
-    const realSubmissionsRaw = Array.isArray(submissionData)
-      ? submissionData
-      : submissionData.submissions || submissionData.data || [];
+      const realSubmissionsRaw = Array.isArray(submissionData)
+        ? submissionData
+        : submissionData.submissions || submissionData.data || [];
 
-    const realSubmissions = normalizeSubmissions(realSubmissionsRaw);
+      const realSubmissions = normalizeSubmissions(realSubmissionsRaw);
 
-    setKpis(realKpis);
-    setSubmissions(realSubmissions);
+      setKpis(realKpis);
+      setSubmissions(realSubmissions);
 
       setActivityLogs([]);
-      } catch (err) {
-        console.error("Dashboard load error:", err);
-        setError(err.message || "Failed to load dashboard data");
-      } finally {
-        if (!silent) {
-          setLoading(false);
-        }
+    } catch (err) {
+      console.error("Dashboard load error:", err);
+      setError(err.message || "Failed to load dashboard data");
+    } finally {
+      if (!silent) {
+        setLoading(false);
       }
-    };
+    }
+  };
 
-   useEffect(() => {
-      loadDashboardData(false);
-    }, []);
-  
+  useEffect(() => {
+    loadDashboardData(false);
+  }, []);
 
-    const submissionMap = submissions.reduce((map, submission) => {
-      const key = submission.kpiId;
-      if (!key) return map;
 
-      if (!map[key]) {
-        map[key] = [];
-      }
+  const submissionMap = submissions.reduce((map, submission) => {
+    const key = submission.kpiId;
+    if (!key) return map;
 
-      map[key].push(submission);
-      return map;
-    }, {});
-      
-    const userKpis = kpis
+    if (!map[key]) {
+      map[key] = [];
+    }
+
+    map[key].push(submission);
+    return map;
+  }, {});
+
+  const assignedKpis = kpis
     .filter(kpi => {
       const assignedUserIds = kpi.assignedUserIds || [];
       const kpiAssignments = kpi.kpiAssignments || [];
@@ -243,9 +245,9 @@ const StaffDashboard = () => {
       const progress =
         Number(targetValue) > 0
           ? Math.min(
-              100,
-              Math.round((Number(currentValue) / Number(targetValue)) * 100)
-            )
+            100,
+            Math.round((Number(currentValue) / Number(targetValue)) * 100)
+          )
           : 0;
 
       const latestSubmission = sortedHistory[sortedHistory.length - 1];
@@ -272,60 +274,60 @@ const StaffDashboard = () => {
         progressText: `${currentValue} / ${targetValue} ${kpi.unit || ""}`,
         deadlineText: kpi.deadline
           ? `${Math.ceil(
-              (new Date(kpi.deadline) - new Date()) / (1000 * 60 * 60 * 24)
-            )} days left`
+            (new Date(kpi.deadline) - new Date()) / (1000 * 60 * 60 * 24)
+          )} days left`
           : "No deadline"
       };
     });
 
-    const kpiTitleMap = Object.fromEntries(
-      userKpis.map((kpi) => [
-        String(kpi.id),
-        kpi.title || kpi.name || kpi.kpiName || "KPI Activity"
-      ])
-    );
+  const kpiTitleMap = Object.fromEntries(
+    assignedKpis.map((kpi) => [
+      String(kpi.id),
+      kpi.title || kpi.name || kpi.kpiName || "KPI Activity"
+    ])
+  );
 
-    const userActivities = submissions
-      .filter((submission) => {
-        return userKpis.some(
-          (kpi) => String(kpi.id) === String(submission.kpiId)
-        );
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.submittedAt || a.createdAt || a.updatedAt || 0);
-        const dateB = new Date(b.submittedAt || b.createdAt || b.updatedAt || 0);
-        return dateB - dateA;
-      })
-      .slice(0, 5)
-      .map((submission) => {
-        const kpiTitle =
-          kpiTitleMap[String(submission.kpiId)] || "KPI Progress Update";
+  const recentActivities = submissions
+    .filter((submission) => {
+      return assignedKpis.some(
+        (kpi) => String(kpi.id) === String(submission.kpiId)
+      );
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.submittedAt || a.createdAt || a.updatedAt || 0);
+      const dateB = new Date(b.submittedAt || b.createdAt || b.updatedAt || 0);
+      return dateB - dateA;
+    })
+    .slice(0, 5)
+    .map((submission) => {
+      const kpiTitle =
+        kpiTitleMap[String(submission.kpiId)] || "KPI Progress Update";
 
-        const submittedDate =
-          submission.submittedAt || submission.createdAt || submission.updatedAt;
+      const submittedDate =
+        submission.submittedAt || submission.createdAt || submission.updatedAt;
 
-        return {
-          id: submission.id || `${submission.kpiId}-${submittedDate}`,
-          userId: currentUserId,
-          title: `Update - ${kpiTitle}`,
-          description: "Performance update recorded",
-          status: submission.status || "pending",
+      return {
+        id: submission.id || `${submission.kpiId}-${submittedDate}`,
+        userId: currentUserId,
+        title: `Update - ${kpiTitle}`,
+        description: "Performance update recorded",
+        status: submission.status || "pending",
 
-          // keep raw date, do not use toLocaleString here
-          time: submittedDate,
-          submittedAt: submittedDate,
-          createdAt: submittedDate,
+        // keep raw date, do not use toLocaleString here
+        time: submittedDate,
+        submittedAt: submittedDate,
+        createdAt: submittedDate,
 
-          // optional icon info
-          icon: "📈",
-          iconBg: "#dbeafe"
-        };
-  });
-    const [selectedMonth, setSelectedMonth] = useState(
-      new Date().toLocaleString("default", { month: "short" })
-    );
+        // optional icon info
+        icon: "📈",
+        iconBg: "#dbeafe"
+      };
+    });
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().toLocaleString("default", { month: "short" })
+  );
 
-    const getWeeksInMonth = (month) => {
+  const getWeeksInMonth = (month) => {
     const year = new Date().getFullYear();
     const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
 
@@ -336,17 +338,17 @@ const StaffDashboard = () => {
   };
 
 
-    const getWeekOfMonth = (date) => {
-      const day = date.getDate();
-      return Math.ceil(day / 7);
-    };
+  const getWeekOfMonth = (date) => {
+    const day = date.getDate();
+    return Math.ceil(day / 7);
+  };
 
-  const dashboardKpis = userKpis;
+  const dashboardKpis = assignedKpis;
   const totalAssignedKpi = dashboardKpis.length;
 
   const weeklyMap = {};
 
-  userKpis.forEach(kpi => {
+  assignedKpis.forEach(kpi => {
     const history = submissionMap[kpi.id] || [];
 
     const sortedHistory = [...history].sort(
@@ -402,6 +404,31 @@ const StaffDashboard = () => {
 
     item.prediction = Math.min(100, item.progress + 5);
   });
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchPredictions = async () => {
+      try {
+        await kpi.fetchStaffKpiPredictions();
+        if (mounted && Array.isArray(predictions.predictions)) {
+          const map = Object.fromEntries(
+            predictions.predictions.map((p) => [
+              String(p.kpi_id),
+              Number(p.predicted_current || 0)
+            ])
+          );
+          setPredictions(map);
+        }
+      } catch (err) {
+        console.error("Error loading KPI predictions", err);
+      }
+    };
+
+    fetchPredictions();
+    return () => { mounted = false; };
+  }, []);
+
   let graphData;
 
   if (selectedMonth === "All") {
@@ -425,76 +452,76 @@ const StaffDashboard = () => {
     });
   }
 
-    {/*DASHBOARD DATA*/}
-    const totalPercentage = dashboardKpis.reduce((sum, kpi) => {
-      const current = Number(kpi.current || 0);
-      const target = Number(kpi.target || 0);
+  {/*DASHBOARD DATA*/ }
+  const totalPercentage = dashboardKpis.reduce((sum, kpi) => {
+    const current = Number(kpi.current || 0);
+    const target = Number(kpi.target || 0);
 
-      const percentage = target > 0
-        ? Math.min(100, Math.round((current / target) * 100))
-        : 0;
-
-      return sum + percentage;
-    }, 0);
-
-    const completionRate = totalAssignedKpi > 0
-      ? Math.round(totalPercentage / totalAssignedKpi)
+    const percentage = target > 0
+      ? Math.min(100, Math.round((current / target) * 100))
       : 0;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    return sum + percentage;
+  }, 0);
 
-    const upcoming = dashboardKpis.filter(k => {
-      if (!k.deadline) return false;
+  const completionRate = totalAssignedKpi > 0
+    ? Math.round(totalPercentage / totalAssignedKpi)
+    : 0;
 
-      const deadline = new Date(k.deadline);
-      deadline.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-      const diffDays = (deadline - today) / (1000 * 60 * 60 * 24);
+  const upcoming = dashboardKpis.filter(k => {
+    if (!k.deadline) return false;
 
-      return (
-        k.status !== "completed" &&
-        k.progress < 100 &&
-        diffDays >= 0 &&
-        diffDays <= 7
-      );
-    });
+    const deadline = new Date(k.deadline);
+    deadline.setHours(0, 0, 0, 0);
 
-    const underperformed = dashboardKpis.filter(
-      (kpi) => kpi.status === "underperformed"
-    ).length;
-      
+    const diffDays = (deadline - today) / (1000 * 60 * 60 * 24);
 
-    const stats = [
-      {
-        title: "Total KPIs",
-        value: totalAssignedKpi,
-        subtitle: "Assigned KPIs",
-        color: "#3b82f6"
-      },
-      {
-        title: "Completion Rate",
-        value: `${completionRate}%`,
-        subtitle: `Average progress of ${totalAssignedKpi} KPIs`,
-        color: "#22c55e"
-      },
-      {
-        title: "Upcoming Deadlines",
-        value: upcoming.length,
-        subtitle: "Due in next 7 days",
-        color: "#facc15"
-      },
-      {
-        title: "High Priority",
-        value: underperformed,
-        subtitle: "Requires attention",
-        color: "#ef4444"
-      }
-    ];  
+    return (
+      k.status !== "completed" &&
+      k.progress < 100 &&
+      diffDays >= 0 &&
+      diffDays <= 7
+    );
+  });
 
-   return (
+  const underperformed = dashboardKpis.filter(
+    (kpi) => kpi.status === "underperformed"
+  ).length;
+
+
+  const stats = [
+    {
+      title: "Total KPIs",
+      value: totalAssignedKpi,
+      subtitle: "Assigned KPIs",
+      color: "#3b82f6"
+    },
+    {
+      title: "Completion Rate",
+      value: `${completionRate}%`,
+      subtitle: `Average progress of ${totalAssignedKpi} KPIs`,
+      color: "#22c55e"
+    },
+    {
+      title: "Upcoming Deadlines",
+      value: upcoming.length,
+      subtitle: "Due in next 7 days",
+      color: "#facc15"
+    },
+    {
+      title: "High Priority",
+      value: underperformed,
+      subtitle: "Requires attention",
+      color: "#ef4444"
+    }
+  ];
+
+  return (
     <div style={{ backgroundColor: "#ffffff", minHeight: "100vh", width: "100%" }}>
-      <div 
+      <div
         style={{
           width: "100%",
           display: "flex",
@@ -502,8 +529,8 @@ const StaffDashboard = () => {
         }}
       >
         {/* TODO: Change to use PageTitle Component */}
-        <div 
-          style={{ 
+        <div
+          style={{
             padding: "20px",
             backgroundColor: "#ffffff",
             width: "100%",
@@ -538,43 +565,45 @@ const StaffDashboard = () => {
             boxSizing: "border-box",
             position: "relative"
           }}>
-          
-          <div 
-          style={{ 
-            flex: 1, 
-            minWidth: 0,
-            maxHeight: "500px",}}>
-            <StaffMonthlyPerformanceGraph 
+
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              maxHeight: "500px",
+            }}>
+            <StaffMonthlyPerformanceGraph
               graphData={graphData}
               selectedMonth={selectedMonth}
               setSelectedMonth={setSelectedMonth}
             />
           </div>
 
-          <div 
-          style={{ 
-            flex: 1, 
-            minWidth: 0,
-            maxHeight: "500px",
-}}>
-               <StaffKPIAssignedCard kpis={userKpis} onUpdate={goUpdate}/>
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              maxHeight: "500px",
+            }}>
+            <StaffKPIAssignedCard kpis={assignedKpis} onUpdate={goUpdate} />
           </div>
         </div>
 
         {/*recent activity*/}
-       <div 
-         style={{
-          padding: "20px",
-          width: "100%",
-          boxSizing: "border-box",
-          marginBottom: "40px",
-          position: "relative"
-         }}>
-        <StaffRecentActivity userActivities={userActivities}/>
-      </div>
+        <div
+          style={{
+            padding: "20px",
+            width: "100%",
+            boxSizing: "border-box",
+            marginBottom: "40px",
+            position: "relative"
+          }}>
+          <StaffRecentActivity recentActivities={recentActivities} />
+        </div>
 
+      </div>
     </div>
-  </div>
-)};
+  )
+};
 
 export default StaffDashboard;

@@ -1,7 +1,10 @@
 from firebase_admin import firestore
 from datetime import datetime, timezone
-from typing import List, Dict, Optional
 from models.kpi_model import KPIStaffAssignment, AssignKPIRequest, VerifySubmissionRequest
+from pydantic import BaseModel
+from services.kpi_service import send_email
+from typing import List, Dict, Optional
+from services.prediction_service import calculate_trajectory_prediction, parse_dt
 
 UNDERPERFORMED_GAP = -25
 AT_RISK_GAP = -10
@@ -105,7 +108,6 @@ def get_kpi_assignments(kpi_id: str) -> Dict:
             "assignments": assignments,
             "totalAssigned": len(assignments)
         }
-
     except Exception as e:
         return {"success": False, "message": str(e)}
 
@@ -193,6 +195,18 @@ def verify_submission(submission_id: str, kpi_id: str, status: str, comments: st
 
             if kpi_doc.exists:
                 kpi_data = kpi_doc.to_dict() or {}
+
+                deadline = kpi_data.get("deadline")
+                created_at = kpi_data.get("createdAt")
+
+                now = datetime.now()
+
+                if isinstance(deadline, str):
+                    deadline = datetime.fromisoformat(deadline)
+
+                if isinstance(created_at, str):
+                    created_at = datetime.fromisoformat(created_at)
+                
                 kpi_assignments = kpi_data.get("kpiAssignments", [])
 
                 # Update assignment for the staff member who submitted
@@ -204,30 +218,84 @@ def verify_submission(submission_id: str, kpi_id: str, status: str, comments: st
                         updated = True
                         break
                 
-                if not updated:
-                    return {
-                        "success": False,
-                        "message": "Staff assignment not found for this KPI"
-                    }
+                # Check if all assigned staff have approved submissions
+                all_submissions = list(db.collection("kpiSubmissions")
+                    .where("kpiId", "==", kpi_id)
+                    .stream())
+                assigned_staff = set(a.get("userId") for a in kpi_assignments)
+                approved_staff = set()
+                
+                for sub_doc in all_submissions:
+                    sub_data = sub_doc.to_dict()
+                    sub_status = sub_data.get("status")
+                    sub_submitted_by = sub_data.get("submittedBy")
 
-                # Mark KPI as completed only when every assigned staff reaches 100%
-                all_staff_completed = (
-                    len(kpi_assignments) > 0 and
-                    all(
-                        float(assignment.get("target", 0) or 0) > 0 and
-                        float(assignment.get("current", 0) or 0) >=
-                        float(assignment.get("target", 0) or 0)
-                        for assignment in kpi_assignments
-                    )
-                )
+                    if sub_doc.id == submission_id or sub_status == "approved":
+                        approved_staff.add(sub_submitted_by)
 
-                new_status = "completed" if all_staff_completed else "active"
-
+                # Mark KPI as completed if all assigned staff have approved
+                all_approved = assigned_staff.issubset(approved_staff) if assigned_staff else False
+                new_status = "completed" if all_approved else "active"
+                
                 kpi_ref.update({
                     "kpiAssignments": kpi_assignments,
                     "status": new_status,
                     "updatedAt": datetime.now().isoformat()
                 })
+
+        # Send notification email to the staff member who made the submission
+        print("✉️ [EMAIL DEBUG] Starting verification email dispatch flow...")
+        print(f"✉️ [EMAIL DEBUG] submitted_by: {submitted_by}, kpi_id: {kpi_id}")
+        staff_email = None
+        staff_name = "Staff Member"
+        if submitted_by:
+            staff_doc = db.collection("userData").document(submitted_by).get()
+            print(f"✉️ [EMAIL DEBUG] staff_doc.exists: {staff_doc.exists}")
+            if staff_doc.exists:
+                staff_data = staff_doc.to_dict() or {}
+                staff_email = staff_data.get("email")
+                staff_name = staff_data.get("name", "Staff Member")
+                print(f"✉️ [EMAIL DEBUG] Retrieved staff_name: {staff_name}, staff_email: {staff_email}")
+            else:
+                print("✉️ [EMAIL DEBUG] staff_doc does not exist in userData collection!")
+        else:
+            print("✉️ [EMAIL DEBUG] No submittedBy user ID found in submission!")
+
+        kpi_title = "KPI"
+        if kpi_id:
+            kpi_doc = db.collection("kpiData").document(kpi_id).get()
+            print(f"✉️ [EMAIL DEBUG] kpi_doc.exists: {kpi_doc.exists}")
+            if kpi_doc.exists:
+                kpi_data = kpi_doc.to_dict() or {}
+                kpi_title = kpi_data.get("title", "KPI")
+                print(f"✉️ [EMAIL DEBUG] Retrieved kpi_title: {kpi_title}")
+            else:
+                print("✉️ [EMAIL DEBUG] kpi_doc does not exist in kpiData collection!")
+
+        if staff_email:
+            try:
+                from services.kpi_service import send_email
+                status_str = status.upper()
+                subject = f"KPI Submission {status_str}"
+                body = f"""Hi {staff_name},
+
+Your KPI submission for "{kpi_title}" has been {status_str}.
+
+Manager's Comments:
+{comments if comments else "No comments provided."}
+
+Thank you,
+KPI System"""
+                print(f"✉️ [EMAIL DEBUG] Calling send_email with parameters:")
+                print(f"  To: {staff_email}")
+                print(f"  Subject: {subject}")
+                print(f"  Body:\n{body}")
+                send_email(staff_email, subject, body)
+                print("✉️ [EMAIL DEBUG] send_email function execution finished.")
+            except Exception as email_err:
+                print("❌ [EMAIL DEBUG] Error sending submission verification email:", email_err)
+        else:
+            print("✉️ [EMAIL DEBUG] Skipping send_email because staff_email is not set/found.")
 
         return {
             "success": True,
@@ -333,30 +401,11 @@ def predict_kpi_outcome(kpi_id: str) -> Dict:
         deadline = kpi_data.get("deadline")
         kpi_assignments = kpi_data.get("kpiAssignments", [])
 
-        def parse_dt(value, fallback=None):
-            """Parse any date value from Firestore into a naive datetime."""
-            if value is None:
-                return fallback
-            if isinstance(value, str):
-                # Handle Z-suffix (UTC) which fromisoformat can't parse pre-3.11
-                normalised = value.replace("Z", "+00:00").replace(".000+00:00", "+00:00")
-                try:
-                    dt = datetime.fromisoformat(normalised)
-                except ValueError:
-                    return fallback
-            elif hasattr(value, 'timestamp'):
-                dt = datetime.fromtimestamp(value.timestamp())
-            else:
-                return fallback
-            return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
-
         now = datetime.now()
-        deadline = parse_dt(deadline, now)
-        created_at = parse_dt(kpi_data.get("createdAt"), now)
+        deadline_dt = parse_dt(deadline, now)
+        created_at_dt = parse_dt(kpi_data.get("createdAt"), now)
 
-        days_remaining = max((deadline - now).days, 0)
-        total_days = max((deadline - created_at).days, 1)
-
+        days_remaining = max((deadline_dt - now).days, 0)
 
         staff_predictions = []
         overall_prediction = 0
@@ -366,11 +415,12 @@ def predict_kpi_outcome(kpi_id: str) -> Dict:
             target = assignment.get("target", 1)
             current_rate = current_progress / target if target > 0 else 0
 
-            if days_remaining > 0:
-                daily_rate = (current_rate / (total_days - days_remaining)) if (total_days - days_remaining) > 0 else 0
-                predicted_progress = min(100, (daily_rate * total_days) * 100)
-            else:
-                predicted_progress = min(100, current_rate * 100)
+            predicted_progress = calculate_trajectory_prediction(
+                current_progress,
+                target,
+                kpi_data.get("createdAt"),
+                deadline
+            )
 
             user_id = assignment.get("userId")
             user_doc = db.collection("userData").document(user_id).get()
@@ -391,14 +441,34 @@ def predict_kpi_outcome(kpi_id: str) -> Dict:
 
         average_prediction = (overall_prediction / len(staff_predictions)) if staff_predictions else 0
 
+        # Calculate weekly prediction progression data for Recharts compatibility
+        chart = []
+        overall_current = sum(a.get("current", 0.0) for a in kpi_assignments)
+        overall_target = sum(a.get("target", 1.0) for a in kpi_assignments)
+        
+        # Calculate current average progress rate (0 to 100)
+        current_rate_pct = (overall_current / overall_target * 100) if overall_target > 0 else 0
+        
+        for w in range(1, 5):
+            week_kpi = 25 * w
+            week_progress = (current_rate_pct / 4) * w
+            week_prediction = (average_prediction / 4) * w
+            chart.append({
+                "time": f"Week {w}",
+                "kpi": week_kpi,
+                "progress": round(week_progress, 2),
+                "prediction": round(week_prediction, 2)
+            })
+
         return {
             "success": True,
             "kpiId": kpi_id,
             "kpiTitle": kpi_data.get("title"),
-            "deadline": deadline.isoformat() if deadline else None,
+            "deadline": deadline_dt.isoformat() if deadline_dt else None,
             "daysRemaining": max(0, days_remaining),
             "overallPredictedProgress": round(average_prediction, 2),
             "staffPredictions": staff_predictions,
+            "chart": chart,
             "predictionGeneratedAt": datetime.now().isoformat()
         }
 
@@ -713,3 +783,20 @@ def get_underperform_kpis() -> Dict:
             "message": str(e),
             "kpis": []
         }
+
+
+# Class wrappers for unit test compatibility
+class ManagerDashboardService:
+    @staticmethod
+    def get_dashboard_stats() -> Dict:
+        return get_dashboard_stats()
+
+class SubmissionVerificationService:
+    @staticmethod
+    def verify_submission(submission_id: str, kpi_id: str, status: str, comments: str, manager_id: str) -> Dict:
+        return verify_submission(submission_id, kpi_id, status, comments, manager_id)
+
+class KPIPredictionService:
+    @staticmethod
+    def predict_kpi_outcome(kpi_id: str) -> Dict:
+        return predict_kpi_outcome(kpi_id)

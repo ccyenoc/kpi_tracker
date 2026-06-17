@@ -130,11 +130,6 @@ const StaffKPIUpdate = () => {
 
   console.log(categories);
 
-
-
-
-
-
    const stats = [
     {
       title: "Total KPIs",
@@ -234,7 +229,7 @@ const StaffKPIUpdate = () => {
         <DashboardCards stats={stats} />
       </div>
       
-      {/* Search and Filter section wrapper */}
+      {/* search and filter section wrapper */}
       <div style={{ 
         width: "100%",
         marginTop: "10px",

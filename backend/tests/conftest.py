@@ -10,20 +10,15 @@ if backend_dir not in sys.path:
 
 # Create a shared mock firestore client
 mock_db = MagicMock()
+mock_collections = {}
 
 # Setup default collection routing to avoid conflicts in tests
 def default_collection_router(collection_name):
+    if collection_name in mock_collections:
+        return mock_collections[collection_name]
+        
     col = MagicMock()
     col._name = collection_name
-    
-    # Mock document reference
-    doc_ref = MagicMock()
-    doc_ref.id = "mock_doc_id"
-    
-    # Mock document snapshot returned by get()
-    doc_snapshot = MagicMock()
-    doc_snapshot.exists = True
-    doc_snapshot.id = "mock_doc_id"
     
     # Sensible defaults for each collection
     data = {}
@@ -57,15 +52,39 @@ def default_collection_router(collection_name):
             "expiresAt": int(time.time()) + 600,
             "verified": False
         }
+
+    # Document routing mock
+    doc_refs = {}
+    def document_router(doc_id=None):
+        if doc_id is None:
+            col.document.side_effect = None
+            ret = col.document.return_value
+            col.document.side_effect = document_router
+            return ret
+        if doc_id in doc_refs:
+            return doc_refs[doc_id]
+            
+        doc_ref = MagicMock()
+        doc_ref.id = doc_id
         
-    doc_snapshot.to_dict.return_value = data
-    doc_ref.get.return_value = doc_snapshot
-    col.document.return_value = doc_ref
+        doc_snapshot = MagicMock()
+        doc_snapshot.exists = True
+        doc_snapshot.id = doc_id
+        doc_snapshot.to_dict.return_value = data
+        
+        doc_ref.get.return_value = doc_snapshot
+        doc_refs[doc_id] = doc_ref
+        return doc_ref
+        
+    col.document.side_effect = document_router
     
     # Mock query/stream behavior
     col.where.return_value = col
-    col.stream.return_value = [doc_snapshot]
     
+    default_doc_ref = col.document("mock_doc_id")
+    col.stream.return_value = [default_doc_ref.get()]
+    
+    mock_collections[collection_name] = col
     return col
 
 mock_db.collection.side_effect = default_collection_router
@@ -103,6 +122,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture(autouse=True)
 def clean_mock_db():
     mock_db.reset_mock()
+    mock_collections.clear()
     mock_db.collection.side_effect = default_collection_router
     mock_verify_token.reset_mock()
     mock_verify_token.return_value = {
