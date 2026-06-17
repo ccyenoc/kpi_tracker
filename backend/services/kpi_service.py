@@ -553,9 +553,6 @@ def send_email(to_email, subject, content):
     except Exception as e:
         print("Email error:", e)
 
-from collections import defaultdict
-from datetime import datetime
-
 
 def get_kpi_history(request: Request):
 
