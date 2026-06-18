@@ -35,64 +35,40 @@ function ManagerDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleDownloadMonthlyReport = async () => {
-    try {
-      const blob = await kpi.getMyMonthlyReport();
-
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-
-      a.href = url;
-      a.download = "monthly_report.pdf";
-
-      document.body.appendChild(a);
-
-      a.click();
-
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
-
-    } catch (err) {
-      // Handle download errors silently
-    }
-  };
-
-      const stats = [
-        {
-          title: "Total KPIs",
-          value: loading ? "—" : kpis.length,
-          subtitle: "All defined KPIs",
-          color: "#3b82f6",
-        },
-        {
-          title: "Active KPIs",
-          value:
-            loading
-              ? "—"
-              : kpis.filter(
-                  (k) => k.status === "active"
-                ).length,
-          subtitle: "Currently in progress",
-          color: "#22c55e",
-        },
-        {
-          title: "Completed",
-          value:
-            loading
-              ? "—"
-              : kpis.filter((k) => k.status === "completed").length,
-          subtitle: "Finished KPIs",
-          color: "#facc15",
-        },
-        {
-          title: "Requires Attention",
-          value: loading ? "—" : underperform.length,
-          subtitle: "Underperforming KPIs",
-          color: "#ef4444",
-        },
-      ];
+  const stats = [
+    {
+      title: "Total KPIs",
+      value: loading ? "—" : kpis.length,
+      subtitle: "All defined KPIs",
+      color: "#3b82f6",
+    },
+    {
+      title: "Active KPIs",
+      value:
+        loading
+          ? "—"
+          : kpis.filter(
+            (k) => k.status === "active"
+          ).length,
+      subtitle: "Currently in progress",
+      color: "#22c55e",
+    },
+    {
+      title: "Completed",
+      value:
+        loading
+          ? "—"
+          : kpis.filter((k) => k.status === "completed").length,
+      subtitle: "Finished KPIs",
+      color: "#facc15",
+    },
+    {
+      title: "Requires Attention",
+      value: loading ? "—" : underperform.length,
+      subtitle: "Underperforming KPIs",
+      color: "#ef4444",
+    },
+  ];
 
   return (
     <div className="d-flex">
@@ -121,9 +97,7 @@ function ManagerDashboard() {
 
         <DashboardCards stats={stats} />
 
-        <ExportBar
-          onMonthlyReport={handleDownloadMonthlyReport}
-        />
+        <ExportBar />
 
         <RectangleGraphCard />
 

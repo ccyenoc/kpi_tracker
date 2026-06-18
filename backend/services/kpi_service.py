@@ -250,23 +250,6 @@ def get_weekly_kpi():
             data = doc.to_dict() or {}
             data["id"] = doc.id
 
-             # date filtering logic
-            date_in_range = False
-            has_dates = False
-            for date_field in ["createdAt", "updatedAt"]:
-                date_str = data.get(date_field)
-                if date_str:
-                    has_dates = True
-                    try:
-                        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00").split("+")[0])
-                        if start_date <= dt <= end_date:
-                            date_in_range = True
-                            break
-                    except:
-                        pass
-            if has_dates and not date_in_range:
-                continue
-
             # calculate KPI-level progress
             assignments = data.get("kpiAssignments", [])
 
@@ -335,22 +318,23 @@ def get_monthly_kpi():
             data = doc.to_dict() or {}
             data["id"] = doc.id
 
-            # date filtering logic
-            date_in_range = False
-            has_dates = False
-            for date_field in ["createdAt", "updatedAt"]:
-                date_str = data.get(date_field)
-                if date_str:
-                    has_dates = True
-                    try:
-                        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00").split("+")[0])
-                        if start_of_month <= dt < end_of_month:
-                            date_in_range = True
-                            break
-                    except:
-                        pass
-            if has_dates and not date_in_range:
-                continue
+            # date filtering logic (only filter completed KPIs by completion month; active KPIs are ongoing and always included)
+            if data.get("status") == "completed":
+                date_in_range = False
+                has_dates = False
+                for date_field in ["createdAt", "updatedAt"]:
+                    date_str = data.get(date_field)
+                    if date_str:
+                        has_dates = True
+                        try:
+                            dt = datetime.fromisoformat(date_str.replace("Z", "+00:00").split("+")[0])
+                            if start_of_month <= dt < end_of_month:
+                                date_in_range = True
+                                break
+                        except:
+                            pass
+                if has_dates and not date_in_range:
+                    continue
 
             assignments = data.get("kpiAssignments", [])
 

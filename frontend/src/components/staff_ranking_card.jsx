@@ -3,22 +3,6 @@ import TopStaffCard from "./top_staff_card";
 
 const API_BASE_URL = "";
 
-/**
- * StaffRankingCard (Manager Module — Live Firebase Data)
- *
- * Fetches real staff performance rankings from the backend aggregation endpoint
- * GET /api/manager/dashboard/stats and renders the top-3 performers.
- *
- * Shape returned by the endpoint per staff entry:
- *   { staffId, name, department, totalTarget, totalCurrent, kpiCount, achievementRate }
- *
- * We derive the three sub-scores that TopStaffCard expects as follows:
- *   - kpiScore        → achievementRate (overall %
- *   - timelinessScore → placeholder derived from achievementRate (backend doesn't store
- *                       timeliness separately yet; extend when that data is available)
- *   - qualityScore    → same placeholder strategy
- *   - finalScore      → achievementRate (used for the circular progress ring)
- */
 function StaffRankingCard() {
 
   const [top3, setTop3] = useState([]);
@@ -72,15 +56,15 @@ function StaffRankingCard() {
         boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
       }}>
       <h4
-       style={{
-        fontSize: "18px",
+        style={{
+          fontSize: "18px",
+          textAlign: "left",
+        }}>Staff Ranking</h4>
+      <p style={{
         textAlign: "left",
-       }}>Staff Ranking</h4>
-      <p style={{ 
-        textAlign: "left",
-        fontSize : "14px",
-        color: "#666" 
-        }}>
+        fontSize: "14px",
+        color: "#666"
+      }}>
         Top staffs based on KPI performance
       </p>
 

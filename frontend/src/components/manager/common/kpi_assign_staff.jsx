@@ -203,22 +203,6 @@ function KPIAssignStaff({ staffList, unit, assignedStaff, setAssignedStaff, sear
             {/* Unit */}
             <div>{unit}</div>
 
-            {/* Suggestion */}
-            <div
-              style={{
-                background: "#fff7cc",
-                border: "1px solid #facc15",
-                padding: "10px",
-                borderRadius: "10px",
-                fontSize: "13px"
-              }}
-            >
-              <strong>💡 50 {unit}</strong>
-              <div style={{ fontSize: "0.75rem", color: "#555" }}>
-                based on performance
-              </div>
-            </div>
-
           </div>
         ))}
 

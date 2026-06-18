@@ -120,7 +120,7 @@ function ProgressKPIGraph({ kpiId }) {
           marginBottom: "20px"
         }}
       >
-        Expected vs Actual vs Forecast
+        Actual vs Forecast
       </p>
 
 
@@ -158,15 +158,6 @@ function ProgressKPIGraph({ kpiId }) {
 
             <Legend
               verticalAlign="top"
-            />
-
-
-            <Line
-              type="monotone"
-              dataKey="expected"
-              stroke="#2563eb"
-              strokeWidth={3}
-              name="Expected"
             />
 
 

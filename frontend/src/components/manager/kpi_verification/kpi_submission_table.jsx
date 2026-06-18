@@ -5,7 +5,7 @@ import { pathway } from "../../../Pathway";
 import { kpi } from "../../../api/api";
 import Confirmation from "../../common/confirmation";
 
-function KPISubmissionTable({submissions, users = [], kpis = [], categories = [], onSubmissionUpdated = null}) {
+function KPISubmissionTable({ submissions, users = [], kpis = [], categories = [], onSubmissionUpdated = null }) {
   const navigate = useNavigate();
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -16,18 +16,18 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
 
   const headerStyle = {
     display: "flex",
-    textAlign:"left",
+    textAlign: "left",
     fontWeight: "bold",
-    fontSize:"16px",
-    padding:"5px",
+    fontSize: "16px",
+    padding: "5px",
     borderBottom: "1px solid #e5e7eb",
   };
 
   const rowStyle = {
     display: "flex",
-    textAlign:"left",
+    textAlign: "left",
     padding: "15px 0",
-    fontSize:"14px",
+    fontSize: "14px",
     borderBottom: "1px solid #e5e7eb",
     alignItems: "center",
   };
@@ -64,9 +64,9 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
 
   const submitVerification = async (status) => {
     if (!selectedSubmission) return;
-    
+
     setIsProcessing(true);
-        try {
+    try {
       setIsProcessing(true);
 
       const data = await kpi.verifySubmission({
@@ -101,29 +101,30 @@ function KPISubmissionTable({submissions, users = [], kpis = [], categories = []
   };
 
 
- const userMap = Object.fromEntries(
-  users.map((u) => [u.id || u.userId, u])
-);
+  const userMap = Object.fromEntries(
+    users.map((u) => [u.id || u.userId, u])
+  );
 
-const kpiMap = Object.fromEntries(
-  kpis.map((k) => [k.id, k])
-);
+  const kpiMap = Object.fromEntries(
+    kpis.map((k) => [k.id, k])
+  );
 
-const categoryMap = Object.fromEntries(
-  categories.map((c) => [c.id, c])
-);
+  const categoryMap = Object.fromEntries(
+    categories.map((c) => [c.id, c])
+  );
 
-console.log("KPIS", kpis);
-console.log("FIRST KPI", kpis[0]);
+  console.log("KPIS", kpis);
+  console.log("FIRST KPI", kpis[0]);
 
   return (
     <div className="mx-3"
-    style={{ 
+      style={{
         marginTop: "10px",
-        padding:"20px",
+        padding: "20px",
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-        borderRadius:"12px" }}>
-      
+        borderRadius: "12px"
+      }}>
+
       <div style={headerStyle}>
         <div style={{ flex: 1.2, maxWidth: "100px", minWidth: 0 }}>Staff</div>
         <div style={{ flex: 2.5 }}>KPI Title</div>
@@ -153,12 +154,10 @@ console.log("FIRST KPI", kpis[0]);
             name: kpi?.categoryName || "Unknown",
             color:
               categoryColorMap[
-                kpi?.categoryId?.toLowerCase()
+              kpi?.categoryId?.toLowerCase()
               ] || "#e5e7eb",
           };
 
-          // Always show the row - use available data with fallbacks
-          // item.current is from submission, kpi.target is from KPI data
           const target = item.target || kpi.target || 100;
           const current = item.current || 0;
           const progressPercent = target
@@ -166,33 +165,33 @@ console.log("FIRST KPI", kpis[0]);
             : 0;
 
           return (
-            <div 
+            <div
               style={rowStyle}
               key={`${item.id}-${idx}`}
               onClick={() => navigate(pathway.VerifyKPI, { state: item })}>
 
-              <div style={{ 
+              <div style={{
                 flex: 1.2,
                 maxWidth: "100px",
                 minWidth: 0,
                 whiteSpace: "normal",
                 wordBreak: "break-word",
-                overflowWrap: "break-word" 
+                overflowWrap: "break-word"
               }}>
                 <div style={{ fontWeight: "500" }}>{user.name}</div>
                 <div style={{ fontSize: "13px", color: "#6b7280" }}>{user.email}</div>
               </div>
 
               <div style={{ flex: 2.5 }}>
-                <div style={{ 
+                <div style={{
                   fontWeight: "500",
                   maxWidth: "200px",
                   minWidth: 0,
                   whiteSpace: "normal",
                   wordBreak: "break-word",
-                  overflowWrap: "break-word" 
+                  overflowWrap: "break-word"
                 }}>{kpi.title}</div>
-                <div style={{ 
+                <div style={{
                   fontSize: "13px",
                   color: "#6b7280",
                   maxWidth: "200px",
@@ -221,20 +220,20 @@ console.log("FIRST KPI", kpis[0]);
               </div>
 
               <div style={{ flex: 1.5 }}>
-              <span
-                style={{
-                  backgroundColor: category.color,
-                  padding: "6px 12px",
-                  borderRadius: "999px",
-                  fontSize: "12px",
-                  fontWeight: "500",
-                  display: "inline-block",
-                  whiteSpace: "nowrap", 
-                }}
-              >
-                {category.name}
-              </span>
-            </div>
+                <span
+                  style={{
+                    backgroundColor: category.color,
+                    padding: "6px 12px",
+                    borderRadius: "999px",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                    display: "inline-block",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {category.name}
+                </span>
+              </div>
 
               <div style={{ flex: 1.2 }}>
                 <div style={{ fontWeight: "500" }}>{item.submittedAt}</div>
@@ -245,7 +244,7 @@ console.log("FIRST KPI", kpis[0]);
                   <div>
                     {item.files.map((file, idx) => (
                       <div key={idx}>
-                        <a 
+                        <a
                           href={`/api/kpi/evidence/${file.storedName}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -274,7 +273,7 @@ console.log("FIRST KPI", kpis[0]);
 
               <div style={{ flex: 1.2 }}>
                 <span style={statusStyle(item.status)}>
-                    {item.status?.charAt(0).toUpperCase() + item.status?.slice(1).toLowerCase()}
+                  {item.status?.charAt(0).toUpperCase() + item.status?.slice(1).toLowerCase()}
                 </span>
               </div>
 
@@ -328,11 +327,11 @@ console.log("FIRST KPI", kpis[0]);
             </div>
           );
         })
-        : (
-          <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
-            No submissions available
-          </div>
-        )}
+          : (
+            <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+              No submissions available
+            </div>
+          )}
       </div>
 
       {showModal && selectedSubmission && (
@@ -357,7 +356,7 @@ console.log("FIRST KPI", kpis[0]);
             boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
           }}>
             <h2 style={{ marginTop: 0, marginBottom: "20px" }}>Verify Submission</h2>
-            
+
             <div style={{ marginBottom: "20px", backgroundColor: "#f3f4f6", padding: "15px", borderRadius: "8px" }}>
               <p style={{ margin: "5px 0" }}><strong>KPI:</strong> {kpiMap[selectedSubmission.kpiId]?.title || "Unknown"}</p>
               <p style={{ margin: "5px 0" }}><strong>Staff:</strong> {userMap[selectedSubmission.userId || selectedSubmission.submittedBy]?.name || "Unknown"}</p>

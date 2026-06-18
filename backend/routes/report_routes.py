@@ -14,14 +14,13 @@ router = APIRouter()
 
 def get_user_name(user_id):
     try:
-        # Check by document ID first
+
         doc = db.collection("userData").document(user_id).get()
         if doc.exists:
             data = doc.to_dict()
             if data and data.get("name"):
                 return data["name"]
 
-        # Fallback to field query
         users_ref = db.collection("userData")
         query = users_ref.where("userId", "==", user_id).limit(1).stream()
 
@@ -209,6 +208,156 @@ def monthly_report():
             media_type="application/pdf",
             headers={
                 "Content-Disposition": "attachment; filename=monthly_report.pdf"
+            }
+        )
+
+    except Exception as e:
+        print("ERROR:", e)
+        return {"error": str(e)}
+
+
+@router.get("/report/monthly/me")
+def my_monthly_report(request: Request):
+    try:
+        current_user = get_current_user_from_request(request)
+
+        if not current_user:
+            return {"error": "Unauthorized"}
+
+        user_id = current_user.get("id")
+        user_name = get_user_name(user_id)
+        if user_name == user_id:
+            user_name = "Staff"
+
+        kpi_docs = db.collection(KPI_COLLECTION).stream()
+
+        completed_kpis = []
+        active_kpis = []
+
+        for doc in kpi_docs:
+            data = doc.to_dict() or {}
+            data["id"] = doc.id
+
+            assignments = data.get("kpiAssignments", [])
+
+            user_assignment = next(
+                (a for a in assignments if a.get("userId") == user_id),
+                None
+            )
+
+            if not user_assignment:
+                continue
+
+            target = user_assignment.get("target", 1)
+            current_val = user_assignment.get("current", 0)
+
+            progress = round(
+                (current_val / target) * 100,
+                2
+            ) if target > 0 else 0
+
+            kpi_entry = {
+                "title": data.get("title", ""),
+                "description": data.get("description", ""),
+                "target": target,
+                "unit": data.get("unit", ""),
+                "current": current_val,
+                "progress": progress,
+                "status": data.get("status", ""),
+                "deadline": data.get("deadline", ""),
+            }
+
+            if data.get("status") == "completed":
+                completed_kpis.append(kpi_entry)
+            else:
+                active_kpis.append(kpi_entry)
+
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=letter)
+
+        width, height = letter
+
+        title_text = f"Monthly Performance Report - {user_name}"
+
+        p.setFont("Helvetica-Bold", 15)
+
+        text_width = p.stringWidth(
+            title_text,
+            "Helvetica-Bold",
+            15
+        )
+
+        p.drawString((width - text_width) / 2, 750, title_text)
+
+        total = len(completed_kpis) + len(active_kpis)
+
+        avg = round(
+            sum(
+                k["progress"]
+                for k in completed_kpis + active_kpis
+            ) / total,
+            2
+        ) if total else 0
+
+        p.setFont("Helvetica", 12)
+
+        p.drawString(50, 710, f"Total KPIs: {total}")
+        p.drawString(50, 692, f"Completed: {len(completed_kpis)}")
+        p.drawString(50, 674, f"Active: {len(active_kpis)}")
+        p.drawString(50, 656, f"Average Progress: {avg}%")
+
+        y = 625
+
+        def draw_kpi_table(kpi_list, section_title):
+            nonlocal y
+
+            p.setFont("Helvetica-Bold", 13)
+            p.drawString(50, y, section_title)
+
+            y -= 20
+
+            p.setFont("Helvetica-Bold", 10)
+
+            p.drawString(50, y, "KPI Title")
+            p.drawString(260, y, "Target")
+            p.drawString(320, y, "Current")
+            p.drawString(390, y, "Progress %")
+
+            y -= 10
+
+            p.line(50, y, 480, y)
+
+            y -= 15
+
+            p.setFont("Helvetica", 10)
+
+            for kpi in kpi_list:
+                p.drawString(50, y, kpi["title"][:30])
+                p.drawString(260, y, f"{kpi['target']} {kpi['unit']}")
+                p.drawString(320, y, str(kpi["current"]))
+                p.drawString(390, y, f"{kpi['progress']}%")
+
+                y -= 15
+
+                if y < 60:
+                    p.showPage()
+                    y = 750
+
+            y -= 15
+
+        draw_kpi_table(completed_kpis, "Completed KPIs")
+        draw_kpi_table(active_kpis, "Active KPIs")
+
+        p.showPage()
+        p.save()
+
+        buffer.seek(0)
+
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=monthly_report_{user_name.replace(' ', '_')}.pdf"
             }
         )
 

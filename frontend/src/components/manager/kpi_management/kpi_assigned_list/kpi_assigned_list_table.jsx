@@ -7,11 +7,9 @@ import { categories } from "../../../../data/categoriesData";
 
 function KPIAssignedListTable({ data, users = [] }) {
   const navigate = useNavigate();
-  
-  // Use passed users, fall back to mock if needed
+
   const usersList = users && users.length > 0 ? users : mockUsers;
 
-  // Color mapping for categories based on their names
   const categoryColorMap = {
     "sales": "#639fff",
     "lead": "#7ef203",
@@ -29,10 +27,10 @@ function KPIAssignedListTable({ data, users = [] }) {
     if (!dateString) return "No deadline";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", { 
-        year: "numeric", 
-        month: "short", 
-        day: "numeric" 
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
       });
     } catch (e) {
       return dateString;
@@ -99,14 +97,14 @@ function KPIAssignedListTable({ data, users = [] }) {
         const config = STATUS_CONFIG[item.status];
 
         // Use categoryName from backend, with fallback logic
-        const categoryName = item.categoryName || 
-          (categories.find(c => c.id === item.categoryId)?.name) || 
+        const categoryName = item.categoryName ||
+          (categories.find(c => c.id === item.categoryId)?.name) ||
           "Unknown";
-        
+
         // Get color from the mapping, with fallback
-        const categoryColor = categoryColorMap[categoryName] || 
+        const categoryColor = categoryColorMap[categoryName] ||
           categoryColorMap[item.categoryId] ||
-          categories.find(c => c.name === categoryName || c.id === item.categoryId)?.color || 
+          categories.find(c => c.name === categoryName || c.id === item.categoryId)?.color ||
           "#e5e7eb";
 
         return (
@@ -146,15 +144,15 @@ function KPIAssignedListTable({ data, users = [] }) {
               }}>{
                 (item.assignedUserIds && item.assignedUserIds.length > 0)
                   ? item.assignedUserIds
-                      .map(id => usersList.find(u => u.id === id)?.name || `User ${id}`)
-                      .filter(name => name)
-                      .join(", ")
+                    .map(id => usersList.find(u => u.id === id)?.name || `User ${id}`)
+                    .filter(name => name)
+                    .join(", ")
                   : (item.kpiAssignments && item.kpiAssignments.length > 0)
-                  ? item.kpiAssignments
+                    ? item.kpiAssignments
                       .map(assign => usersList.find(u => u.id === assign.userId)?.name || `User ${assign.userId}`)
                       .filter(name => name)
                       .join(", ")
-                  : "Unassigned"
+                    : "Unassigned"
               }</div>
 
             {/* Category */}
